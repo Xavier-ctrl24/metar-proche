@@ -1,0 +1,246 @@
+[
+  {
+    "raw": "020852Z AUTO 22009KT 10SM CLR 15/M09 A2998 RMK AO2 SLP086 T01501089 51005 TSNO",
+    "note": "Identifiant OACI absent (ligne commence par l'heure) + temperature negative M09 + pression en pouces A2998. Ciel clair CLR : aucune couche a marquer",
+    "expect": {
+      "temperature": { "value": 15, "unit": "C", "dewPoint": -9, "humidity": 18 }
+    }
+  },
+  {
+    "raw": "RJSN 231800Z AUTO /////KT //// // ////// ///// Q////",
+    "note": "Panne totale : tout est barres obliques. Doit produire un objet valide plein de null, jamais une exception. Rien a marquer (ni temperature ni nuages)",
+    "expect": {}
+  },
+  {
+    "raw": "SVVA 231800Z /////KT 9999 BKN016 32/22 Q1016",
+    "note": "Vent absent (/////KT) mais le reste est lisible : visibilite, nuages, temperatures OK",
+    "expect": {
+      "temperature": { "value": 32, "unit": "C", "dewPoint": 22, "humidity": 56 },
+      "clouds": [ { "coverage": "BKN", "altitude": 500, "unit": "m" } ]
+    }
+  },
+  {
+    "raw": "271400Z 090//KT 9999 SCT016 30/25 Q1010",
+    "note": "Vitesse de vent absente (090//KT) : direction 090 connue, vitesse null. Identifiant aussi absent",
+    "expect": {
+      "temperature": { "value": 30, "unit": "C", "dewPoint": 25, "humidity": 75 },
+      "clouds": [ { "coverage": "SCT", "altitude": 500, "unit": "m" } ]
+    }
+  },
+  {
+    "raw": "DAOR 231800Z VRB02KT 9999 SCT033 42/// Q1019",
+    "note": "Point de rosee absent (42///) : temperature 42 connue, point de rosee null, donc humidite non calculable (null). Vent variable VRB",
+    "expect": {
+      "temperature": { "value": 42, "unit": "C", "dewPoint": null, "humidity": null },
+      "clouds": [ { "coverage": "SCT", "altitude": 1000, "unit": "m" } ]
+    }
+  },
+  {
+    "raw": "ESKS 231750Z AUTO 20005KT 9999 BKN160/// 17/04 Q1011",
+    "note": "Type de nuage inconnu / non renseigne (BKN160///) : couverture BKN et altitude 16000 ft > 4900 m conserves, type ignore",
+    "expect": {
+      "temperature": { "value": 17, "unit": "C", "dewPoint": 4, "humidity": 42 },
+      "clouds": [ { "coverage": "BKN", "altitude": 4900, "unit": "m" } ]
+    }
+  },
+  {
+    "raw": "181800Z 11014KT 9999 FEW015 BKN290 21/25 Q1020",
+    "note": "Donnee aberrante : point de rosee 25 > temperature 21 (impossible). Humidite LAISSEE A TOI (regle plafond 100 % + warning). Nuages remplis normalement",
+    "expect": {
+      "temperature": { "value": 21, "unit": "C", "dewPoint": 25 },
+      "clouds": [
+        { "coverage": "FEW", "altitude": 500, "unit": "m" },
+        { "coverage": "BKN", "altitude": 8800, "unit": "m" }
+      ]
+    }
+  },
+  {
+    "raw": "030046Z AZIS&LM)U10SM 18/10J RJS135 T01830128 TSNO $",
+    "note": "Ligne corrompue (caracteres parasites & ) J). Extraction de la temperature ambigue : LAISSEE A TOI, c'est justement ce que le parser doit trancher",
+    "expect": {}
+  },
+  {
+    "raw": "DNZA 221400SK 221400Z NIL",
+    "note": "Pas d'observation (NIL) + horodatage errone 221400SK. Aucune donnee meteo a extraire",
+    "expect": {}
+  },
+  {
+    "raw": "081030Z 0812/0912 28010KT CAVOK TEMPO 0818/0824 30015KT",
+    "note": "TAF melange dans le flux METAR (plages de validite 0812/0912). Groupes TEMPO ignores, CAVOK sans couche, aucune temperature",
+    "expect": {}
+  },
+  {
+    "raw": "SGPJ 231800Z 14004KT 9999 TS OVC007FEW040CB 17/17 Q1018",
+    "note": "Groupes de nuages colles (OVC007FEW040CB) a separer en deux couches + orage TS (severite danger) + CB. T = point de rosee > humidite 100 %",
+    "expect": {
+      "temperature": { "value": 17, "unit": "C", "dewPoint": 17, "humidity": 100 },
+      "clouds": [
+        { "coverage": "OVC", "altitude": 200, "unit": "m" },
+        { "coverage": "FEW", "altitude": 1200, "unit": "m" }
+      ]
+    }
+  },
+  {
+    "raw": "061346Z AUTO 07013G22KT 10SM 30/10 A2998 RMK AO2 SLP%UGJH&L0100 TSNO $",
+    "note": "Corruption a la source dans le RMK (SLP%UGJH&L) : ignore. La temperature 30/10 est AVANT le RMK, donc propre et decodable. Aucun groupe de nuages present",
+    "expect": {
+      "temperature": { "value": 30, "unit": "C", "dewPoint": 10, "humidity": 29 }
+    }
+  },
+  {
+    "raw": "ZSQD 231800Z 15003MPS 9999 BKN008 25/25 Q1004 NOSIG",
+    "note": "Vent en metres par seconde (MPS, usage Chine/Russie/Asie centrale). T = point de rosee > humidite 100 %",
+    "expect": {
+      "temperature": { "value": 25, "unit": "C", "dewPoint": 25, "humidity": 100 },
+      "clouds": [ { "coverage": "BKN", "altitude": 200, "unit": "m" } ]
+    }
+  },
+  {
+    "raw": "URMM 231800Z 26006MPS 9999 -TSRA SCT064CB 22/20 Q1006 R29/290150 TEMPO 0700 +TSRA BKN004 BKN040CB RMK QFE726/0969",
+    "note": "Cas riche : MPS + TSRA (danger) + portee de piste + tendance TEMPO (couches BKN004/BKN040CB ignorees). Seule couche retenue : SCT064CB avant TEMPO",
+    "expect": {
+      "temperature": { "value": 22, "unit": "C", "dewPoint": 20, "humidity": 88 },
+      "clouds": [ { "coverage": "SCT", "altitude": 2000, "unit": "m" } ]
+    }
+  },
+  {
+    "raw": "KSMP 231756Z AUTO VRB05KT M1/4SM FG VV001 14/14 A3013 RMK AO2 SLP840 T01390139 10150 20139 51000",
+    "note": "M1/4SM + brouillard FG + visibilite verticale VV001 (remplace les nuages : clouds vide, verticalVisibility LAISSEE A TOI). T = point de rosee > humidite 100 %",
+    "expect": {
+      "temperature": { "value": 14, "unit": "C", "dewPoint": 14, "humidity": 100 }
+    }
+  },
+  {
+    "raw": "CWLY 231800Z AUTO 21015G30KT 170V240 1 3/4SM HZ FEW017 BKN130 29/12 A2987 RMK SLP109 DENSITY ALT 2600FT",
+    "note": "Visibilite fractionnaire composee (1 3/4SM) + rafales G30 + direction variable + brume seche HZ. Deux couches FEW017 / BKN130",
+    "expect": {
+      "temperature": { "value": 29, "unit": "C", "dewPoint": 12, "humidity": 35 },
+      "clouds": [
+        { "coverage": "FEW", "altitude": 500, "unit": "m" },
+        { "coverage": "BKN", "altitude": 4000, "unit": "m" }
+      ]
+    }
+  },
+  {
+    "raw": "CYBX 231800Z 26008KT 1/8SM -DZ FG VV002 12/12 A2986 RMK FG8 SLP114",
+    "note": "1/8SM + bruine faible -DZ + brouillard FG + visibilite verticale VV002 (remplace les nuages : clouds vide). T = point de rosee > humidite 100 %",
+    "expect": {
+      "temperature": { "value": 12, "unit": "C", "dewPoint": 12, "humidity": 100 }
+    }
+  },
+  {
+    "raw": "NZCM 231755Z AUTO 08017KT 9999 SCT230 M26/M30 A2933 RMK AO2 SLP940 T12631303 11223 21268 53017 $",
+    "note": "Temperatures negatives doubles (M26/M30). Antarctique. Une couche SCT230 (23000 ft > 7000 m)",
+    "expect": {
+      "temperature": { "value": -26, "unit": "C", "dewPoint": -30, "humidity": 69 },
+      "clouds": [ { "coverage": "SCT", "altitude": 7000, "unit": "m" } ]
+    }
+  },
+  {
+    "raw": "UWLW 231800Z 00000MPS CAVOK 22/20 Q1009 R20/CLRD60 NOSIG RMK QFE751/1002",
+    "note": "Vent calme 00000MPS + CAVOK (remplace visibilite ET nuages : aucune couche) + portee de piste R20/CLRD60 + QFE ignore",
+    "expect": {
+      "temperature": { "value": 22, "unit": "C", "dewPoint": 20, "humidity": 88 }
+    }
+  },
+  {
+    "raw": "KEYE 231753Z AUTO VRB03KT 10SM SCT060 23/09 A3020 RMK AO2 SLP222 T02330089 10239 20150 58004",
+    "note": "Direction variable VRB03KT + visibilite 10SM + une couche SCT060 (6000 ft > 1800 m)",
+    "expect": {
+      "temperature": { "value": 23, "unit": "C", "dewPoint": 9, "humidity": 41 },
+      "clouds": [ { "coverage": "SCT", "altitude": 1800, "unit": "m" } ]
+    }
+  },
+  {
+    "raw": "KCIR 231755Z AUTO 03008KT 360V060 10SM CLR 26/17 A3016 RMK AO2 T02620169 10263 20189",
+    "note": "Direction du vent oscillant entre deux caps (360V060) + ciel clair CLR (aucune couche a marquer)",
+    "expect": {
+      "temperature": { "value": 26, "unit": "C", "dewPoint": 17, "humidity": 58 }
+    }
+  },
+  {
+    "raw": "VOCX 231730Z 20008KT 6000 SCT018 BKN200 28/25 Q1011 NOSIG=",
+    "note": "Signe = de fin de bulletin colle a NOSIG (tout ce qui suit ignore). Deux couches SCT018 / BKN200",
+    "expect": {
+      "temperature": { "value": 28, "unit": "C", "dewPoint": 25, "humidity": 84 },
+      "clouds": [
+        { "coverage": "SCT", "altitude": 500, "unit": "m" },
+        { "coverage": "BKN", "altitude": 6100, "unit": "m" }
+      ]
+    }
+  },
+  {
+    "raw": "WIMM 231730Z 22004KT 6000 -TSRA FEW017CB BKN018 25/25 Q1010 NOSIG",
+    "note": "Orage avec pluie faible -TSRA (severite danger) + CB. Deux couches FEW017 / BKN018 (les deux > 500 m). T = point de rosee > humidite 100 %",
+    "expect": {
+      "temperature": { "value": 25, "unit": "C", "dewPoint": 25, "humidity": 100 },
+      "clouds": [
+        { "coverage": "FEW", "altitude": 500, "unit": "m" },
+        { "coverage": "BKN", "altitude": 500, "unit": "m" }
+      ]
+    }
+  },
+  {
+    "raw": "200500Z 18005KT 8000 -RA FEW010 BKN018 OVC090 21/20 Q1014 INTER 0500/0700 7000 RA FEW008 BKN016 OVC080 METAR",
+    "note": "Groupe de tendance INTER ignore (couches apres INTER exclues) + pluie faible -RA. Trois couches FEW010 / BKN018 / OVC090 avant INTER",
+    "expect": {
+      "temperature": { "value": 21, "unit": "C", "dewPoint": 20, "humidity": 94 },
+      "clouds": [
+        { "coverage": "FEW", "altitude": 300, "unit": "m" },
+        { "coverage": "BKN", "altitude": 500, "unit": "m" },
+        { "coverage": "OVC", "altitude": 2700, "unit": "m" }
+      ]
+    }
+  },
+  {
+    "raw": "SVMC 231800Z 18004KT 9999 FEW010(CBSW) BKN013 33/25 Q1013",
+    "note": "Annotation parenthesee collee au nuage FEW010(CBSW) : coverage FEW et altitude 1000 ft > 300 m conserves. Deuxieme couche BKN013",
+    "expect": {
+      "temperature": { "value": 33, "unit": "C", "dewPoint": 25, "humidity": 63 },
+      "clouds": [
+        { "coverage": "FEW", "altitude": 300, "unit": "m" },
+        { "coverage": "BKN", "altitude": 400, "unit": "m" }
+      ]
+    }
+  },
+  {
+    "raw": "LFST 231800Z AUTO 01010KT CAVOK 24/07 Q1018 NOSIG",
+    "note": "NOMINAL Europe (Strasbourg, la station de l'exemple du contrat). CAVOK : aucune couche a marquer",
+    "expect": {
+      "temperature": { "value": 24, "unit": "C", "dewPoint": 7, "humidity": 34 }
+    }
+  },
+  {
+    "raw": "KLAX 231753Z 25008KT 10SM CLR 26/18 A2989 RMK AO2 SLP119 T02560183 10261 20200 58002 $",
+    "note": "NOMINAL USA (Los Angeles) : visibilite en miles 10SM, pression en pouces, ciel clair CLR (aucune couche)",
+    "expect": {
+      "temperature": { "value": 26, "unit": "C", "dewPoint": 18, "humidity": 61 }
+    }
+  },
+  {
+    "raw": "RJTT 231800Z 07008KT 9999 FEW010 BKN050 27/26 Q1010 NOSIG",
+    "note": "NOMINAL Asie (Tokyo Haneda) : deux couches FEW010 / BKN050",
+    "expect": {
+      "temperature": { "value": 27, "unit": "C", "dewPoint": 26, "humidity": 94 },
+      "clouds": [
+        { "coverage": "FEW", "altitude": 300, "unit": "m" },
+        { "coverage": "BKN", "altitude": 1500, "unit": "m" }
+      ]
+    }
+  },
+  {
+    "raw": "VHHH 231800Z 21003KT 170V240 9999 FEW020 29/25 Q1006 NOSIG",
+    "note": "NOMINAL Asie (Hong Kong) : direction variable 170V240, une couche FEW020",
+    "expect": {
+      "temperature": { "value": 29, "unit": "C", "dewPoint": 25, "humidity": 79 },
+      "clouds": [ { "coverage": "FEW", "altitude": 600, "unit": "m" } ]
+    }
+  },
+  {
+    "raw": "EDDF 231750Z AUTO 31010KT 270V350 CAVOK 22/08 Q1019 NOSIG",
+    "note": "NOMINAL Europe (Francfort) : direction variable 270V350 + CAVOK (aucune couche)",
+    "expect": {
+      "temperature": { "value": 22, "unit": "C", "dewPoint": 8, "humidity": 41 }
+    }
+  }
+]

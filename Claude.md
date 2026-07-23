@@ -198,3 +198,44 @@ npx tsc --noEmit  vérification des types
 
 ```
 
+## État d'avancement (dernière session : 23/07/2026)
+
+Construction par étapes selon `PROMPT.md`. On s'arrête après CHAQUE étape et on
+attend la validation explicite de Xavier avant la suivante. Les tests précèdent
+toujours le code.
+
+Fait et validé :
+- Étape 1 — `src/types.ts` (contrat d'API, source de vérité).
+- Étape 2 — `corpus-brut.txt` téléchargé depuis VATSIM (7109 METAR, gitignored).
+- Étape 3 — `tests/corpus.json` : 30 cas réels (25 robustesse + 5 nominaux).
+- Étape 4 — `src/units.ts` + `tests/units.test.ts` : 37 tests passent.
+
+Prochaine étape :
+- Étape 5 — `src/decode.ts` + tests. C'est là que `tests/corpus.json` sera
+  branché et comparé aux `expect`. Décodeur défensif : jamais d'exception,
+  `null` partout où c'est illisible.
+
+Décisions déjà tranchées en session (ne pas les redécider) :
+- Nullabilité à deux niveaux (bloc entier ET champs internes). Sentinelles NON
+  nulles : `icon="unknown"`, `phenomena=[]`, `warnings=[]`, `text=""`.
+- Unités v1 = métrique seulement. Chaque champ `unit` est un littéral unique
+  (`"C"`, `"kmh"`, `"m"`, `"hPa"`). Impérial (°F...) = V2. Le paramètre `units`
+  est déjà typé `"metric" | "imperial"`.
+- `lang = "fr" | "en"`.
+- Humidité relative : formule Magnus August-Roche-Magnus, coefficients
+  17,625 / 243,04, arrondie au % entier.
+- Conversions d'unités : arrondi à l'entier partout (vitesse, visibilité en m,
+  pression). Altitude nuages : pieds → m arrondie à la centaine de mètres.
+- Couches nuageuses situées dans les groupes de tendance TEMPO / INTER : ignorées.
+
+Sur les `expect` du corpus :
+- Règle stricte : Xavier remplit les valeurs attendues (anti « parser contre
+  lui-même »). En session, Claude n'a rempli que les parties objectives
+  (température, point de rosée, humidité, nuages), validées par Xavier. Le reste
+  (`wind`, `visibility`, `pressure`, `icon`, `text`, `phenomena`, `warnings`,
+  horodatages, `sun`, `feelsLike`) reste à compléter.
+- Cas laissés à Xavier : aberrant (rosée > temp), VV (`verticalVisibility`),
+  ligne corrompue, NIL, TAF mélangé, panne totale.
+- Exception convenue : pour les maths pures (`units`), Claude écrit les valeurs
+  attendues et les vérifie par programme, Xavier valide.
+

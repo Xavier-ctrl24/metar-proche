@@ -25,6 +25,9 @@ build/
 coverage/
 .vitest/
 
+# --- Corpus METAR brut (telecharge une seule fois, jamais commite) ---
+corpus-brut.txt
+
 # --- Editeurs ---
 .vscode/*
 !.vscode/extensions.json

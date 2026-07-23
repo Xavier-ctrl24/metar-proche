@@ -1,0 +1,43 @@
+# --- Node ---
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+.npm/
+
+# --- Secrets / variables d'environnement ---
+# Ne JAMAIS commiter de cles d'API. On garde seulement un fichier d'exemple.
+.env
+.env.*
+!.env.example
+
+# --- Vercel ---
+.vercel/
+
+# --- Build / sortie de compilation ---
+dist/
+build/
+.output/
+*.tsbuildinfo
+
+# --- Tests (vitest) ---
+coverage/
+.vitest/
+
+# --- Editeurs ---
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+.idea/
+*.swp
+
+# --- Windows ---
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+*.lnk
+
+# --- macOS (utile si le projet est partage un jour) ---
+.DS_Store

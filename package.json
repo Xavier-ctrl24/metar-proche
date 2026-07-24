@@ -17,5 +17,8 @@
     "@vercel/node": "^5.8.26",
     "typescript": "^7.0.2",
     "vitest": "^4.1.10"
+  },
+  "dependencies": {
+    "tz-lookup": "^6.1.25"
   }
 }

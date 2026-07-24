@@ -106,7 +106,7 @@ Ne jamais produire un bloc de code sans le commenter.
 
 &#x20;   "headline": "Éclaircies",
 
-&#x20;   "wind": "Vent de sud-ouest, 15 km/h, rafales à 30",
+&#x20;   "wind": "Vent du sud-ouest, 15 km/h, rafales à 30",
 
 &#x20;   "visibility": "Plus de 10 km",
 
@@ -198,22 +198,55 @@ npx tsc --noEmit  vérification des types
 
 ```
 
-## État d'avancement (dernière session : 23/07/2026)
+## État d'avancement (dernière session : 24/07/2026)
 
 Construction par étapes selon `PROMPT.md`. On s'arrête après CHAQUE étape et on
 attend la validation explicite de Xavier avant la suivante. Les tests précèdent
-toujours le code.
+toujours le code. À ce jour : 169 tests passent, `npm run type-check` exit 0.
 
 Fait et validé :
 - Étape 1 — `src/types.ts` (contrat d'API, source de vérité).
 - Étape 2 — `corpus-brut.txt` téléchargé depuis VATSIM (7109 METAR, gitignored).
 - Étape 3 — `tests/corpus.json` : 30 cas réels (25 robustesse + 5 nominaux).
 - Étape 4 — `src/units.ts` + `tests/units.test.ts` : 37 tests passent.
+- Étape 5 — `src/decode.ts` + `tests/decode.test.ts` : décodeur défensif
+  (jamais d'exception, `null` partout où c'est illisible). Type de retour
+  interne `DecodedMetar` (PAS le contrat public, assemblé depuis `types.ts`).
+- `tsconfig.json` ajouté (micro-étape hors plan) : strict, `moduleResolution:
+  "bundler"`, `noEmit`. Active `npm run type-check`.
+- Étape 6 — `src/i18n/fr.ts` + `tests/i18n.test.ts` : `windText`,
+  `visibilityText`, `cloudsText`, `phenomenaText`, `translateFr`. Fonctions
+  pures, dépendantes de `types.ts` seul (un `en.ts` se glissera à côté).
+- Étape 7 — `src/icon.ts` + `tests/icon.test.ts`, plus `headlineText` ajouté à
+  `src/i18n/fr.ts`. `icon.ts` = sélecteur NEUTRE (`dominantCondition` → jeton
+  `WeatherCondition`, puis `pickIcon(decoded, isDay)`), AUCUN français dedans.
+  `headlineText(jeton)` en français dans `fr.ts` ; les deux partagent le même
+  sélecteur donc icône et headline ne peuvent pas diverger. `headline` est
+  désormais câblé dans `translateFr` (plus vide).
+- Étape 8 — `src/geo.ts` + `tests/geo.test.ts` (16 tests) : `haversineKm`,
+  `bearingDeg` (0..360), `solar` (calcul NOAA), `resolveTimezone`. Ajout déps :
+  `tz-lookup` (choix de Xavier vs zéro-dép, pour un vrai nom IANA mondial) +
+  `src/tz-lookup.d.ts` (déclaration maison, pas de types fournis). `geo.ts`
+  renvoie des VALEURS (nombres, `Date` UTC), jamais de chaînes formatées : la
+  conversion en heure locale murale (« 05:47 ») est reportée à l'assemblage
+  (étape 10) via le fuseau. `solar` retourne `{ isDay, sunriseUtc, sunsetUtc }` ;
+  `isDay` vient de l'élévation solaire réelle à l'instant UTC (donc SANS fuseau).
+  Hautes latitudes gérées : jour/nuit polaire → `sunriseUtc`/`sunsetUtc = null`,
+  `isDay` tranché par l'élévation. Validé contre almanach (Paris solstice
+  03:47/19:57 UTC) et cercle arctique (URMM).
 
 Prochaine étape :
-- Étape 5 — `src/decode.ts` + tests. C'est là que `tests/corpus.json` sera
-  branché et comparé aux `expect`. Décodeur défensif : jamais d'exception,
-  `null` partout où c'est illisible.
+- Étape 9 — `src/awc.ts` : source de données de PRODUCTION (aviationweather.gov,
+  `bbox=latMin,lonMin,latMax,lonMax&format=json`, sans clé). Logique : bbox ±1,5°
+  autour de la position, distance haversine (via `geo.ts`), tri croissant,
+  retenir la station la plus proche dont l'obs a < 3 h. Si rien → élargir à ±3°
+  une fois, puis réponse explicite (pas d'erreur). VATSIM = corpus SEULEMENT.
+  À confirmer en étape 9 : la réponse AWC porte-t-elle déjà un fuseau/offset ?
+  Sinon `resolveTimezone` reste à notre charge. Cache 5 min sur l'endpoint
+  (câblé plutôt à l'étape 10, `api/nearest.ts`).
+- Reste ensuite à brancher `sun.isDay` (via `geo.solar`) en paramètre de
+  `pickIcon` lors de l'assemblage (étape 10) ; aujourd'hui `isDay` y est encore
+  une entrée non branchée, défaut jour si null.
 
 Décisions déjà tranchées en session (ne pas les redécider) :
 - Nullabilité à deux niveaux (bloc entier ET champs internes). Sentinelles NON
@@ -227,6 +260,23 @@ Décisions déjà tranchées en session (ne pas les redécider) :
 - Conversions d'unités : arrondi à l'entier partout (vitesse, visibilité en m,
   pression). Altitude nuages : pieds → m arrondie à la centaine de mètres.
 - Couches nuageuses situées dans les groupes de tendance TEMPO / INTER : ignorées.
+- Décodeur (étape 5) : `=` coupe le bulletin ; `RMK`/`BECMG`/`TEMPO`/`INTER`/
+  `NOSIG` arrêtent l'extraction ; nuages collés séparés (`OVC007FEW040CB`) ;
+  `VV` en mètres SANS arrondi à la centaine ; `feelsLike` calculé ici (froid =
+  refroidissement éolien, chaud = indice de chaleur, approximatif).
+- Traduction (étape 6) : `headline` reporté à l'étape 7 (même priorité que
+  l'icône). Nuages multiples → on décrit la couche la plus couvrante
+  (OVC>BKN>SCT>FEW). Phénomènes composés → base + intensité en suffixe
+  (`-TSRA` = « Orage avec pluie faible »), plusieurs phénomènes séparés par
+  virgule. Vent : « du nord/sud/... », « d'est/d'ouest ». Visibilité sous
+  1 km en mètres bruts (« 400 m »), 9999 et + = « Plus de 10 km ».
+- Icône/headline (étape 7) : GR/GS/PL → `hail` ; pluie+neige (RASN) → `sleet` ;
+  HZ (brume sèche) → `mist` ; IC (cristaux de glace) → sans icône (retombe sur
+  les nuages) ; SS/DS (tempêtes) → `dust`. Suffixe jour/nuit UNIQUEMENT sur
+  clear/few/partly_cloudy/showers (BKN=`cloudy`, OVC=`overcast`, pluie/neige
+  neutres). `isDay=null` → variante jour par défaut. headline ciel clair =
+  « Ciel dégagé », mélange = « Neige fondue ». Distinction clé : `clouds=[]`
+  (dégagé connu) → clear ; `clouds=null` sans phénomène → unknown.
 
 Sur les `expect` du corpus :
 - Règle stricte : Xavier remplit les valeurs attendues (anti « parser contre

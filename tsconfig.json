@@ -1,0 +1,39 @@
+{
+  // tsconfig.json — reglage du verificateur de types (npm run type-check).
+  // Ce fichier ne SERT qu'a verifier les types : il n'emet aucun JavaScript
+  // (noEmit). La transpilation reelle est faite par Vitest (esbuild) pour les
+  // tests et par Vercel pour la production. tsc est ici notre filet de securite.
+  "compilerOptions": {
+    // --- Cible et bibliotheque ---
+    // Node 24 comprend tout ES2023. Pas de "dom" : c'est un backend, pas un navigateur.
+    "target": "es2023",
+    "lib": ["es2023"],
+
+    // --- Systeme de modules ---
+    // Le projet est en modules ES ("type":"module" dans package.json).
+    // "bundler" autorise les imports sans extension (./units) et l'import de JSON,
+    // exactement comme Vitest et Vercel les resolvent. "nodenext" exigerait
+    // d'ecrire ./units.js partout, ce qu'on veut eviter.
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "resolveJsonModule": true, // autorise import corpus from "./corpus.json"
+    "verbatimModuleSyntax": true, // force "import type" pour les types : imports plus clairs
+
+    // --- Rigueur maximale (on veut attraper les erreurs tot) ---
+    "strict": true, // active tout le mode strict d'un coup (null-checks compris)
+    "noUnusedLocals": true, // variable declaree jamais utilisee = erreur
+    "noUnusedParameters": true, // parametre jamais utilise = erreur
+    "noFallthroughCasesInSwitch": true, // oubli de "break" dans un switch = erreur
+    "noImplicitOverride": true, // redefinir une methode parente sans "override" = erreur
+    "forceConsistentCasingInFileNames": true, // ./Units et ./units ne sont plus confondus
+
+    // --- Confort ---
+    "esModuleInterop": true, // interop propre avec les rares modules CommonJS
+    "skipLibCheck": true, // ne verifie pas l'interieur des .d.ts des dependances (plus rapide)
+    "noEmit": true, // aucune sortie : verification pure
+    "types": ["node"] // charge les types globaux de Node (process, Date, etc.)
+  },
+  // Fichiers analyses : notre code source et nos tests. "api" n'existe pas encore
+  // (etape 10) mais on peut deja l'annoncer : un dossier absent est simplement ignore.
+  "include": ["src", "tests", "api"]
+}

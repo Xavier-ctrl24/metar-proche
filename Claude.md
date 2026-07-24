@@ -202,7 +202,7 @@ npx tsc --noEmit  vérification des types
 
 Construction par étapes selon `PROMPT.md`. On s'arrête après CHAQUE étape et on
 attend la validation explicite de Xavier avant la suivante. Les tests précèdent
-toujours le code. À ce jour : 169 tests passent, `npm run type-check` exit 0.
+toujours le code. À ce jour : 193 tests passent, `npm run type-check` exit 0.
 
 Fait et validé :
 - Étape 1 — `src/types.ts` (contrat d'API, source de vérité).
@@ -235,16 +235,27 @@ Fait et validé :
   `isDay` tranché par l'élévation. Validé contre almanach (Paris solstice
   03:47/19:57 UTC) et cercle arctique (URMM).
 
+- Étape 9 — `src/awc.ts` + `tests/awc.test.ts` (24 tests) : source de PRODUCTION
+  aviationweather.gov, `bbox=latMin,lonMin,latMax,lonMax&format=json`, sans clé.
+  Découpage PUR / IMPUR : `buildBboxUrl`, `normalizeRows`, `selectNearest` sont
+  pures ; `fetchNearest` est la seule I/O et reçoit `fetchImpl` + `nowMs` en
+  paramètres (injection), donc AUCUN appel réseau dans `npm test`. Fixture =
+  4 vraies lignes AWC capturées le 24/07/2026, inlinées dans le test, horloge
+  figée. Retour = union discriminée `{found:true,...}` / `{found:false,reason}`
+  avec `reason` ∈ `invalid_position | no_station | only_stale | network_error`
+  (panne réseau, HTTP≠200, JSON illisible → donnée, jamais d'exception).
+  `distanceKm`/`bearingDeg` NON arrondis (arrondi = présentation, étape 10).
+  Type interne `AwcStation` (≠ `Station` du contrat).
+
 Prochaine étape :
-- Étape 9 — `src/awc.ts` : source de données de PRODUCTION (aviationweather.gov,
-  `bbox=latMin,lonMin,latMax,lonMax&format=json`, sans clé). Logique : bbox ±1,5°
-  autour de la position, distance haversine (via `geo.ts`), tri croissant,
-  retenir la station la plus proche dont l'obs a < 3 h. Si rien → élargir à ±3°
-  une fois, puis réponse explicite (pas d'erreur). VATSIM = corpus SEULEMENT.
-  À confirmer en étape 9 : la réponse AWC porte-t-elle déjà un fuseau/offset ?
-  Sinon `resolveTimezone` reste à notre charge. Cache 5 min sur l'endpoint
-  (câblé plutôt à l'étape 10, `api/nearest.ts`).
-- Reste ensuite à brancher `sun.isDay` (via `geo.solar`) en paramètre de
+- Étape 10 — `api/nearest.ts` : assemblage (station + decode + i18n + icon +
+  geo), cache 5 min, `observedLocal`/`sunrise`/`sunset` formatés via le fuseau.
+  Trois points à trancher à l'étape 10 : (a) `isStale` du contrat est MORT tel
+  quel, puisque `awc.ts` ne rend jamais une obs > 3 h — il lui faut son propre
+  seuil (60-90 min ?) ou il sort du contrat ; (b) `ageMinutes` peut être NÉGATIF
+  (obs jusqu'à 1 h en avance, tolérée) : le laisser ou le ramener à 0 ; (c) le
+  `name` AWC (« Bale-Mulhouse, GES, FR ») est-il nettoyé pour le grand public ?
+- Reste à brancher `sun.isDay` (via `geo.solar`) en paramètre de
   `pickIcon` lors de l'assemblage (étape 10) ; aujourd'hui `isDay` y est encore
   une entrée non branchée, défaut jour si null.
 
@@ -277,6 +288,26 @@ Décisions déjà tranchées en session (ne pas les redécider) :
   neutres). `isDay=null` → variante jour par défaut. headline ciel clair =
   « Ciel dégagé », mélange = « Neige fondue ». Distinction clé : `clouds=[]`
   (dégagé connu) → clear ; `clouds=null` sans phénomène → unknown.
+- AWC (étape 9), vérifié sur un vrai appel du 24/07/2026 : la réponse ne
+  contient NI fuseau NI offset (champs : `icaoId, receiptTime, obsTime,
+  reportTime, temp, dewp, wdir, wspd, altim, qcField, metarType, rawOb, lat,
+  lon, elev, name`). `resolveTimezone` reste donc à notre charge. `obsTime`
+  (epoch secondes) == `reportTime` sur les 16 lignes de l'échantillon ; on
+  utilise `obsTime` (repli `reportTime`), JAMAIS le groupe `DDHHMMZ` du METAR
+  qui n'a ni mois ni année. `name` AWC = « Buechel Arpt, RP, DE », passé tel
+  quel : normalisation éventuelle = étape 10.
+- Antiméridien (étape 9) : ARBITRAGE DE XAVIER (24/07/2026) = solution propre,
+  donc DEUX requêtes de part et d'autre de la ligne de changement de date, pas
+  le bornage. TÂCHE OUVERTE, À FAIRE À LA REPRISE avant l'étape 10 : aujourd'hui
+  `buildBboxUrl` borne encore la longitude à ±180 (couverture dégradée sur
+  Fidji/Kiribati). Refonte attendue : une fonction qui renvoie UNE ou DEUX URL
+  (lon-marge < -180 ou lon+marge > 180 → deux boîtes, ex. [177.5,180] et
+  [-180,-179.5]), `fetchNearest` fusionne les lignes des deux appels avant
+  `selectNearest`. La latitude reste bornée à ±90 (correct : au pôle il n'y a
+  rien au-delà). Tests à ajouter : bbox à cheval, fusion des deux réponses,
+  une seule des deux requêtes en panne.
+- Fraîcheur (étape 9) : obs > 3 h écartée ; obs datée > 1 h dans le futur
+  écartée aussi (station mal réglée, sinon elle gagnerait le tri).
 
 Sur les `expect` du corpus :
 - Règle stricte : Xavier remplit les valeurs attendues (anti « parser contre

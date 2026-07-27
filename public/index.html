@@ -242,14 +242,19 @@ const ECHECS = {
   no_station: ["Aucune station à proximité", "Il n'y a pas d'aéroport observateur dans cette zone. Essayez une position plus proche d'une ville."],
   only_stale: ["Aucune observation récente", "Les stations du secteur n'ont rien publié depuis plus de trois heures."],
   network_error: ["Source météo injoignable", "Le service d'observation ne répond pas. Réessayez dans un instant."],
+  // Les deux ci-dessous ne viennent PAS de l'API : ce sont nos propres pannes,
+  // et les nommer distinctement évite d'accuser la source météo à tort.
+  serveur: ["Le service a rencontré une erreur", "Ce n'est pas la météo qui manque, c'est notre serveur qui a échoué."],
+  hors_ligne: ["Service inaccessible", "Vérifiez votre connexion, puis réessayez."],
 };
 
-function afficherEchec(code) {
+function afficherEchec(code, status) {
   const [titre, suite] = ECHECS[code] ?? ["Réponse inattendue", "Réessayez dans un instant."];
+  const detail = status ? ` (code ${status})` : "";
   $("card").hidden = true;
   $("notice").hidden = false;
   $("notice").innerHTML = `<b></b><span></span>`;
-  $("notice").firstChild.textContent = titre;
+  $("notice").firstChild.textContent = titre + detail;
   $("notice").lastChild.textContent = suite;
 }
 
@@ -340,11 +345,21 @@ async function consulter(lat, lon) {
   const url = `/api/nearest?lat=${lat}&lon=${lon}&lang=${$("lang").value}&units=metric`;
   try {
     const res = await fetch(url);
-    const body = await res.json();
+    // On lit d'abord en TEXTE. Un serveur en panne renvoie une page HTML, et
+    // `res.json()` lèverait : l'incident du 27/07/2026 a montré qu'un plantage
+    // à 500 se retrouvait alors affiché comme « source météo injoignable »,
+    // c'est-à-dire en accusant la source d'une faute qui était la nôtre.
+    const texte = await res.text();
+    let body = null;
+    try { body = JSON.parse(texte); } catch { /* ce n'est pas du JSON */ }
+
+    if (body === null) return afficherEchec("serveur", res.status);
     if (!res.ok) return afficherEchec(body.error);
     afficher(body);
   } catch {
-    afficherEchec("network_error");
+    // Ici, et ici seulement, la requête n'a jamais abouti : navigateur hors
+    // ligne, ou service inaccessible. C'est le seul vrai cas « injoignable ».
+    afficherEchec("hors_ligne");
   }
 }
 

@@ -327,7 +327,14 @@ Fait et validé :
   non celle du navigateur — consulter Fidji à 3 h locales donne une page de
   nuit. Vérifié en vrai le 27/07/2026 : Brumath `clear_day`, Nadi NFFN
   `isDay: false`, `lang=en` → « Clear sky », position invalide → 400.
-  `vercel.json` fixe `maxDuration: 30` (constat n° 2 de la revue de code).
+  `vercel.json` fixe `maxDuration: 30` (constat n° 2 de la revue de code), et
+  aussi `"framework": null` + `"buildCommand": null` + `"outputDirectory":
+  "public"`. Ces trois-là ne sont PAS de la décoration : la présence de
+  `vite.config.ts` à la racine et de `vite` dans les dépendances suffit à faire
+  détecter à Vercel un « projet Vite », donc à lancer un build et à chercher le
+  site dans `dist/`, qui n'existe pas. Or vite n'est ici qu'un outil de
+  DÉVELOPPEMENT : en production, Vercel doit juste servir `public/` en statique
+  et `api/` en fonction, sans rien construire. On le dit donc explicitement.
   ATTENTION, encodage : ne JAMAIS passer ces fichiers à un
   `Get-Content | -replace | Set-Content` PowerShell. PowerShell 5.1 lit l'UTF-8
   comme du Latin-1 et réencode, ce qui transforme « données » en « donnÃ©es »

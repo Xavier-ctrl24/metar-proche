@@ -52,32 +52,46 @@ export const RETRY_DELAY_MS = 200;
 // une seule requête peut immobiliser une fonction serverless jusqu'à la limite
 // de la plateforme, pendant que l'utilisateur regarde une page qui charge.
 //
-// Pourquoi 8 s, et pourquoi PAS 4 s. Valeur choisie sur MESURE, pas au jugé.
-// Le 27/07/2026, 12 processus froids ont fait chacun un premier appel réel
-// sans plafond, depuis Brumath : 165, 185, 321, 352, 369, 433, 628, 736,
-// 1219, 1945, 5295 et 6825 ms — tous RÉUSSIS. La latence à froid ne se range
-// pas en deux paquets nets (« rapide » ou « bloqué ») : elle s'étale. Un
-// plafond à 4 s aurait donc coupé DEUX appels sur douze qui allaient aboutir,
-// c'est-à-dire transformé des réussites lentes en pannes. Un délai trop zélé
-// est pire que pas de délai : il fabrique les erreurs qu'il prétend éviter.
+// Pourquoi 12 s. Valeur choisie sur MESURE, et RELEVÉE DEUX FOIS parce que la
+// première mesure était incomplète. Historique, parce qu'il est instructif :
 //
-// Le garde-fou reste utile en haut de l'échelle : le même jour, un appel
+//   1. Premier choix, 4 s, calculé sur le seul budget Vercel. Mesure faite
+//      ENSUITE : 12 processus froids, un appel réel chacun sans plafond, depuis
+//      Brumath → 165, 185, 321, 352, 369, 433, 628, 736, 1219, 1945, 5295 et
+//      6825 ms, TOUS réussis. La latence à froid ne se range pas en deux
+//      paquets nets (« rapide » ou « bloqué »), elle s'étale : 4 s aurait coupé
+//      2 appels sur 12 qui allaient aboutir. Porté à 8 s.
+//   2. Puis la page de démonstration a montré un cas que Brumath ne pouvait pas
+//      révéler : une bbox de PLEIN OCÉAN (-40, -140) met 2254, 7487 et 1091 ms
+//      à répondre « aucune station ». Une zone déserte est LENTE. Le premier
+//      appel de cette série a été coupé à 8 s et rendu comme une panne, alors
+//      qu'il était bien vivant. Il ne restait que 500 ms de marge sur un cas
+//      parfaitement courant du Pacifique.
+//
+// Leçon à retenir plutôt que le chiffre : un délai trop zélé fabrique les
+// erreurs qu'il prétend éviter, et une mesure prise depuis un seul point du
+// globe ne dit rien des autres. 12 s n'est possible sans risque que parce que
+// vercel.json fixe désormais `maxDuration` à 30 s.
+//
+// Le garde-fou reste utile en haut de l'échelle : le 27/07/2026, un appel
 // réellement bloqué a mis 10 s à échouer, deux fois de suite (réessai) =
-// 20,6 s au total. 8 s le ramène à un échec propre et immédiat.
+// 20,6 s au total pour le même échec.
 //
 // Budget, et il faut être précis parce que le plafond est PAR TENTATIVE :
 //   - source qui PEND : le délai n'est pas réessayé et une panne totale
-//     court-circuite le second tour, donc 8 s ;
-//   - source qui répond LENTEMENT EN ERREUR (un 503 au bout de 7,9 s) : là le
-//     réessai s'applique, donc 2 x 8 s = 16 s avant le court-circuit, même sur
-//     une position ordinaire à une seule boîte ;
+//     court-circuite le second tour, donc 12 s ;
+//   - source qui répond LENTEMENT EN ERREUR (un 503 juste avant l'expiration) :
+//     là le réessai s'applique, donc 2 x 12 s ≈ 24 s avant le court-circuit,
+//     même sur une position ordinaire à une seule boîte ;
 //   - pire cas extérieur (antiméridien + panne partielle sur les deux marges) :
-//     de l'ordre de 32 s.
-// Les deux derniers dépassent les 10 s par défaut de Vercel : la plateforme
-// tuerait alors l'invocation et le client recevrait une erreur de plateforme
-// au lieu de notre `{"error":"network_error"}`. Il FAUT donc régler
-// `maxDuration` dans vercel.json avant la mise en ligne, ou borner le total.
-export const TIMEOUT_MS = 8000;
+//     bien au-delà.
+// Sans réglage, les deux derniers dépassaient les 10 s par défaut de Vercel :
+// la plateforme aurait tué l'invocation et le client aurait reçu une erreur de
+// plateforme au lieu de notre `{"error":"network_error"}`, sans même l'en-tête
+// `no-store`. D'où `maxDuration: 30` dans vercel.json, qui couvre les deux
+// premiers cas. Le troisième reste hors budget : ce sera l'argument du jour où
+// l'on décidera d'un budget global.
+export const TIMEOUT_MS = 12000;
 
 // Tolérance vers le futur. Une station mal réglée peut publier une heure en
 // avance ; sans garde-fou elle passerait pour « ultra fraîche » et gagnerait
@@ -145,7 +159,7 @@ export interface FetchNearestOptions {
   maxAgeMs?: number; // limite de fraîcheur ; 3 h par défaut
   retryDelayMs?: number; // attente avant le second essai ; 0 en test
   maxAttempts?: number; // tentatives par URL ; 2 par défaut, 1 = aucun réessai
-  timeoutMs?: number; // plafond par tentative ; 8 s par défaut, 0 = aucun plafond
+  timeoutMs?: number; // plafond par tentative ; 12 s par défaut, 0 = aucun plafond
 }
 
 // ---------- 3. Construction de l'URL (pure) ----------

@@ -1,0 +1,374 @@
+<!doctype html>
+<html lang="fr" data-sky="day">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>METAR Proche</title>
+<meta name="description" content="La météo de la station d'observation la plus proche, en clair.">
+<style>
+/* ------------------------------------------------------------------
+   Palette. Deux jeux complets, choisis par la LUMIÈRE DE LA STATION
+   (sun.isDay renvoyé par l'API), et non par le thème du navigateur.
+   C'est le parti pris de la page : on consulte Fidji, on voit sa nuit.
+   ------------------------------------------------------------------ */
+:root[data-sky="day"] {
+  --bg: #e6eef5;          /* bleu de carte aéronautique, très pâle */
+  --surface: #f7fafc;
+  --ink: #12233b;         /* encre marine */
+  --muted: #61748f;
+  --line: #c3d2e2;
+  --accent: #0e7c86;      /* cyan profond, couleur des isobares */
+}
+:root[data-sky="night"] {
+  --bg: #0d1524;
+  --surface: #141f33;
+  --ink: #e8eef7;
+  --muted: #8296b0;
+  --line: #26344b;
+  --accent: #e8b04b;      /* ambre de lampe : la lumière qu'on voit la nuit */
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  padding: clamp(1.25rem, 5vw, 4rem);
+  background: var(--bg);
+  color: var(--ink);
+  font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+  font-size: 17px;
+  line-height: 1.5;
+  /* La bascule jour/nuit se voit : c'est le geste signature de la page. */
+  transition: background-color .6s ease, color .6s ease;
+}
+
+main { max-width: 46rem; margin: 0 auto; }
+
+/* ------------------------------------------------------------------
+   1. La ligne brute. Elle ouvre la page parce que c'est L'ARTEFACT du
+   sujet : la chaîne que personne ne sait lire, et dont tout le reste
+   de la page est la traduction. Elle est donc en tête, en chasse fixe,
+   et volontairement discrète : c'est la provenance, pas le message.
+   ------------------------------------------------------------------ */
+.raw {
+  font-family: "Cascadia Mono", ui-monospace, Consolas, monospace;
+  font-size: .8rem;
+  letter-spacing: .02em;
+  color: var(--muted);
+  word-break: break-word;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--line);
+}
+
+/* ------------------------------------------------------------------
+   2. Le message en clair.
+   ------------------------------------------------------------------ */
+.lede { display: flex; gap: 1.5rem; align-items: flex-start; padding: 2rem 0 1.5rem; }
+
+.headline {
+  margin: 0;
+  font-size: clamp(2.2rem, 8vw, 3.4rem);
+  font-weight: 350;
+  letter-spacing: -.02em;
+  line-height: 1.05;
+}
+
+.temp {
+  margin-left: auto;
+  font-size: clamp(2.2rem, 8vw, 3.4rem);
+  font-weight: 300;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -.03em;
+  white-space: nowrap;
+}
+
+.place { margin: 0; color: var(--muted); }
+.place strong { color: var(--ink); font-weight: 600; }
+
+/* Mention de fraîcheur : muette d'habitude, franche quand ça compte. */
+.stale { color: var(--accent); font-weight: 600; }
+
+/* ------------------------------------------------------------------
+   3. Le relevé. Une liste de définitions : les intitulés reprennent
+   les groupes du METAR lui-même, en français. La structure porte donc
+   une information vraie, elle ne décore pas.
+   ------------------------------------------------------------------ */
+.report { border-top: 1px solid var(--line); margin: 0; padding-top: 1.25rem; }
+
+.row { display: flex; gap: 1.25rem; padding: .5rem 0; align-items: baseline; }
+
+.row dt {
+  flex: 0 0 7.5rem;
+  font-size: .78rem;
+  text-transform: lowercase;
+  letter-spacing: .08em;
+  color: var(--muted);
+}
+
+.row dd { margin: 0; flex: 1; }
+
+/* ------------------------------------------------------------------
+   4. La course du soleil. Fabriquée avec des champs que le backend
+   calcule vraiment (lever, coucher, heure d'observation), à la
+   longitude de la station. Le point dit où en est la journée LÀ-BAS.
+   ------------------------------------------------------------------ */
+.sun { margin-top: 2rem; padding-top: 1.25rem; border-top: 1px solid var(--line); }
+.sun-track { position: relative; height: 1px; background: var(--line); margin: 1.5rem 0 .5rem; }
+.sun-dot {
+  position: absolute; top: 50%; width: 11px; height: 11px;
+  margin: -5.5px 0 0 -5.5px; border-radius: 50%;
+  background: var(--accent);
+  transition: left .8s cubic-bezier(.22,1,.36,1);
+}
+.sun-ends { display: flex; justify-content: space-between; font-size: .8rem; color: var(--muted); }
+
+/* ------------------------------------------------------------------
+   5. Commandes. Discrètes : la page sert à lire la météo, pas à régler
+   un instrument. Elles ne s'ouvrent que si on les demande.
+   ------------------------------------------------------------------ */
+.tools { margin-top: 2.5rem; border-top: 1px solid var(--line); padding-top: 1rem; font-size: .9rem; }
+.tools summary { cursor: pointer; color: var(--muted); }
+.tools summary:hover { color: var(--ink); }
+.fields { display: flex; flex-wrap: wrap; gap: .6rem; margin-top: 1rem; align-items: center; }
+
+input, select, button {
+  font: inherit; font-size: .9rem;
+  padding: .45rem .7rem;
+  color: var(--ink); background: var(--surface);
+  border: 1px solid var(--line); border-radius: 3px;
+}
+input { width: 7.5rem; font-variant-numeric: tabular-nums; }
+button { cursor: pointer; border-color: var(--accent); color: var(--accent); font-weight: 600; }
+button:hover { background: var(--accent); color: var(--surface); }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.tech {
+  margin-top: 1rem; font-size: .78rem; color: var(--muted);
+  font-family: "Cascadia Mono", ui-monospace, Consolas, monospace;
+}
+
+/* États de service. Un écran vide invite à agir, une erreur dit quoi faire. */
+.notice { padding: 2rem 0; color: var(--muted); }
+.notice b { display: block; color: var(--ink); font-size: 1.15rem; font-weight: 500; margin-bottom: .35rem; }
+
+[hidden] { display: none !important; }
+
+/* Apparition en deux temps : la ligne brute, puis sa traduction. */
+@keyframes rise { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+.reveal { animation: rise .5s ease both; }
+.reveal-late { animation: rise .5s ease .18s both; }
+
+@media (prefers-reduced-motion: reduce) {
+  * { animation: none !important; transition: none !important; }
+}
+
+@media (max-width: 30rem) {
+  .lede { flex-direction: column; gap: .5rem; }
+  .temp { margin-left: 0; }
+  .row { flex-direction: column; gap: .1rem; }
+  .row dt { flex-basis: auto; }
+}
+</style>
+</head>
+<body>
+<main>
+
+  <!-- État de départ et messages de service -->
+  <div class="notice" id="notice">
+    <b>Recherche de la station la plus proche</b>
+    Autorisez la localisation, ou saisissez une position plus bas.
+  </div>
+
+  <!-- Le relevé, masqué tant qu'il n'y a rien à montrer -->
+  <article id="card" hidden>
+    <p class="raw reveal" id="raw"></p>
+
+    <div class="lede reveal-late">
+      <h1 class="headline" id="headline"></h1>
+      <div class="temp" id="temp"></div>
+    </div>
+
+    <p class="place reveal-late" id="place"></p>
+
+    <dl class="report reveal-late" id="report"></dl>
+
+    <section class="sun reveal-late" id="sun">
+      <div class="sun-track"><span class="sun-dot" id="sunDot"></span></div>
+      <div class="sun-ends">
+        <span id="sunrise"></span>
+        <span id="sunset"></span>
+      </div>
+    </section>
+  </article>
+
+  <details class="tools">
+    <summary>Choisir une position</summary>
+    <div class="fields">
+      <input id="lat" type="number" step="0.01" placeholder="latitude" aria-label="Latitude">
+      <input id="lon" type="number" step="0.01" placeholder="longitude" aria-label="Longitude">
+      <select id="lang" aria-label="Langue">
+        <option value="fr">Français</option>
+        <option value="en">English</option>
+      </select>
+      <button id="go">Consulter</button>
+      <button id="here" type="button">Me localiser</button>
+    </div>
+    <p class="tech" id="tech"></p>
+  </details>
+
+</main>
+
+<script>
+// ---------------------------------------------------------------
+// Le client ne décode RIEN. Il affiche ce que l'API a déjà rédigé :
+// c'est la règle du projet, et c'est pour ça que ce fichier est court.
+// ---------------------------------------------------------------
+
+const $ = (id) => document.getElementById(id);
+
+// Ordre d'affichage du relevé. Chaque entrée pointe une phrase DÉJÀ
+// écrite par le backend (bloc `text`), jamais une valeur à formater ici.
+const LIGNES = [
+  ["vent", (r) => r.text.wind],
+  ["visibilité", (r) => r.text.visibility],
+  ["nuages", (r) => r.text.clouds],
+  ["phénomènes", (r) => r.text.phenomena],
+];
+
+// Messages d'échec : dire ce qui s'est passé et quoi faire, sans jargon.
+const ECHECS = {
+  invalid_position: ["Position inutilisable", "Vérifiez la latitude (-90 à 90) et la longitude (-180 à 180)."],
+  no_station: ["Aucune station à proximité", "Il n'y a pas d'aéroport observateur dans cette zone. Essayez une position plus proche d'une ville."],
+  only_stale: ["Aucune observation récente", "Les stations du secteur n'ont rien publié depuis plus de trois heures."],
+  network_error: ["Source météo injoignable", "Le service d'observation ne répond pas. Réessayez dans un instant."],
+};
+
+function afficherEchec(code) {
+  const [titre, suite] = ECHECS[code] ?? ["Réponse inattendue", "Réessayez dans un instant."];
+  $("card").hidden = true;
+  $("notice").hidden = false;
+  $("notice").innerHTML = `<b></b><span></span>`;
+  $("notice").firstChild.textContent = titre;
+  $("notice").lastChild.textContent = suite;
+}
+
+// Position du soleil sur sa course, en fraction de 0 à 1.
+// Renvoie null aux hautes latitudes, où lever et coucher peuvent manquer
+// (jour ou nuit polaire) : on n'invente pas une course qui n'existe pas.
+function fractionDuJour(obs, lever, coucher) {
+  if (!obs || !lever || !coucher) return null;
+  const min = (s) => Number(s.slice(0, 2)) * 60 + Number(s.slice(3, 5));
+  const a = min(lever), b = min(coucher), t = min(obs);
+  if (b <= a) return null; // course à cheval sur minuit : on s'abstient
+  return Math.min(1, Math.max(0, (t - a) / (b - a)));
+}
+
+function afficher(r) {
+  // 1. La lumière de la page vient de la STATION, pas du navigateur.
+  document.documentElement.dataset.sky = r.sun && r.sun.isDay === false ? "night" : "day";
+  document.documentElement.lang = $("lang").value;
+
+  $("notice").hidden = true;
+  $("card").hidden = false;
+
+  $("raw").textContent = r.raw;
+  $("headline").textContent = r.text.headline || "Relevé disponible";
+  $("temp").textContent = r.temperature && r.temperature.value !== null ? `${r.temperature.value}°` : "";
+
+  // 2. Provenance : quelle station, à quelle distance, et à quelle heure
+  // LOCALE de la station. L'âge n'est signalé que s'il devient gênant.
+  const s = r.station;
+  const place = `${s.name ?? s.icao ?? "Station inconnue"}`;
+  const dist = s.distanceKm !== null ? `, à ${s.distanceKm} km` : "";
+  const heure = r.observedLocal ? `Observé à ${r.observedLocal} heure locale` : "Observé";
+  const age = r.isStale
+    ? ` · <span class="stale">relevé vieux de ${r.ageMinutes} minutes</span>`
+    : ` · il y a ${r.ageMinutes} min`;
+  $("place").innerHTML = `<strong></strong><span></span>`;
+  $("place").firstChild.textContent = place + dist;
+  $("place").lastChild.innerHTML = `<br>${heure}${age}`;
+
+  // 3. Le relevé. Une ligne n'apparaît que si le backend a quelque chose
+  // à en dire : un METAR muet sur les nuages ne produit pas de ligne vide.
+  const dl = $("report");
+  dl.textContent = "";
+  for (const [nom, lire] of LIGNES) {
+    const phrase = lire(r);
+    if (!phrase) continue;
+    const div = document.createElement("div");
+    div.className = "row";
+    const dt = document.createElement("dt");
+    dt.textContent = nom;
+    const dd = document.createElement("dd");
+    dd.textContent = phrase;
+    div.append(dt, dd);
+    dl.append(div);
+  }
+  // Ligne de synthèse chiffrée, composée ici parce qu'elle n'existe pas
+  // comme phrase dans le contrat : ce sont des VALEURS, pas du texte.
+  const t = r.temperature, chiffres = [];
+  if (t && t.feelsLike !== null) chiffres.push(`ressenti ${t.feelsLike}°`);
+  if (t && t.humidity !== null) chiffres.push(`humidité ${t.humidity} %`);
+  if (r.pressure && r.pressure.value !== null) chiffres.push(`${r.pressure.value} hPa`);
+  if (chiffres.length) {
+    const div = document.createElement("div");
+    div.className = "row";
+    div.innerHTML = `<dt>mesures</dt><dd></dd>`;
+    div.lastChild.textContent = chiffres.join(" · ");
+    dl.append(div);
+  }
+
+  // 4. La course du soleil, à la longitude de la station.
+  const f = r.sun ? fractionDuJour(r.observedLocal, r.sun.sunrise, r.sun.sunset) : null;
+  $("sun").hidden = f === null;
+  if (f !== null) {
+    $("sunDot").style.left = `${f * 100}%`;
+    $("sunrise").textContent = `lever ${r.sun.sunrise}`;
+    $("sunset").textContent = `coucher ${r.sun.sunset}`;
+  }
+
+  // 5. Détail technique, pour la mise au point.
+  $("tech").textContent =
+    `icon=${r.icon} · cap ${r.station.bearingDeg}° · ${r.station.timezone ?? "fuseau inconnu"}` +
+    (r.warnings.length ? ` · ${r.warnings.join(" · ")}` : "");
+}
+
+async function consulter(lat, lon) {
+  $("lat").value = lat.toFixed(2);
+  $("lon").value = lon.toFixed(2);
+  const url = `/api/nearest?lat=${lat}&lon=${lon}&lang=${$("lang").value}&units=metric`;
+  try {
+    const res = await fetch(url);
+    const body = await res.json();
+    if (!res.ok) return afficherEchec(body.error);
+    afficher(body);
+  } catch {
+    afficherEchec("network_error");
+  }
+}
+
+function localiser() {
+  if (!navigator.geolocation) return consulter(48.73, 7.71);
+  navigator.geolocation.getCurrentPosition(
+    (p) => consulter(p.coords.latitude, p.coords.longitude),
+    // Refus ou échec : on sert quand même quelque chose plutôt qu'un écran mort.
+    () => consulter(48.73, 7.71),
+    { timeout: 8000 },
+  );
+}
+
+$("go").addEventListener("click", () => {
+  const lat = Number($("lat").value), lon = Number($("lon").value);
+  if (Number.isFinite(lat) && Number.isFinite(lon)) consulter(lat, lon);
+});
+$("here").addEventListener("click", localiser);
+$("lang").addEventListener("change", () => {
+  const lat = Number($("lat").value), lon = Number($("lon").value);
+  if (Number.isFinite(lat) && Number.isFinite(lon)) consulter(lat, lon);
+});
+
+localiser();
+</script>
+</body>
+</html>

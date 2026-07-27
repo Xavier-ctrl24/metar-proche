@@ -734,7 +734,7 @@ describe("fetchNearest et le délai d'attente", () => {
     const r = await fetchNearest(BRUMATH.lat, BRUMATH.lon, {
       fetchImpl: impl,
       nowMs: NOW_MS,
-      timeoutMs: 10, // 10 ms au lieu des 8 s de production
+      timeoutMs: 10, // 10 ms au lieu des 12 s de production
       retryDelayMs: 0,
     });
     expect(r.found).toBe(false);

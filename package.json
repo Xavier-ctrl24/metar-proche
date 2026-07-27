@@ -8,6 +8,7 @@
     "node": "24.x"
   },
   "scripts": {
+    "dev": "vite",
     "test": "vitest run",
     "test:watch": "vitest",
     "type-check": "tsc --noEmit"

@@ -311,6 +311,28 @@ Fait et validé :
   `Lang` valait déjà `"fr" | "en"`. `lang=en` n'est donc plus un mensonge du
   contrat. 295 tests passent, `npm run type-check` exit 0.
 
+- Hors plan, 27/07/2026 — PAGE DE DÉMONSTRATION et serveur de développement.
+  `public/index.html` (page autonome, aucun CDN, aucun script externe),
+  `vite.config.ts` (routage local de `/api/nearest` vers le VRAI
+  `handleNearest`, donc ce qu'on voit dans le navigateur est le code testé),
+  `vitest.config.ts`, `vercel.json`, script `npm run dev`.
+  PIÈGE : `vite.config.ts` déplace la racine dans `public/` et vitest lit
+  `vite.config.ts` par défaut ; sans `vitest.config.ts` pour remettre la racine,
+  la suite ne trouverait plus aucun test. D'où ce fichier, qui n'existe que pour
+  ça.
+  Le client ne décode RIEN : il affiche les phrases déjà rédigées par le bloc
+  `text`. La seule chose qu'il compose lui-même est la ligne « mesures »
+  (ressenti, humidité, hPa), parce que ce sont des VALEURS et non du texte.
+  Parti pris visuel : la page prend la lumière de la STATION (`sun.isDay`) et
+  non celle du navigateur — consulter Fidji à 3 h locales donne une page de
+  nuit. Vérifié en vrai le 27/07/2026 : Brumath `clear_day`, Nadi NFFN
+  `isDay: false`, `lang=en` → « Clear sky », position invalide → 400.
+  `vercel.json` fixe `maxDuration: 30` (constat n° 2 de la revue de code).
+  ATTENTION, encodage : ne JAMAIS passer ces fichiers à un
+  `Get-Content | -replace | Set-Content` PowerShell. PowerShell 5.1 lit l'UTF-8
+  comme du Latin-1 et réencode, ce qui transforme « données » en « donnÃ©es »
+  dans tout le fichier. Fait le 27/07/2026, réparé par `git checkout`.
+
 Prochaine étape (à décider avec Xavier) :
 - VOCABULAIRE ANGLAIS À VALIDER par Xavier. C'est la seule vraie dette de
   cette session, et le 27/07/2026 Xavier a explicitement MAINTENU la règle qui
@@ -497,7 +519,19 @@ Décisions déjà tranchées en session (ne pas les redécider) :
   message de l'erreur (`AbortError`, `TimeoutError`... varient selon
   l'environnement). Le signal couvre aussi la lecture d'un corps interrompue en
   cours de route, pas seulement l'attente de l'en-tête.
-- Valeur de 8 s, et le PIÈGE évité de justesse. Premier choix : 4 s, calculé sur
+- Valeur finale 12 s, atteinte en DEUX mesures. La seconde (27/07/2026, via la
+  page de démonstration) a corrigé la première : une bbox de PLEIN OCÉAN
+  (-40, -140) met 2254 / 7487 / 1091 ms à répondre « aucune station ». Une zone
+  déserte est LENTE, la source semblant balayer la boîte avant son 204. Le
+  premier appel de cette série a été coupé à 8 s et servi comme `network_error`
+  alors qu'il était vivant : le défaut même que le plafond doit éviter, retourné
+  contre nous. Il ne restait que 500 ms de marge sur un cas courant du
+  Pacifique. LEÇON À RETENIR plutôt que le chiffre : une mesure prise depuis un
+  seul point du globe (Brumath) ne dit rien des autres. 12 s n'est possible que
+  parce que `vercel.json` fixe `maxDuration` à 30 s.
+- Historique de la valeur, parce qu'il est instructif — 4 s puis 8 s puis 12 s,
+  chaque fois corrigé par une mesure et jamais par un raisonnement :
+- Étape intermédiaire, 8 s, et le PIÈGE évité de justesse. Premier choix : 4 s, calculé sur
   le seul budget Vercel. Mesure faite ENSUITE (12 processus froids, un appel
   réel chacun, sans plafond, depuis Brumath) : 165, 185, 321, 352, 369, 433,
   628, 736, 1219, 1945, 5295, 6825 ms, TOUS réussis. À chaud, 26 à 466 ms sur

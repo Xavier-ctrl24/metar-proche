@@ -35,5 +35,5 @@
   },
   // Fichiers analyses : notre code source et nos tests. "api" n'existe pas encore
   // (etape 10) mais on peut deja l'annoncer : un dossier absent est simplement ignore.
-  "include": ["src", "tests", "api"]
+  "include": ["src", "tests", "api", "vite.config.ts", "vitest.config.ts"]
 }

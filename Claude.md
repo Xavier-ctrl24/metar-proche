@@ -335,6 +335,30 @@ Fait et validé :
   site dans `dist/`, qui n'existe pas. Or vite n'est ici qu'un outil de
   DÉVELOPPEMENT : en production, Vercel doit juste servir `public/` en statique
   et `api/` en fonction, sans rien construire. On le dit donc explicitement.
+- IMPORTS RELATIFS : TOUJOURS AVEC L'EXTENSION `.js`. C'est la cause du second
+  échec de déploiement du 27/07/2026, et la plus instructive de la session.
+  Le tsconfig disait `moduleResolution: "bundler"`, choisi à l'étape 5
+  PRÉCISÉMENT pour ne pas écrire `./units.js` partout. Or Vercel compile en
+  JavaScript et exécute en ESM NATIF, où Node refuse un import relatif sans
+  extension : `ERR_MODULE_NOT_FOUND: Cannot find module '/var/task/src/geo'`.
+  La fonction plantait donc AU CHARGEMENT, avant tout appel réseau, pendant que
+  `tsc --noEmit` et les 298 tests restaient au vert. Un défaut totalement
+  invisible en local, c'est-à-dire le pire scénario.
+  Corrigé en passant à `"module"/"moduleResolution": "nodenext"`, qui IMPOSE
+  l'extension : l'oubli devient une erreur de compilation et ne peut plus
+  atteindre la production. Conséquence annexe : `tests/decode.test.ts` importe
+  `corpus.json` et doit désormais écrire `with { type: "json" }`.
+  On écrit `.js` même si le fichier est un `.ts` : c'est la convention ESM, le
+  nom désigne le fichier COMPILÉ.
+- Diagnostiquer une panne qui n'existe qu'en production : ne pas deviner, mais
+  déployer une SONDE (`api/diag.ts`, temporaire) qui contourne les modules et
+  rend ce qu'ils masquent. Deux enseignements de celle du 27/07/2026 :
+  (a) elle a écarté en un coup les hypothèses réseau (aviationweather.gov
+  répond 200 en 23 ms depuis iad1, aucun filtrage d'IP, aucune question
+  d'en-tête), alors qu'on aurait pu les creuser longtemps ;
+  (b) ses imports devaient être DYNAMIQUES et sous try/catch, sinon l'échec de
+  chargement aurait fait planter la sonde elle-même — et c'est justement ce
+  qu'elle devait mesurer.
 - TYPESCRIPT RESTE EN 5.x, NE PAS REMONTER EN 7. Premier déploiement Vercel du
   27/07/2026 en échec : « Using TypeScript 7.0.2 (local user-provided) » puis
   « Cannot read properties of undefined (reading 'readFile') ». Vercel compile

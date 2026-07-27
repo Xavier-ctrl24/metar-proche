@@ -10,7 +10,7 @@
 //   - pickIcon(..., isDay) : traduit ce jeton en une icone de l'union fermee,
 //     en ajoutant le suffixe jour/nuit la ou c'est pertinent.
 
-import type { Cloud, Phenomenon, WeatherIcon, CloudCoverage } from "./types";
+import type { Cloud, Phenomenon, WeatherIcon, CloudCoverage } from "./types.js";
 
 // Jeton neutre de condition dominante. Ferme, comme l'union d'icones.
 export type WeatherCondition =

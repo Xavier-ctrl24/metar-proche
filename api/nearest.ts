@@ -22,13 +22,13 @@ import type {
   MetarResponse,
   NearestQuery,
   UnitSystem,
-} from "../src/types";
-import { fetchNearest, type FetchLike, type NearestHit, type NotFoundReason } from "../src/awc";
-import { decode } from "../src/decode";
-import { resolveTimezone, solar } from "../src/geo";
-import { pickIcon } from "../src/icon";
-import { translateFr } from "../src/i18n/fr";
-import { translateEn } from "../src/i18n/en";
+} from "../src/types.js";
+import { fetchNearest, type FetchLike, type NearestHit, type NotFoundReason } from "../src/awc.js";
+import { decode } from "../src/decode.js";
+import { resolveTimezone, solar } from "../src/geo.js";
+import { pickIcon } from "../src/icon.js";
+import { translateFr } from "../src/i18n/fr.js";
+import { translateEn } from "../src/i18n/en.js";
 
 // ---------- 1. Réglages ----------
 

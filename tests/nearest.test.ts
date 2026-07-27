@@ -16,8 +16,8 @@ import {
   localMiddayInstant,
   handleNearest,
   STALE_AFTER_MINUTES,
-} from "../api/nearest";
-import type { MetarResponse, ApiError } from "../src/types";
+} from "../api/nearest.js";
+import type { MetarResponse, ApiError } from "../src/types.js";
 
 // ---------- Fixtures ----------
 // Lignes AWC réelles capturées le 24/07/2026 (mêmes que tests/awc.test.ts).

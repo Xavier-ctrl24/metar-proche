@@ -9,8 +9,8 @@
 // le rang superieur l'emporte.
 
 import { describe, it, expect } from "vitest";
-import { pickIcon, dominantCondition } from "../src/icon";
-import type { Cloud, Phenomenon } from "../src/types";
+import { pickIcon, dominantCondition } from "../src/icon.js";
+import type { Cloud, Phenomenon } from "../src/types.js";
 
 // Petit constructeur d'entree pour alleger les tests.
 function dec(opts: { ph?: string[]; clouds?: Cloud[] | null; vv?: number | null }) {

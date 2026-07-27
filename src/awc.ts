@@ -21,7 +21,7 @@
 // est une donnée de retour (`{ found: false, reason: "network_error" }`), pas
 // un crash. L'étape 10 doit pouvoir répondre proprement dans tous les cas.
 
-import { haversineKm, bearingDeg } from "./geo";
+import { haversineKm, bearingDeg } from "./geo.js";
 
 // ---------- 1. Constantes de la source ----------
 

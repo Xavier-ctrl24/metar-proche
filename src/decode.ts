@@ -10,8 +10,8 @@
 // le calcul jour/nuit, le choix d'icone et la traduction francaise. Ce sont des
 // etapes ulterieures. Ici on ne fait que LIRE le texte METAR.
 
-import { knotsToKmh, mpsToKmh, inchesHgToHpa, statuteMilesToMeters, parseFraction, feetToMeters } from "./units";
-import type { Temperature, Wind, Visibility, Cloud, Phenomenon, Pressure } from "./types";
+import { knotsToKmh, mpsToKmh, inchesHgToHpa, statuteMilesToMeters, parseFraction, feetToMeters } from "./units.js";
+import type { Temperature, Wind, Visibility, Cloud, Phenomenon, Pressure } from "./types.js";
 
 // ---------- Type de retour ----------
 // DecodedMetar n'est PAS le contrat d'API public (celui-la vit dans types.ts et

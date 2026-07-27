@@ -10,8 +10,8 @@
 // Ce fichier ne traduit que le francais. Un futur en.ts se glissera a cote sans
 // rien changer ici (pas de framework i18n : un fichier par langue suffit).
 
-import type { Wind, Visibility, Cloud, Phenomenon, WeatherText, CloudCoverage } from "../types";
-import { dominantCondition, type WeatherCondition } from "../icon";
+import type { Wind, Visibility, Cloud, Phenomenon, WeatherText, CloudCoverage } from "../types.js";
+import { dominantCondition, type WeatherCondition } from "../icon.js";
 
 // ---------- Outils ----------
 

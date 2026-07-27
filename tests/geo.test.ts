@@ -10,7 +10,7 @@
 //   3. resolveTimezone : simple relais vers tz-lookup, on vérifie deux points.
 
 import { describe, it, expect } from "vitest";
-import { haversineKm, bearingDeg, solar, resolveTimezone } from "../src/geo";
+import { haversineKm, bearingDeg, solar, resolveTimezone } from "../src/geo.js";
 
 describe("haversineKm", () => {
   it("vaut 0 pour deux points identiques", () => {

@@ -11,8 +11,11 @@
 // sur la ligne entierement barree ou la ligne corrompue.
 
 import { describe, it, expect } from "vitest";
-import corpus from "./corpus.json";
-import { decode } from "../src/decode";
+// `with { type: "json" }` : exigé par l'ESM natif de Node depuis le passage de
+// tsconfig en "nodenext" (27/07/2026). Sans cet attribut, Node refuse d'importer
+// un fichier JSON dans un module ECMAScript.
+import corpus from "./corpus.json" with { type: "json" };
+import { decode } from "../src/decode.js";
 
 // ---------- Famille 1 : dirigee par le corpus ----------
 

@@ -16,8 +16,8 @@
 // N'est PAS teste : le headline (reporte a l'etape 7).
 
 import { describe, it, expect } from "vitest";
-import { windText, visibilityText, cloudsText, phenomenaText, headlineText, translateFr } from "../src/i18n/fr";
-import type { WeatherCondition } from "../src/icon";
+import { windText, visibilityText, cloudsText, phenomenaText, headlineText, translateFr } from "../src/i18n/fr.js";
+import type { WeatherCondition } from "../src/icon.js";
 
 describe("windText (vent)", () => {
   it("exemple du contrat : 240 / 15 / rafale 30", () => {

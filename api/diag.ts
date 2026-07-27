@@ -74,7 +74,7 @@ async function sonderNotreChaine() {
 
   // 1. Le fuseau, c'est-à-dire tz-lookup, le suspect numéro un.
   try {
-    const geo = await import("../src/geo");
+    const geo = await import("../src/geo.js");
     etapes.resolveTimezone = geo.resolveTimezone(48.549, 7.64);
   } catch (e) {
     etapes.resolveTimezone = { ECHEC: e instanceof Error ? `${e.name}: ${e.message}` : String(e) };
@@ -82,7 +82,7 @@ async function sonderNotreChaine() {
 
   // 2. Le calcul solaire, pur, sans dépendance externe.
   try {
-    const geo = await import("../src/geo");
+    const geo = await import("../src/geo.js");
     const s = geo.solar(48.549, 7.64, new Date());
     etapes.solar = { isDay: s.isDay, sunriseUtc: s.sunriseUtc?.toISOString() ?? null };
   } catch (e) {
@@ -91,7 +91,7 @@ async function sonderNotreChaine() {
 
   // 3. La recherche de station : le réseau, mais via NOTRE code cette fois.
   try {
-    const awc = await import("../src/awc");
+    const awc = await import("../src/awc.js");
     const r = await awc.fetchNearest(48.73, 7.71);
     etapes.fetchNearest = r.found
       ? { trouve: r.station.icao, distanceKm: Math.round(r.distanceKm) }
@@ -105,7 +105,7 @@ async function sonderNotreChaine() {
 
   // 4. L'assemblage complet, exactement ce que fait l'API publique.
   try {
-    const near = await import("./nearest");
+    const near = await import("./nearest.js");
     const sortie = await near.handleNearest({ lat: 48.73, lon: 7.71, lang: "fr", units: "metric" }, {});
     etapes.handleNearest = { status: sortie.status, corps: JSON.stringify(sortie.body).slice(0, 200) };
   } catch (e) {

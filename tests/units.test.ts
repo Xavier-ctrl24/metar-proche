@@ -11,7 +11,7 @@ import {
   statuteMilesToMeters,
   parseFraction,
   feetToMeters,
-} from "../src/units";
+} from "../src/units.js";
 
 describe("knotsToKmh (noeuds -> km/h, facteur 1,852)", () => {
   it("0 noeud reste 0", () => {

@@ -10,7 +10,7 @@
 
 import { defineConfig, type Plugin } from "vite";
 import { fileURLToPath } from "node:url";
-import type { NearestCache } from "./api/nearest";
+import type { NearestCache } from "./api/nearest.js";
 
 function apiNearest(): Plugin {
   // Un cache pour toute la session de développement, comme le cache de

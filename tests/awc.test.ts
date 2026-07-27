@@ -21,7 +21,7 @@ import {
   selectNearest,
   fetchNearest,
   MAX_AGE_MS,
-} from "../src/awc";
+} from "../src/awc.js";
 
 // ---------- Fixtures : vraies lignes AWC du 24/07/2026 ----------
 // On n'en garde que 4 sur 16, suffisantes pour départager les distances.

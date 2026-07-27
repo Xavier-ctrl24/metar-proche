@@ -16,8 +16,8 @@
 // paramètre `units` (V2), jamais de la langue : un Britannique en km/h reste
 // informé, un Britannique à qui on invente des mph ne l'est plus.
 
-import type { Wind, Visibility, Cloud, Phenomenon, WeatherText, CloudCoverage } from "../types";
-import { dominantCondition, type WeatherCondition } from "../icon";
+import type { Wind, Visibility, Cloud, Phenomenon, WeatherText, CloudCoverage } from "../types.js";
+import { dominantCondition, type WeatherCondition } from "../icon.js";
 
 // ---------- Outils ----------
 

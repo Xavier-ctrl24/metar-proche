@@ -26,10 +26,10 @@ import {
   phenomenaText,
   headlineText,
   translateEn,
-} from "../src/i18n/en";
-import { translateFr } from "../src/i18n/fr";
-import type { WeatherCondition } from "../src/icon";
-import type { Cloud, Phenomenon, Visibility, Wind } from "../src/types";
+} from "../src/i18n/en.js";
+import { translateFr } from "../src/i18n/fr.js";
+import type { WeatherCondition } from "../src/icon.js";
+import type { Cloud, Phenomenon, Visibility, Wind } from "../src/types.js";
 
 describe("windText (wind)", () => {
   it("exemple du contrat, transposé : 240 / 15 / rafale 30", () => {

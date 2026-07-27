@@ -14,8 +14,17 @@
     // "bundler" autorise les imports sans extension (./units) et l'import de JSON,
     // exactement comme Vitest et Vercel les resolvent. "nodenext" exigerait
     // d'ecrire ./units.js partout, ce qu'on veut eviter.
-    "module": "esnext",
-    "moduleResolution": "bundler",
+    // CORRIGÉ le 27/07/2026 après un déploiement Vercel en échec.
+    // On avait "bundler", justement pour NE PAS écrire ./units.js partout.
+    // C'était une erreur : Vercel compile en JavaScript et exécute en ESM
+    // NATIF, où Node refuse un import relatif sans extension. Résultat, la
+    // fonction plantait au chargement (ERR_MODULE_NOT_FOUND) avant même de
+    // toucher au réseau, pendant que `tsc --noEmit` et les 298 tests restaient
+    // au vert : le pire scénario, un défaut invisible en local.
+    // "nodenext" IMPOSE désormais l'extension, donc l'oubli devient une erreur
+    // de compilation. La verbosité est le prix d'un déploiement qui marche.
+    "module": "nodenext",
+    "moduleResolution": "nodenext",
     "resolveJsonModule": true, // autorise import corpus from "./corpus.json"
     "verbatimModuleSyntax": true, // force "import type" pour les types : imports plus clairs
 

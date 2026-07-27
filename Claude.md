@@ -335,6 +335,16 @@ Fait et validé :
   site dans `dist/`, qui n'existe pas. Or vite n'est ici qu'un outil de
   DÉVELOPPEMENT : en production, Vercel doit juste servir `public/` en statique
   et `api/` en fonction, sans rien construire. On le dit donc explicitement.
+- TYPESCRIPT RESTE EN 5.x, NE PAS REMONTER EN 7. Premier déploiement Vercel du
+  27/07/2026 en échec : « Using TypeScript 7.0.2 (local user-provided) » puis
+  « Cannot read properties of undefined (reading 'readFile') ». Vercel compile
+  la fonction avec la version de TypeScript trouvée dans NOS dépendances, et
+  la 7 est le nouveau compilateur natif dont l'API Node utilisée par le
+  constructeur Vercel n'existe pas encore. Rien à voir avec notre code : le
+  `tsc --noEmit` local passait très bien en 7.0.2. Rétrogradé en `^5.9.3`,
+  type-check et 298 tests toujours verts. Le jour où Vercel saura lire la 7,
+  on pourra remonter ; d'ici là, une montée de version casse le déploiement
+  sans casser aucun test, ce qui est le pire des scénarios.
   ATTENTION, encodage : ne JAMAIS passer ces fichiers à un
   `Get-Content | -replace | Set-Content` PowerShell. PowerShell 5.1 lit l'UTF-8
   comme du Latin-1 et réencode, ce qui transforme « données » en « donnÃ©es »

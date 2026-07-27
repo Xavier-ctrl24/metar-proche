@@ -15,7 +15,8 @@
 
 import { describe, it, expect } from "vitest";
 import {
-  buildBboxUrl,
+  splitBboxes,
+  buildBboxUrls,
   normalizeRows,
   selectNearest,
   fetchNearest,
@@ -84,27 +85,173 @@ function fakeFetch(reponses: unknown[]) {
   return { impl, urlsAppelees };
 }
 
-// ---------- 1. Construction de l'URL ----------
-describe("buildBboxUrl", () => {
-  it("respecte l'ordre latMin,lonMin,latMax,lonMax et le format json", () => {
-    const url = buildBboxUrl(48.73, 7.71, 1.5);
-    expect(url).toContain("https://aviationweather.gov/api/data/metar");
-    expect(url).toContain("format=json");
-    // 48,73 ± 1,5 et 7,71 ± 1,5, arrondis à 2 décimales.
-    expect(url).toContain("bbox=47.23%2C6.21%2C50.23%2C9.21");
+// Second faux `fetch`, celui-là aiguillé PAR CONTENU DE L'URL et non par ordre
+// d'appel. Nécessaire dès qu'un tour de recherche produit DEUX requêtes
+// (antiméridien) : répondre « la 1re réponse au 1er appel » rendrait le test
+// dépendant de l'ordre interne (parallèle ou séquentiel), ce qui n'est pas ce
+// qu'on cherche à vérifier.
+//
+// L'aiguillage se fait sur le SIGNE des longitudes de la bbox, pas sur un
+// fragment de texte : un fragment comme "177.5" se retrouve par accident dans
+// "-177.5" et change de sens selon la marge, ce qui ferait passer les tests
+// pour de mauvaises raisons.
+//   - "ouest" = moitié aux longitudes POSITIVES (avant la ligne, côté Fidji) ;
+//   - "est"   = moitié aux longitudes NÉGATIVES (juste après la ligne).
+// Une boîte NON découpée ne correspond à aucun côté : elle reçoit une liste
+// vide, comme une URL sans règle.
+// Deux réponses spéciales, en plus d'une charge utile ordinaire :
+//   "panne"   : la requête échoue (coupure réseau) ;
+//   "vide204" : HTTP 204 avec un corps VIDE, ce qu'AWC renvoie réellement pour
+//               une zone sans station (vérifié le 26/07/2026 en plein océan).
+type Cote = "ouest" | "est";
+type ReglesParUrl = Array<{ cote: Cote; reponse: unknown | "panne" | "vide204" }>;
+
+// Réponse 204 fidèle à la réalité : le corps est vide, donc .json() lève.
+const REPONSE_204 = {
+  ok: true,
+  status: 204,
+  json: async () => {
+    throw new SyntaxError("Unexpected end of JSON input");
+  },
+};
+
+function coteDeLUrl(url: string): Cote | null {
+  const bbox = new URL(url).searchParams.get("bbox");
+  if (bbox === null) return null;
+  const [, lonMin, , lonMax] = bbox.split(",").map(Number);
+  if (lonMin > 0 && lonMax === 180) return "ouest";
+  if (lonMin === -180 && lonMax < 0) return "est";
+  return null; // boîte ordinaire, non coupée par la ligne
+}
+
+function fakeFetchParUrl(regles: ReglesParUrl) {
+  const urlsAppelees: string[] = [];
+  const cotesServis: Cote[] = []; // trace des moitiés réellement exploitées
+  const impl = async (url: string) => {
+    urlsAppelees.push(url);
+    const cote = coteDeLUrl(url);
+    const regle = regles.find((r) => r.cote === cote);
+    if (regle === undefined) return { ok: true, status: 200, json: async () => [] };
+    if (regle.reponse === "panne") throw new Error("ECONNRESET");
+    if (regle.reponse === "vide204") return REPONSE_204;
+    cotesServis.push(regle.cote);
+    return { ok: true, status: 200, json: async () => regle.reponse };
+  };
+  return { impl, urlsAppelees, cotesServis };
+}
+
+// ---------- Fixtures de l'antiméridien ----------
+// Contrairement au bloc ci-dessus, ces lignes ne sont PAS des captures réelles :
+// nous n'avons pas de relevé AWC du Pacifique sous la main. Les coordonnées sont
+// en revanche géographiquement crédibles (bande des Fidji, de part et d'autre de
+// la ligne de changement de date) et c'est tout ce que ce test met en jeu :
+// la géométrie du découpage, pas le contenu du METAR.
+const PACIFIQUE = { lat: -17.6, lon: 179.5 }; // Fidji, juste à l'ouest de la ligne
+
+// Station à l'OUEST de la ligne (longitude positive), la plus éloignée.
+const ROW_OUEST = {
+  icaoId: "NFXW",
+  name: "Ouest de la ligne (test)",
+  lat: -17.6,
+  lon: 178.2,
+  obsTime: 1784912400, // 2026-07-24T17:00:00Z
+  rawOb: "METAR NFXW 241700Z 09010KT 9999 FEW020 26/22 Q1013",
+};
+
+// Station à l'EST de la ligne (longitude négative), la plus PROCHE de PACIFIQUE :
+// 179,5 E et 179,8 W ne sont séparés que par 0,7° de longitude, soit ~74 km.
+// C'est elle qui doit gagner. Avec l'ancien bornage à ±180, elle était
+// simplement invisible : la boîte s'arrêtait à la ligne.
+const ROW_EST = {
+  icaoId: "NFXE",
+  name: "Est de la ligne (test)",
+  lat: -17.6,
+  lon: -179.8,
+  obsTime: 1784912400,
+  rawOb: "METAR NFXE 241700Z 09012KT 9999 SCT018 27/23 Q1012",
+};
+
+// ---------- 1. Découpage de la zone de recherche ----------
+describe("splitBboxes", () => {
+  it("ne produit qu'une seule boîte loin de l'antiméridien", () => {
+    const boites = splitBboxes(48.73, 7.71, 1.5);
+    expect(boites).toHaveLength(1);
+    expect(boites[0]).toEqual({
+      latMin: 47.23,
+      lonMin: 6.21,
+      latMax: 50.23,
+      lonMax: 9.21,
+    });
   });
 
   it("borne la latitude aux pôles (pas de latMax à 90,5°)", () => {
-    // Tromsø extrême nord : 89,5 + 1,5 dépasserait le pôle.
-    const url = buildBboxUrl(89.5, 20, 1.5);
-    expect(url).toContain("bbox=88%2C18.5%2C90%2C21.5");
+    // Au-delà du pôle il n'y a rien : borner la latitude est CORRECT,
+    // contrairement à la longitude où borner supprimait de vraies stations.
+    const boites = splitBboxes(89.5, 20, 1.5);
+    expect(boites).toHaveLength(1);
+    expect(boites[0]).toEqual({ latMin: 88, lonMin: 18.5, latMax: 90, lonMax: 21.5 });
   });
 
-  it("borne la longitude à l'antiméridien (choix v1 assumé)", () => {
-    // 179 + 1,5 = 180,5 n'existe pas. On borne à 180 : la couverture est
-    // dégradée juste à l'antiméridien, mais l'URL reste valide.
-    const url = buildBboxUrl(-17, 179, 1.5);
-    expect(url).toContain("bbox=-18.5%2C177.5%2C-15.5%2C180");
+  it("coupe en deux boîtes quand la zone franchit la ligne par l'est", () => {
+    // 179 + 1,5 = 180,5 n'existe pas : ce demi-degré manquant est en réalité
+    // à -179,5. Deux boîtes, la première étant celle qui contient la position.
+    const boites = splitBboxes(-17, 179, 1.5);
+    expect(boites).toHaveLength(2);
+    expect(boites[0]).toEqual({ latMin: -18.5, lonMin: 177.5, latMax: -15.5, lonMax: 180 });
+    expect(boites[1]).toEqual({ latMin: -18.5, lonMin: -180, latMax: -15.5, lonMax: -179.5 });
+  });
+
+  it("coupe en deux boîtes quand la zone franchit la ligne par l'ouest", () => {
+    // Symétrique : -179 - 1,5 = -180,5, c'est-à-dire 179,5.
+    const boites = splitBboxes(-17, -179, 1.5);
+    expect(boites).toHaveLength(2);
+    expect(boites[0]).toEqual({ latMin: -18.5, lonMin: -180, latMax: -15.5, lonMax: -177.5 });
+    expect(boites[1]).toEqual({ latMin: -18.5, lonMin: 179.5, latMax: -15.5, lonMax: 180 });
+  });
+
+  it("gère la position pile sur la ligne (180°)", () => {
+    const boites = splitBboxes(-17, 180, 1.5);
+    expect(boites).toHaveLength(2);
+    expect(boites[0].lonMin).toBe(178.5);
+    expect(boites[0].lonMax).toBe(180);
+    expect(boites[1].lonMin).toBe(-180);
+    expect(boites[1].lonMax).toBe(-178.5);
+  });
+
+  it("couvre tout le tour du globe sans se dédoubler si la marge est énorme", () => {
+    // Cas théorique (aucune marge du module ne vaut 200°), mais une boîte qui
+    // ferait plus d'un tour produirait deux boîtes qui se recouvrent.
+    const boites = splitBboxes(0, 10, 200);
+    expect(boites).toHaveLength(1);
+    expect(boites[0].lonMin).toBe(-180);
+    expect(boites[0].lonMax).toBe(180);
+  });
+});
+
+// ---------- 1 bis. Construction des URL ----------
+describe("buildBboxUrls", () => {
+  it("respecte l'ordre latMin,lonMin,latMax,lonMax et le format json", () => {
+    const urls = buildBboxUrls(48.73, 7.71, 1.5);
+    expect(urls).toHaveLength(1);
+    expect(urls[0]).toContain("https://aviationweather.gov/api/data/metar");
+    expect(urls[0]).toContain("format=json");
+    // 48,73 ± 1,5 et 7,71 ± 1,5, arrondis à 2 décimales.
+    expect(urls[0]).toContain("bbox=47.23%2C6.21%2C50.23%2C9.21");
+  });
+
+  it("produit deux URL de part et d'autre de la ligne de changement de date", () => {
+    const urls = buildBboxUrls(-17, 179, 1.5);
+    expect(urls).toHaveLength(2);
+    expect(urls[0]).toContain("bbox=-18.5%2C177.5%2C-15.5%2C180");
+    expect(urls[1]).toContain("bbox=-18.5%2C-180%2C-15.5%2C-179.5");
+  });
+
+  it("découpe selon la marge : la boîte serrée ne coupe pas, l'élargie oui", () => {
+    // À 178° E : 178 + 1,5 = 179,5 tient d'un seul côté, mais 178 + 3 = 181
+    // franchit la ligne. Le découpage doit donc être recalculé à CHAQUE essai,
+    // pas décidé une fois pour toutes au départ.
+    expect(buildBboxUrls(-17, 178, 1.5)).toHaveLength(1);
+    expect(buildBboxUrls(-17, 178, 3)).toHaveLength(2);
   });
 });
 
@@ -238,6 +385,31 @@ describe("selectNearest", () => {
     expect(r!.ageMinutes).toBe(-10);
   });
 
+  it("mesure correctement une distance qui franchit l'antiméridien", () => {
+    // Le test qui prouve que le découpage sert à quelque chose. Entre 179,5 E
+    // et 179,8 W il y a 0,7° de longitude, soit ~74 km à cette latitude. Une
+    // formule non périodique (approximation plate, différence brute de
+    // longitude) calculerait 359,3°, soit ~38 000 km, et classerait la station
+    // la plus proche en dernier. La haversine de geo.ts est périodique : ce
+    // test verrouille cette propriété pour les évolutions futures.
+    const stations = normalizeRows([ROW_OUEST, ROW_EST]);
+    const r = selectNearest(
+      stations,
+      PACIFIQUE.lat,
+      PACIFIQUE.lon,
+      NOW_MS,
+      MAX_AGE_MS,
+    );
+    expect(r).not.toBeNull();
+    expect(r!.station.icao).toBe("NFXE"); // celle d'en face, pourtant plus proche
+    expect(r!.distanceKm).toBeGreaterThan(50);
+    expect(r!.distanceKm).toBeLessThan(120);
+    // Cap plein est : on va vers les longitudes croissantes en franchissant
+    // la ligne, ce qui reste un cap de 90° et non de 270°.
+    expect(r!.bearingDeg).toBeGreaterThan(80);
+    expect(r!.bearingDeg).toBeLessThan(100);
+  });
+
   it("ignore une observation datée dans le futur de plus d'une heure", () => {
     // Une station mal réglée peut publier une heure future. On ne veut pas
     // qu'elle gagne le tri en paraissant « ultra fraîche ».
@@ -254,6 +426,7 @@ describe("fetchNearest", () => {
     const r = await fetchNearest(BRUMATH.lat, BRUMATH.lon, {
       fetchImpl: impl,
       nowMs: NOW_MS,
+      retryDelayMs: 0, // aucune attente réelle dans les tests
     });
     expect(r.found).toBe(true);
     if (r.found) {
@@ -270,6 +443,7 @@ describe("fetchNearest", () => {
     const r = await fetchNearest(BRUMATH.lat, BRUMATH.lon, {
       fetchImpl: impl,
       nowMs: NOW_MS,
+      retryDelayMs: 0, // aucune attente réelle dans les tests
     });
     expect(r.found).toBe(true);
     expect(urlsAppelees).toHaveLength(2);
@@ -281,6 +455,7 @@ describe("fetchNearest", () => {
     const r = await fetchNearest(BRUMATH.lat, BRUMATH.lon, {
       fetchImpl: impl,
       nowMs: NOW_MS,
+      retryDelayMs: 0, // aucune attente réelle dans les tests
     });
     expect(r.found).toBe(false);
     if (!r.found) expect(r.reason).toBe("no_station");
@@ -304,6 +479,7 @@ describe("fetchNearest", () => {
     const r = await fetchNearest(BRUMATH.lat, BRUMATH.lon, {
       fetchImpl: impl,
       nowMs: NOW_MS,
+      retryDelayMs: 0, // aucune attente réelle dans les tests
     });
     expect(r.found).toBe(false);
     if (!r.found) expect(r.reason).toBe("network_error");
@@ -318,6 +494,7 @@ describe("fetchNearest", () => {
     const r = await fetchNearest(BRUMATH.lat, BRUMATH.lon, {
       fetchImpl: impl,
       nowMs: NOW_MS,
+      retryDelayMs: 0, // aucune attente réelle dans les tests
     });
     expect(r.found).toBe(false);
     if (!r.found) expect(r.reason).toBe("network_error");
@@ -334,9 +511,166 @@ describe("fetchNearest", () => {
     const r = await fetchNearest(BRUMATH.lat, BRUMATH.lon, {
       fetchImpl: impl,
       nowMs: NOW_MS,
+      retryDelayMs: 0, // aucune attente réelle dans les tests
     });
     expect(r.found).toBe(false);
     if (!r.found) expect(r.reason).toBe("network_error");
+  });
+
+  it("traite un HTTP 204 (zone sans station) comme une zone vide, pas une panne", async () => {
+    // Comportement RÉEL d'aviationweather.gov, vérifié le 26/07/2026 sur une
+    // bbox en plein océan : 204 « No Content » avec un corps de zéro octet.
+    // Le piège : `ok` vaut true sur un 204, mais .json() sur un corps vide lève.
+    // Sans traitement, toute zone déserte serait annoncée comme une panne réseau,
+    // ce qui est faux et empêcherait même l'élargissement de la recherche.
+    let appels = 0;
+    const impl = async () => {
+      appels += 1;
+      return REPONSE_204;
+    };
+    const r = await fetchNearest(BRUMATH.lat, BRUMATH.lon, {
+      fetchImpl: impl,
+      nowMs: NOW_MS,
+      retryDelayMs: 0, // aucune attente réelle dans les tests
+    });
+    expect(r.found).toBe(false);
+    if (!r.found) expect(r.reason).toBe("no_station"); // et surtout pas network_error
+    expect(appels).toBe(2); // la recherche s'est bien élargie au second essai
+  });
+
+  it("réessaie une fois après un hoquet réseau, et sert la réponse du 2e essai", async () => {
+    // Cas RÉELLEMENT observé le 26/07/2026 : le tout premier appel d'un
+    // processus froid a échoué, l'essai suivant a réussi. Sur Vercel, chaque
+    // invocation à froid est un premier appel : sans réessai, ce hoquet
+    // devient un 502 pour l'utilisateur.
+    let appels = 0;
+    const impl = async () => {
+      appels += 1;
+      if (appels === 1) throw new Error("ECONNRESET");
+      return { ok: true, status: 200, json: async () => ROWS_REELLES };
+    };
+    const r = await fetchNearest(BRUMATH.lat, BRUMATH.lon, {
+      fetchImpl: impl,
+      nowMs: NOW_MS,
+      retryDelayMs: 0, // pas d'attente réelle en test
+    });
+    expect(r.found).toBe(true);
+    if (r.found) expect(r.station.icao).toBe("LFST");
+    expect(appels).toBe(2);
+  });
+
+  it("réessaie sur un 500 ou un 429, qui sont des pannes passagères", async () => {
+    for (const status of [500, 503, 429]) {
+      let appels = 0;
+      const impl = async () => {
+        appels += 1;
+        if (appels === 1) return { ok: false, status, json: async () => ({}) };
+        return { ok: true, status: 200, json: async () => ROWS_REELLES };
+      };
+      const r = await fetchNearest(BRUMATH.lat, BRUMATH.lon, {
+        fetchImpl: impl,
+        nowMs: NOW_MS,
+        retryDelayMs: 0,
+      });
+      expect(r.found).toBe(true);
+      expect(appels).toBe(2);
+    }
+  });
+
+  it("ne réessaie PAS un 400 : la requête est fautive, insister ne sert à rien", async () => {
+    let appels = 0;
+    const impl = async () => {
+      appels += 1;
+      return { ok: false, status: 400, json: async () => ({}) };
+    };
+    const r = await fetchNearest(BRUMATH.lat, BRUMATH.lon, {
+      fetchImpl: impl,
+      nowMs: NOW_MS,
+      retryDelayMs: 0,
+    });
+    expect(r.found).toBe(false);
+    if (!r.found) expect(r.reason).toBe("network_error");
+    expect(appels).toBe(1); // une seule tentative, pas deux
+  });
+
+  it("ne réessaie PAS un 204 : une zone déserte n'est pas une panne", async () => {
+    // Décisif avec le découpage de l'antiméridien : une moitié sur deux est
+    // souvent de la haute mer. Réessayer doublerait la charge pour rien.
+    let appels = 0;
+    const impl = async () => {
+      appels += 1;
+      return REPONSE_204;
+    };
+    const r = await fetchNearest(BRUMATH.lat, BRUMATH.lon, {
+      fetchImpl: impl,
+      nowMs: NOW_MS,
+      retryDelayMs: 0,
+    });
+    expect(r.found).toBe(false);
+    if (!r.found) expect(r.reason).toBe("no_station");
+    expect(appels).toBe(2); // 2 = les deux marges, PAS un réessai
+  });
+
+  it("s'arrête après deux tentatives : on ne s'acharne pas", async () => {
+    let appels = 0;
+    const impl = async () => {
+      appels += 1;
+      throw new Error("ECONNRESET");
+    };
+    const r = await fetchNearest(BRUMATH.lat, BRUMATH.lon, {
+      fetchImpl: impl,
+      nowMs: NOW_MS,
+      retryDelayMs: 0,
+    });
+    expect(r.found).toBe(false);
+    if (!r.found) expect(r.reason).toBe("network_error");
+    // 2 tentatives sur la boîte serrée, puis abandon : on ne passe même pas
+    // à la marge élargie, puisque la source entière est manifestement à terre.
+    expect(appels).toBe(2);
+  });
+
+  it("maxAttempts=1 désactive complètement le réessai", async () => {
+    // Le réessai doit rester un RÉGLAGE, pas une fatalité : si la source venait
+    // à mal supporter la charge, on doit pouvoir le couper sans réécrire le
+    // module. Ce test fige aussi, en dur, le comportement « sans réessai ».
+    let appels = 0;
+    const impl = async () => {
+      appels += 1;
+      throw new Error("ECONNRESET");
+    };
+    const r = await fetchNearest(BRUMATH.lat, BRUMATH.lon, {
+      fetchImpl: impl,
+      nowMs: NOW_MS,
+      retryDelayMs: 0,
+      maxAttempts: 1,
+    });
+    expect(r.found).toBe(false);
+    if (!r.found) expect(r.reason).toBe("network_error");
+    expect(appels).toBe(1);
+  });
+
+  it("réessaie aussi un corps JSON illisible (réponse tronquée)", async () => {
+    let appels = 0;
+    const impl = async () => {
+      appels += 1;
+      if (appels === 1) {
+        return {
+          ok: true,
+          status: 200,
+          json: async () => {
+            throw new SyntaxError("Unexpected token < in JSON");
+          },
+        };
+      }
+      return { ok: true, status: 200, json: async () => ROWS_REELLES };
+    };
+    const r = await fetchNearest(BRUMATH.lat, BRUMATH.lon, {
+      fetchImpl: impl,
+      nowMs: NOW_MS,
+      retryDelayMs: 0,
+    });
+    expect(r.found).toBe(true);
+    expect(appels).toBe(2);
   });
 
   it("refuse une position invalide sans appeler le réseau", async () => {
@@ -355,5 +689,134 @@ describe("fetchNearest", () => {
     const r = await fetchNearest(120, 7.71, { fetchImpl: impl, nowMs: NOW_MS });
     expect(r.found).toBe(false);
     if (!r.found) expect(r.reason).toBe("invalid_position");
+  });
+});
+
+// ---------- 5. Antiméridien : deux requêtes, une seule réponse ----------
+// Le cœur de l'étape. Depuis les Fidji, la zone de recherche est à cheval sur
+// la ligne de changement de date : elle est donc interrogée en DEUX appels,
+// dont les résultats sont fusionnés AVANT le classement par distance.
+describe("fetchNearest à cheval sur l'antiméridien", () => {
+  it("interroge les deux moitiés et retient la plus proche, toutes moitiés confondues", async () => {
+    const { impl, urlsAppelees, cotesServis } = fakeFetchParUrl([
+      { cote: "ouest", reponse: [ROW_OUEST] },
+      { cote: "est", reponse: [ROW_EST] },
+    ]);
+    const r = await fetchNearest(PACIFIQUE.lat, PACIFIQUE.lon, {
+      fetchImpl: impl,
+      nowMs: NOW_MS,
+    });
+    expect(urlsAppelees).toHaveLength(2); // un seul tour, mais deux requêtes
+    // Les DEUX moitiés ont bien fourni des stations : si une régression future
+    // se contentait d'une seule boîte, ce contrôle tomberait avant le suivant.
+    expect(cotesServis.sort()).toEqual(["est", "ouest"]);
+    expect(r.found).toBe(true);
+    // NFXE (~74 km) bat NFXW (~138 km) alors qu'elle est de l'autre côté de la
+    // ligne : c'est exactement la station que l'ancien bornage rendait invisible.
+    if (r.found) expect(r.station.icao).toBe("NFXE");
+  });
+
+  it("supporte qu'une moitié soit de l'océan vide (204) et l'autre peuplée", async () => {
+    // Le cas le PLUS fréquent en vrai : à l'antiméridien, une des deux moitiés
+    // est presque toujours de la haute mer sans aucune station, donc un 204.
+    // Il ne doit surtout pas être confondu avec une panne, sinon le découpage
+    // rendrait le service moins fiable qu'avant au lieu de l'améliorer.
+    const { impl, urlsAppelees } = fakeFetchParUrl([
+      { cote: "ouest", reponse: "vide204" },
+      { cote: "est", reponse: [ROW_EST] },
+    ]);
+    const r = await fetchNearest(PACIFIQUE.lat, PACIFIQUE.lon, {
+      fetchImpl: impl,
+      nowMs: NOW_MS,
+    });
+    expect(r.found).toBe(true);
+    if (r.found) expect(r.station.icao).toBe("NFXE");
+    expect(urlsAppelees).toHaveLength(2); // un seul tour a suffi
+  });
+
+  it("ne compte pas une moitié vide (204) comme une panne dans le motif final", async () => {
+    // Ce test-là DISCRIMINE, contrairement au précédent : la moitié peuplée ne
+    // contient que des observations périmées, donc rien n'est trouvé et c'est
+    // le motif d'échec qui parle. Si le 204 était pris pour une panne, la
+    // précédence rendrait « network_error » ; correctement traité, il rend
+    // « only_stale », qui est la vérité : la zone a bien répondu, ses stations
+    // sont simplement trop vieilles.
+    const { impl } = fakeFetchParUrl([
+      { cote: "ouest", reponse: [ROW_OUEST] }, // périmée à cette heure
+      { cote: "est", reponse: "vide204" }, // océan désert
+    ]);
+    const r = await fetchNearest(PACIFIQUE.lat, PACIFIQUE.lon, {
+      fetchImpl: impl,
+      nowMs: Date.parse("2026-07-25T12:00:00.000Z"), // le lendemain midi
+    });
+    expect(r.found).toBe(false);
+    if (!r.found) expect(r.reason).toBe("only_stale");
+  });
+
+  it("sert quand même la moitié disponible si l'autre requête tombe en panne", async () => {
+    // Une panne partielle dégrade la couverture, elle ne doit pas annuler le
+    // service : la station trouvée dans la moitié qui a répondu est valable.
+    const { impl, urlsAppelees } = fakeFetchParUrl([
+      { cote: "ouest", reponse: [ROW_OUEST] },
+      { cote: "est", reponse: "panne" },
+    ]);
+    const r = await fetchNearest(PACIFIQUE.lat, PACIFIQUE.lon, {
+      fetchImpl: impl,
+      nowMs: NOW_MS,
+      retryDelayMs: 0,
+    });
+    expect(r.found).toBe(true);
+    if (r.found) expect(r.station.icao).toBe("NFXW");
+    // 3 et non 2 : la moitié en panne est réessayée une fois avant d'être
+    // abandonnée. Le tour élargi, lui, n'a pas lieu (on a trouvé au premier).
+    expect(urlsAppelees).toHaveLength(3);
+  });
+
+  it("annonce network_error si une moitié est en panne et que l'autre ne donne rien", async () => {
+    // Précédence assumée : quand une moitié n'a pas répondu, on ne SAIT PAS
+    // ce qu'elle contenait. Dire « aucune station » ou « rien de récent »
+    // serait affirmer plus que ce qu'on a vérifié : la panne l'emporte.
+    const { impl, urlsAppelees } = fakeFetchParUrl([
+      { cote: "ouest", reponse: [ROW_OUEST] }, // périmée à cette heure
+      { cote: "est", reponse: "panne" },
+    ]);
+    const r = await fetchNearest(PACIFIQUE.lat, PACIFIQUE.lon, {
+      fetchImpl: impl,
+      nowMs: Date.parse("2026-07-25T12:00:00.000Z"), // le lendemain midi
+      retryDelayMs: 0,
+    });
+    expect(r.found).toBe(false);
+    if (!r.found) expect(r.reason).toBe("network_error");
+    // Panne partielle aux deux tours : on est allé au bout avant de conclure,
+    // sans jamais court-circuiter. 6 requêtes = 2 tours x (1 moitié qui
+    // répond + 1 moitié en panne, réessayée une fois).
+    expect(urlsAppelees).toHaveLength(6);
+  });
+
+  it("annonce network_error si les deux moitiés sont en panne", async () => {
+    const { impl, urlsAppelees } = fakeFetchParUrl([
+      { cote: "ouest", reponse: "panne" },
+      { cote: "est", reponse: "panne" },
+    ]);
+    const r = await fetchNearest(PACIFIQUE.lat, PACIFIQUE.lon, {
+      fetchImpl: impl,
+      nowMs: NOW_MS,
+      retryDelayMs: 0,
+    });
+    expect(r.found).toBe(false);
+    if (!r.found) expect(r.reason).toBe("network_error");
+    // Panne TOTALE : court-circuit immédiat, pas de tour élargi inutile.
+    // 4 requêtes = les 2 moitiés, chacune tentée deux fois.
+    expect(urlsAppelees).toHaveLength(4);
+  });
+
+  it("recalcule le découpage à l'élargissement : 1 requête puis 2", async () => {
+    // Position à 178° E : la boîte serrée (±1,5°) ne franchit pas la ligne,
+    // l'élargie (±3°) si. Premier tour = 1 requête, second tour = 2 requêtes.
+    const { impl, urlsAppelees } = fakeFetchParUrl([]); // tout vide
+    const r = await fetchNearest(-17, 178, { fetchImpl: impl, nowMs: NOW_MS });
+    expect(r.found).toBe(false);
+    if (!r.found) expect(r.reason).toBe("no_station");
+    expect(urlsAppelees).toHaveLength(3); // 1 (serrée) + 2 (élargie)
   });
 });

@@ -8,9 +8,9 @@
 //
 // Architecture, et c'est LA décision de conception de cette étape :
 // on sépare le PUR de l'IMPUR.
-//   - buildBboxUrl / normalizeRows / selectNearest : fonctions pures, aucune
-//     I/O, aucune horloge cachée. Toute la logique est là, donc tout est
-//     testable sans réseau.
+//   - splitBboxes / buildBboxUrl(s) / normalizeRows / selectNearest : fonctions
+//     pures, aucune I/O, aucune horloge cachée. Toute la logique est là, donc
+//     tout est testable sans réseau.
 //   - fetchNearest : la seule fonction qui touche au réseau. Elle reçoit son
 //     `fetch` et son horloge en PARAMÈTRES (« injection de dépendance »), ce
 //     qui permet aux tests de lui donner un faux serveur et une heure figée.
@@ -36,6 +36,13 @@ export const MARGIN_WIDE_DEG = 3;
 // Une observation de plus de 3 h n'est plus représentative de la météo
 // actuelle : on refuse de la servir (règle du PROMPT).
 export const MAX_AGE_MS = 3 * 60 * 60 * 1000;
+
+// Réessai réseau. DEUX tentatives au maximum par URL, séparées de 200 ms.
+// Ces valeurs sont volontairement modestes : une fonction serverless doit
+// répondre vite, et une source réellement à terre ne se répare pas en
+// insistant. Le délai est injectable pour que les tests ne dorment pas.
+export const MAX_ATTEMPTS = 2;
+export const RETRY_DELAY_MS = 200;
 
 // Tolérance vers le futur. Une station mal réglée peut publier une heure en
 // avance ; sans garde-fou elle passerait pour « ultra fraîche » et gagnerait
@@ -93,6 +100,8 @@ export interface FetchNearestOptions {
   fetchImpl?: FetchLike; // injecté par les tests ; `fetch` natif par défaut
   nowMs?: number; // horloge injectable ; Date.now() par défaut
   maxAgeMs?: number; // limite de fraîcheur ; 3 h par défaut
+  retryDelayMs?: number; // attente avant le second essai ; 0 en test
+  maxAttempts?: number; // tentatives par URL ; 2 par défaut, 1 = aucun réessai
 }
 
 // ---------- 3. Construction de l'URL (pure) ----------
@@ -106,28 +115,84 @@ const round2 = (v: number): number => Math.round(v * 100) / 100;
 const clamp = (v: number, min: number, max: number): number =>
   Math.min(max, Math.max(min, v));
 
-// Construit l'URL de requête pour une boîte géographique centrée sur la
-// position. Ordre imposé par AWC : latMin, lonMin, latMax, lonMax.
+// Une boîte géographique, telle qu'AWC l'attend. Les quatre bornes sont déjà
+// arrondies et valides : c'est le seul objet que buildBboxUrl sait mettre en URL.
+export interface Bbox {
+  latMin: number;
+  lonMin: number;
+  latMax: number;
+  lonMax: number;
+}
+
+// Découpe la zone de recherche autour de (lat, lon) en UNE ou DEUX boîtes.
 //
-// Deux bornes de sécurité :
-//   - latitude bornée à ±90 : à 89,5° N, ajouter 1,5° dépasserait le pôle ;
-//   - longitude bornée à ±180 : à 179° E, on franchirait l'antiméridien.
-// Pour la longitude, la bonne solution mondiale serait de découper en DEUX
-// requêtes (une de chaque côté de la ligne de changement de date). Choix v1
-// assumé : on borne, donc la couverture est légèrement dégradée sur la bande
-// de l'antiméridien (Fidji, Kiribati). À rediscuter si tu veux le découpage.
-export function buildBboxUrl(lat: number, lon: number, marginDeg: number): string {
+// La latitude, elle, est simplement bornée à ±90, et c'est correct : au-delà
+// du pôle il n'y a pas de terre à interroger, la zone manquante est vide par
+// nature. La longitude est un cas tout différent, parce qu'elle est CIRCULAIRE :
+// après 180° E vient -180° (soit 179,99° W), et non le vide. Borner à 180
+// reviendrait à amputer la moitié de la zone d'un utilisateur aux Fidji ou aux
+// Kiribati, en supprimant de VRAIES stations qui sont à 70 km de lui.
+//
+// D'où le découpage : quand la boîte franchit la ligne de changement de date,
+// on rend deux boîtes valides plutôt qu'une boîte fausse. Exemple à 179° E avec
+// une marge de 1,5° : [177.5 ; 180] et [-180 ; -179.5]. Elles sont disjointes
+// (aucun doublon possible) et couvrent exactement les 3° voulus.
+//
+// Convention de retour : la PREMIÈRE boîte est toujours celle qui contient la
+// position demandée, la seconde est le complément de l'autre côté de la ligne.
+export function splitBboxes(lat: number, lon: number, marginDeg: number): Bbox[] {
   const latMin = round2(clamp(lat - marginDeg, -90, 90));
   const latMax = round2(clamp(lat + marginDeg, -90, 90));
-  const lonMin = round2(clamp(lon - marginDeg, -180, 180));
-  const lonMax = round2(clamp(lon + marginDeg, -180, 180));
+  const base = { latMin, latMax };
 
+  const ouest = lon - marginDeg; // bord gauche, potentiellement < -180
+  const est = lon + marginDeg; // bord droit, potentiellement > 180
+
+  // Garde-fou : une marge si large que la boîte ferait plus d'un tour de globe
+  // produirait deux boîtes qui se recouvrent. Une seule boîte pleine suffit.
+  if (est - ouest >= 360) {
+    return [{ ...base, lonMin: -180, lonMax: 180 }];
+  }
+
+  // Débordement par l'est (position proche de 180° E) : la part au-delà de 180
+  // se retrouve juste après -180.
+  if (est > 180) {
+    return [
+      { ...base, lonMin: round2(ouest), lonMax: 180 },
+      { ...base, lonMin: -180, lonMax: round2(est - 360) },
+    ];
+  }
+
+  // Débordement par l'ouest (position proche de 180° W) : symétrique.
+  if (ouest < -180) {
+    return [
+      { ...base, lonMin: -180, lonMax: round2(est) },
+      { ...base, lonMin: round2(ouest + 360), lonMax: 180 },
+    ];
+  }
+
+  // Cas ordinaire, l'immense majorité du globe : une seule boîte.
+  return [{ ...base, lonMin: round2(ouest), lonMax: round2(est) }];
+}
+
+// Met une boîte en URL. Ordre des bornes imposé par AWC :
+// latMin, lonMin, latMax, lonMax.
+export function buildBboxUrl(box: Bbox): string {
   // URLSearchParams se charge de l'encodage (les virgules deviennent %2C).
   const params = new URLSearchParams({
-    bbox: `${latMin},${lonMin},${latMax},${lonMax}`,
+    bbox: `${box.latMin},${box.lonMin},${box.latMax},${box.lonMax}`,
     format: "json",
   });
   return `${AWC_BASE_URL}?${params.toString()}`;
+}
+
+// Les URL à interroger pour couvrir la zone : une, ou deux à l'antiméridien.
+// C'est le point d'entrée que fetchNearest utilise, et il le rappelle à CHAQUE
+// essai de marge : à 178° E, la boîte serrée (±1,5°) ne franchit pas la ligne
+// alors que la boîte élargie (±3°) la franchit. Le découpage dépend donc de la
+// marge et ne peut pas être décidé une fois pour toutes.
+export function buildBboxUrls(lat: number, lon: number, marginDeg: number): string[] {
+  return splitBboxes(lat, lon, marginDeg).map(buildBboxUrl);
 }
 
 // ---------- 4. Normalisation défensive de la réponse (pure) ----------
@@ -224,22 +289,65 @@ export function selectNearest(
 
 // ---------- 6. Orchestration réseau (seule partie impure) ----------
 
+// Petite attente entre deux tentatives. Injectable (0 en test) pour qu'une
+// suite de tests ne dorme jamais réellement.
+const attendre = (ms: number): Promise<void> =>
+  ms <= 0 ? Promise.resolve() : new Promise((r) => setTimeout(r, ms));
+
+// Résultat d'UNE tentative. La distinction est le cœur du réessai :
+//   - "reessayable" : la panne est passagère, insister a des chances d'aboutir
+//     (coupure réseau, DNS, 5xx, 429 de limitation, réponse tronquée) ;
+//   - "fatal" : le serveur nous dit que NOTRE requête est fautive (400, 403...).
+//     Réessayer ne ferait que doubler la charge sans aucune chance de succès.
+type Tentative = AwcStation[] | "reessayable" | "fatal";
+
+async function tenterUnAppel(url: string, fetchImpl: FetchLike): Promise<Tentative> {
+  try {
+    const res = await fetchImpl(url);
+    if (!res.ok) {
+      // 429 = limitation de débit, 5xx = défaillance du serveur : passager.
+      // Le reste (400, 403, 404...) vient de notre requête : définitif.
+      return res.status === 429 || res.status >= 500 ? "reessayable" : "fatal";
+    }
+    // HTTP 204 « No Content » : c'est la réponse réelle d'AWC quand la boîte ne
+    // contient aucune station (vérifié le 26/07/2026 sur une bbox en plein
+    // océan). Le corps fait ZÉRO octet, donc `res.json()` lèverait et une zone
+    // simplement déserte serait comptée comme une panne — et, pire depuis le
+    // réessai, serait redemandée une seconde fois pour rien. Or `ok` vaut true
+    // sur un 204 : sans ce test explicite, le piège passe inaperçu.
+    if (res.status === 204) return [];
+    const payload = await res.json();
+    return normalizeRows(payload);
+  } catch {
+    // Coupure réseau, DNS, TLS, ou corps illisible (réponse tronquée) :
+    // typiquement le hoquet d'un processus froid, donc réessayable.
+    return "reessayable";
+  }
+}
+
 // Fait un appel, et renvoie soit les stations normalisées, soit le marqueur
 // "network_error". Tout est intercepté : coupure réseau, DNS, timeout, HTTP
 // en erreur, corps qui n'est pas du JSON. Rien ne remonte sous forme
 // d'exception, conformément à la règle de robustesse du projet.
+//
+// Réessai : 2 tentatives au maximum, séparées d'une courte attente. Motivation
+// mesurée, pas théorique — le 26/07/2026, le PREMIER appel d'un processus froid
+// a échoué puis le suivant a réussi (DNS/TLS à froid). Sur Vercel, chaque
+// invocation à froid est un premier appel. On s'arrête à 2 : au-delà, on
+// ferait surtout attendre l'utilisateur devant une source réellement à terre.
 async function fetchStations(
   url: string,
   fetchImpl: FetchLike,
+  retryDelayMs: number,
+  maxAttempts: number,
 ): Promise<AwcStation[] | "network_error"> {
-  try {
-    const res = await fetchImpl(url);
-    if (!res.ok) return "network_error";
-    const payload = await res.json();
-    return normalizeRows(payload);
-  } catch {
-    return "network_error";
+  for (let essai = 1; essai <= maxAttempts; essai += 1) {
+    const r = await tenterUnAppel(url, fetchImpl);
+    if (r !== "reessayable" && r !== "fatal") return r; // succès
+    if (r === "fatal") return "network_error"; // inutile d'insister
+    if (essai < maxAttempts) await attendre(retryDelayMs);
   }
+  return "network_error";
 }
 
 // Point d'entrée du module. Enchaîne : boîte serrée (±1,5°), et si rien
@@ -257,6 +365,9 @@ export async function fetchNearest(
   const fetchImpl = options.fetchImpl ?? ((url: string) => fetch(url));
   const nowMs = options.nowMs ?? Date.now();
   const maxAgeMs = options.maxAgeMs ?? MAX_AGE_MS;
+  const retryDelayMs = options.retryDelayMs ?? RETRY_DELAY_MS;
+  // Math.max(1, ...) : même mal réglé, on tente toujours au moins une fois.
+  const maxAttempts = Math.max(1, options.maxAttempts ?? MAX_ATTEMPTS);
 
   // Garde d'entrée : une position invalide ne mérite pas un appel réseau.
   if (!isFiniteNumber(lat) || !isFiniteNumber(lon)) {
@@ -267,17 +378,43 @@ export async function fetchNearest(
   }
 
   let vuDesStations = false; // a-t-on croisé au moins une station, même périmée ?
+  let vuUnePanne = false; // une moitié de zone est-elle restée sans réponse ?
 
   for (const margin of [MARGIN_NARROW_DEG, MARGIN_WIDE_DEG]) {
-    const resultat = await fetchStations(buildBboxUrl(lat, lon, margin), fetchImpl);
-    if (resultat === "network_error") {
+    // Une seule URL en temps normal, deux à cheval sur l'antiméridien. Les
+    // appels partent en parallèle : ils sont indépendants, et les attendre
+    // l'un après l'autre doublerait le temps de réponse pour rien.
+    const urls = buildBboxUrls(lat, lon, margin);
+    const resultats = await Promise.all(
+      urls.map((url) => fetchStations(url, fetchImpl, retryDelayMs, maxAttempts)),
+    );
+
+    const pannes = resultats.filter((r) => r === "network_error").length;
+    // Tout est en panne : il n'y a rien à dire de plus, on s'arrête là.
+    if (pannes === resultats.length) {
       return { found: false, reason: "network_error" };
     }
-    if (resultat.length > 0) vuDesStations = true;
+    // Panne PARTIELLE (une moitié sur deux) : on continue avec ce qu'on a.
+    // Une couverture amputée vaut mieux qu'un échec, la station la plus proche
+    // est peut-être justement dans la moitié qui a répondu. On mémorise
+    // toutefois l'incident : il change la conclusion en cas d'échec final.
+    if (pannes > 0) vuUnePanne = true;
 
-    const hit = selectNearest(resultat, lat, lon, nowMs, maxAgeMs);
+    // Fusion des moitiés AVANT le classement : c'est indispensable, sinon on
+    // rendrait la plus proche de chaque boîte au lieu de la plus proche tout
+    // court. Simple concaténation : les boîtes étant disjointes en longitude,
+    // aucune station ne peut apparaître deux fois.
+    const stations = resultats.flatMap((r) => (r === "network_error" ? [] : r));
+    if (stations.length > 0) vuDesStations = true;
+
+    const hit = selectNearest(stations, lat, lon, nowMs, maxAgeMs);
     if (hit !== null) return { found: true, ...hit };
   }
 
+  // Rien trouvé. Précédence assumée : une panne partielle l'emporte sur les
+  // deux autres motifs. Répondre « aucune station » ou « rien de récent » alors
+  // qu'une moitié de la zone n'a jamais répondu serait affirmer plus que ce
+  // qu'on a vérifié ; "network_error" dit la vérité, à savoir qu'on ne sait pas.
+  if (vuUnePanne) return { found: false, reason: "network_error" };
   return { found: false, reason: vuDesStations ? "only_stale" : "no_station" };
 }

@@ -198,11 +198,11 @@ npx tsc --noEmit  vérification des types
 
 ```
 
-## État d'avancement (dernière session : 24/07/2026)
+## État d'avancement (dernière session : 26/07/2026)
 
 Construction par étapes selon `PROMPT.md`. On s'arrête après CHAQUE étape et on
 attend la validation explicite de Xavier avant la suivante. Les tests précèdent
-toujours le code. À ce jour : 193 tests passent, `npm run type-check` exit 0.
+toujours le code. À ce jour : 244 tests passent, `npm run type-check` exit 0.
 
 Fait et validé :
 - Étape 1 — `src/types.ts` (contrat d'API, source de vérité).
@@ -235,9 +235,10 @@ Fait et validé :
   `isDay` tranché par l'élévation. Validé contre almanach (Paris solstice
   03:47/19:57 UTC) et cercle arctique (URMM).
 
-- Étape 9 — `src/awc.ts` + `tests/awc.test.ts` (24 tests) : source de PRODUCTION
+- Étape 9 — `src/awc.ts` + `tests/awc.test.ts` (40 tests) : source de PRODUCTION
   aviationweather.gov, `bbox=latMin,lonMin,latMax,lonMax&format=json`, sans clé.
-  Découpage PUR / IMPUR : `buildBboxUrl`, `normalizeRows`, `selectNearest` sont
+  Découpage PUR / IMPUR : `splitBboxes`, `buildBboxUrl(s)`, `normalizeRows`,
+  `selectNearest` sont
   pures ; `fetchNearest` est la seule I/O et reçoit `fetchImpl` + `nowMs` en
   paramètres (injection), donc AUCUN appel réseau dans `npm test`. Fixture =
   4 vraies lignes AWC capturées le 24/07/2026, inlinées dans le test, horloge
@@ -247,17 +248,41 @@ Fait et validé :
   `distanceKm`/`bearingDeg` NON arrondis (arrondi = présentation, étape 10).
   Type interne `AwcStation` (≠ `Station` du contrat).
 
-Prochaine étape :
-- Étape 10 — `api/nearest.ts` : assemblage (station + decode + i18n + icon +
-  geo), cache 5 min, `observedLocal`/`sunrise`/`sunset` formatés via le fuseau.
-  Trois points à trancher à l'étape 10 : (a) `isStale` du contrat est MORT tel
-  quel, puisque `awc.ts` ne rend jamais une obs > 3 h — il lui faut son propre
-  seuil (60-90 min ?) ou il sort du contrat ; (b) `ageMinutes` peut être NÉGATIF
-  (obs jusqu'à 1 h en avance, tolérée) : le laisser ou le ramener à 0 ; (c) le
-  `name` AWC (« Bale-Mulhouse, GES, FR ») est-il nettoyé pour le grand public ?
-- Reste à brancher `sun.isDay` (via `geo.solar`) en paramètre de
-  `pickIcon` lors de l'assemblage (étape 10) ; aujourd'hui `isDay` y est encore
-  une entrée non branchée, défaut jour si null.
+- Étape 10 — `api/nearest.ts` + `tests/nearest.test.ts` (27 tests), plus ajout
+  de `ApiErrorCode`/`ApiError` dans `src/types.ts`. TROIS fichiers, imposés par
+  deux règles absolues : le contrat évolue dans `types.ts` en premier, puis le
+  test, puis le code. Assemblage complet : awc → decode → geo → icon → i18n.
+  Même séparation PUR / IMPUR qu'awc.ts : `parseQuery`, `cleanStationName`,
+  `formatWallTime`, `localMiddayInstant`, `buildResponse`, `statusForReason`,
+  `cacheKey` sont pures ; `handleNearest` reçoit `fetchImpl`, `nowMs` ET
+  `cache` en paramètres ; le `handler` Vercel (défaut) ne contient aucune
+  logique. `sun.isDay` est désormais BRANCHÉ sur `pickIcon` (la tâche ouverte
+  de l'étape 8 est close). Vérifié en vrai le 26/07/2026 : Brumath (LFST,
+  `clear_day`, 19:30 locales), Fidji (NFNA, `isDay:false`), Tromsø (lever
+  01:15 / coucher 00:26), position invalide → 400.
+  ATTENTION : relecture de Xavier encore à faire, l'étape n'est pas validée.
+
+- Hors plan, choisi par Xavier le 26/07/2026 — RÉESSAI RÉSEAU dans `src/awc.ts`
+  (+ tests). 2 tentatives par URL, 200 ms d'écart. Motivé par un incident réel
+  du même jour et non par principe : le PREMIER appel d'un processus froid a
+  échoué (502), l'essai suivant a réussi. Sur Vercel chaque invocation à froid
+  est un premier appel. Vérifié par mutation dans les deux sens : supprimer le
+  réessai fait tomber 9 tests, réessayer un 400 en fait tomber 1.
+
+Prochaine étape (à décider avec Xavier) :
+- PAS DE TIMEOUT sur les appels réseau, et c'est le point à traiter en premier
+  avant une mise en ligne. `fetch` n'a aucune limite de temps ici : face à une
+  source qui PEND (au lieu de refuser franchement), le réessai fait maintenant
+  attendre DEUX fois plus longtemps qu'avant. Le réessai aide contre un refus
+  rapide et aggrave la connexion suspendue. Complément attendu :
+  `AbortSignal.timeout` par tentative — ce qui change le contrat de `FetchLike`
+  (second paramètre `init`), d'où la décision séparée.
+- `src/i18n/en.ts` n'existe pas : `lang=en` est accepté et servi EN FRANÇAIS.
+- `tests/corpus.json` : les `expect` restent à compléter par Xavier (voir plus bas).
+- Utile pour les essais manuels : le flux AWC ne contient pas
+  toutes les stations attendues à tout instant (le 26/07/2026, Nadi NFFN était
+  absente alors que NFNA était présente). Un `no_station` sur une zone habitée
+  n'est donc pas forcément un bug de notre code.
 
 Décisions déjà tranchées en session (ne pas les redécider) :
 - Nullabilité à deux niveaux (bloc entier ET champs internes). Sentinelles NON
@@ -298,16 +323,112 @@ Décisions déjà tranchées en session (ne pas les redécider) :
   quel : normalisation éventuelle = étape 10.
 - Antiméridien (étape 9) : ARBITRAGE DE XAVIER (24/07/2026) = solution propre,
   donc DEUX requêtes de part et d'autre de la ligne de changement de date, pas
-  le bornage. TÂCHE OUVERTE, À FAIRE À LA REPRISE avant l'étape 10 : aujourd'hui
-  `buildBboxUrl` borne encore la longitude à ±180 (couverture dégradée sur
-  Fidji/Kiribati). Refonte attendue : une fonction qui renvoie UNE ou DEUX URL
-  (lon-marge < -180 ou lon+marge > 180 → deux boîtes, ex. [177.5,180] et
-  [-180,-179.5]), `fetchNearest` fusionne les lignes des deux appels avant
-  `selectNearest`. La latitude reste bornée à ±90 (correct : au pôle il n'y a
-  rien au-delà). Tests à ajouter : bbox à cheval, fusion des deux réponses,
-  une seule des deux requêtes en panne.
+  le bornage. FAIT le 26/07/2026, la tâche n'est plus ouverte.
+  `splitBboxes(lat, lon, marge)` renvoie UNE ou DEUX boîtes (`Bbox`), la
+  PREMIÈRE étant toujours celle qui contient la position ; `buildBboxUrls` les
+  met en URL ; `fetchNearest` les appelle EN PARALLÈLE et fusionne les lignes
+  (simple concat : boîtes disjointes en longitude, donc aucun doublon possible)
+  AVANT `selectNearest`. Le découpage est recalculé À CHAQUE marge et non une
+  fois pour toutes : à 178° E la boîte serrée (±1,5°) ne coupe pas, l'élargie
+  (±3°) coupe. La latitude reste bornée à ±90 (correct : au pôle il n'y a rien
+  au-delà) ; la longitude ne l'est plus, car elle est circulaire.
+  Vérifié : AWC ACCEPTE une bbox bornée à -180 (appel réel du 26/07/2026,
+  `bbox=-22,-180,-14,-172` → HTTP 200 + stations de Tonga NFTF/NFTV) ; une bbox
+  absurde → HTTP 400. En revanche le classement transfrontalier lui-même est
+  prouvé sur FIXTURES seulement (station à -179,8 gagnant contre une à 178,2),
+  pas sur un appel de production : aucune des positions réelles testées
+  (Fidji, Kiribati, Samoa) n'avait sa station la plus proche de l'autre côté
+  de la ligne. `haversineKm` et `bearingDeg` de geo.ts sont périodiques en Δλ
+  (sin²(Δλ/2) et atan2), donc corrects à cheval sans modification ; un test
+  d'awc.test.ts verrouille cette propriété pour l'avenir.
+- Panne PARTIELLE (étape 9) : quand une seule des deux moitiés répond, on sert
+  quand même ce qu'on a (la station la plus proche est peut-être justement là).
+  Précédence en cas d'échec final : une moitié restée sans réponse l'emporte
+  sur tout, donc `network_error` et JAMAIS `only_stale` ni `no_station` : on ne
+  peut pas affirmer ce que contenait une zone qui n'a pas répondu. Panne
+  TOTALE = court-circuit immédiat, pas d'élargissement inutile.
+- HTTP 204 (correctif du 26/07/2026, HORS périmètre initial de l'étape 9,
+  accepté par Xavier) : AWC répond 204 avec un corps de ZÉRO octet pour une
+  zone sans station (vérifié en plein océan). Piège : `res.ok` vaut true sur un
+  204, et `res.json()` sur un corps vide LÈVE — toute zone déserte était donc
+  comptée comme `network_error`. D'où le test explicite `res.status === 204 →
+  []`. Cas devenu courant avec le découpage, une moitié sur deux étant
+  souvent de la haute mer.
+- Tests d'awc (leçon du 26/07/2026) : le faux `fetch` à deux moitiés
+  (`fakeFetchParUrl`) aiguille sur le SIGNE des longitudes de la bbox analysée,
+  jamais sur un fragment de texte de l'URL. La version par fragment a fait
+  passer quatre tests pour de mauvaises raisons (« 177.5 » se retrouve dans
+  « -177.5 » et change selon la marge). Les branches critiques ont été
+  vérifiées par MUTATION : forcer une seule boîte fait tomber les 5 tests
+  d'antiméridien, désactiver le 204 en fait tomber 2.
 - Fraîcheur (étape 9) : obs > 3 h écartée ; obs datée > 1 h dans le futur
   écartée aussi (station mal réglée, sinon elle gagnerait le tri).
+- Étape 10, les QUATRE arbitrages de Xavier (26/07/2026) :
+  (a) `isStale = ageMinutes > 90`. Seuil SOUPLE de présentation, à ne jamais
+  confondre avec le seuil DUR de 3 h d'awc.ts qui, lui, écarte l'observation.
+  90 et non 60 : beaucoup de stations ne publient qu'une fois par heure et
+  seraient signalées « périmées » à tort la moitié du temps.
+  (b) `ageMinutes` négatif RAMENÉ À 0, avec l'anomalie ajoutée à `warnings`.
+  (c) `name` : nettoyage LÉGER. On retire par la FIN les segments qui
+  ressemblent à des codes (1 à 3 caractères majuscules/chiffres, ou vides),
+  puis les suffixes `Arpt|Airport|Intl|International|Ap`. Jamais de chaîne
+  vide en sortie (repli sur l'étape précédente du nettoyage).
+  (d) Échecs = code HTTP + `{ "error": code }` : 400 `invalid_position`,
+  404 `no_station` et `only_stale`, 502 `network_error`. `ApiErrorCode` de
+  `types.ts` double VOLONTAIREMENT `NotFoundReason` d'awc.ts (l'une est
+  publique et engage le contrat, l'autre est interne). `switch` exhaustif
+  avec `never` : un 5e motif dans awc.ts = erreur de compilation, pas un 500.
+- Soleil et fuseau (étape 10) : DEUX appels à `solar`. `isDay` à l'instant
+  EXACT de l'observation ; lever/coucher à MIDI LOCAL de la station, via
+  `localMiddayInstant`. Raison : `solar` calcule le jour UTC de l'instant reçu
+  (`minutesToUtc`, geo.ts), or à UTC+12/-11 le jour UTC n'est pas le jour
+  local. HONNÊTETÉ SUR L'ENJEU, mesuré le 26/07/2026 : l'écart visible n'est
+  que d'UNE minute (Anadyr 02:51 vs 02:52), car le lever bouge peu d'un jour à
+  l'autre. La correction est juste et coûte trois lignes, mais elle n'est PAS
+  prouvée par un test au niveau de la réponse (`sun.sunrise` ne porte qu'un
+  « HH:MM ») : c'est le test unitaire de `localMiddayInstant` qui la verrouille.
+  Recherche d'un cas de bascule au jour polaire (66-71° N, tout juillet) :
+  infructueuse, abandonnée.
+- Cache (étape 10) : 5 min, INJECTÉ en paramètre (jamais au niveau du module,
+  sinon un test hériterait de la réponse du précédent ; l'unique Map de module
+  vit dans le `handler` Vercel, hors tests). On met en cache la STATION
+  RETENUE et non le corps : sinon `ageMinutes` serait figé et le client lirait
+  « il y a 30 minutes » quatre minutes plus tard. Clé = position arrondie au
+  centième de degré (~1 km), sans la langue. Un ÉCHEC n'est jamais mis en
+  cache. Conséquence assumée : une entrée du cache ne repasse pas le filtre de
+  fraîcheur, donc une obs de 2 h 56 peut être servie à 3 h 01 (débordement
+  borné à 5 min sur un seuil de 3 h). En-tête HTTP : `s-maxage=300,
+  stale-while-revalidate=60` sur les 200, `no-store` sur les échecs.
+- Paramètres de requête (étape 10) : `lang`/`units` inconnus → valeur par
+  défaut SANS échec (une faute de frappe ne doit pas priver de météo) ;
+  position invalide → 400, rédhibitoire. `?lat=` vide n'est pas l'équateur :
+  on exige une chaîne non vide ET un nombre fini.
+- `bearingDeg` (étape 10) : `Math.round` PUIS `% 360`, jamais l'inverse.
+  Un cap de 359,7° arrondirait sinon à 360, qui n'existe pas dans [0, 360[.
+- Réessai réseau (26/07/2026) : le cœur n'est PAS la boucle mais le TRI entre
+  panne passagère et refus définitif, dans `tenterUnAppel`.
+  RÉESSAYÉ : exception réseau/DNS/TLS, HTTP 5xx, HTTP 429, corps JSON illisible
+  (réponse tronquée).
+  PAS RÉESSAYÉ : HTTP 400/403 (c'est NOTRE requête qui est fautive, insister
+  double la charge sans aucune chance d'aboutir) ; HTTP 204 (zone déserte, pas
+  une panne) — cette exclusion-là est devenue critique avec le découpage de
+  l'antiméridien, où une moitié sur deux est de l'océan vide : sans elle, on
+  doublerait la charge sur la moitié des requêtes du Pacifique.
+  RÉSERVE ASSUMÉE sur le 429 : réessayer une limitation de débit après 200 ms
+  est le seul cas où l'on peut EMPIRER les choses (la source demande justement
+  qu'on ralentisse). Acceptable à 2 tentatives ; à revoir si le trafic monte.
+- Réglages du réessai : `MAX_ATTEMPTS = 2`, `RETRY_DELAY_MS = 200`, tous deux
+  surchargeables par `retryDelayMs` / `maxAttempts` des options (même patron
+  d'injection que `fetchImpl` et `nowMs`). Les tests passent TOUJOURS
+  `retryDelayMs: 0` : sans ça la suite dormirait pour de vrai (447 ms → 763 ms
+  constaté avant l'injection). `maxAttempts: 1` coupe le réessai sans toucher
+  au code, et un test fige ce comportement. `handleNearest` (api/nearest.ts)
+  relaie `retryDelayMs`.
+- Coût maximal du réessai, mesuré par les tests (ne pas s'inquiéter en lisant
+  les comptes d'URL) : source totalement à terre = 4 requêtes (2 boîtes x 2
+  tentatives, court-circuit AVANT l'élargissement) ; pire cas réel = 6 (panne
+  partielle à l'antiméridien sur les deux tours). Jamais 8. D'où les attendus
+  3 / 6 / 4 dans les tests d'antiméridien, qui valaient 2 / 4 / 2 avant.
 
 Sur les `expect` du corpus :
 - Règle stricte : Xavier remplit les valeurs attendues (anti « parser contre

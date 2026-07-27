@@ -102,7 +102,26 @@ export interface WeatherText {
   phenomena: string;
 }
 
-// ---------- 5. Réponse racine ----------
+// ---------- 5. Réponse d'ERREUR ----------
+// Quand aucune station ne peut être servie, l'API ne renvoie PAS un
+// MetarResponse vide : elle renvoie un code HTTP parlant et cet objet.
+// Deux raisons : le client distingue les cas sans inspecter dix champs à null,
+// et un cache HTTP ou une supervision voient réellement passer la panne.
+//
+// Cette union double volontairement `NotFoundReason` de `awc.ts` : celle-là est
+// INTERNE au module de collecte, celle-ci est PUBLIQUE et engage le contrat.
+// Les garder distinctes permet de refondre awc.ts sans casser les clients.
+export type ApiErrorCode =
+  | "invalid_position" // lat/lon absents, non numériques ou hors bornes -> HTTP 400
+  | "no_station" // aucune station dans la zone, même élargie -> HTTP 404
+  | "only_stale" // des stations, mais aucune observation de moins de 3 h -> HTTP 404
+  | "network_error"; // source de données injoignable ou illisible -> HTTP 502
+
+export interface ApiError {
+  error: ApiErrorCode;
+}
+
+// ---------- 6. Réponse racine ----------
 export interface MetarResponse {
   station: Station | null;
   observedAt: string | null; // ISO UTC

@@ -44,6 +44,41 @@ export const MAX_AGE_MS = 3 * 60 * 60 * 1000;
 export const MAX_ATTEMPTS = 2;
 export const RETRY_DELAY_MS = 200;
 
+// Délai d'attente maximal d'UNE tentative, en millisecondes.
+//
+// Pourquoi c'est indispensable : `fetch` n'a aucune limite de temps par défaut.
+// Un serveur qui REFUSE répond vite, mais un serveur qui PEND (connexion
+// acceptée, plus un octet ensuite) fait attendre pour toujours. Sans plafond,
+// une seule requête peut immobiliser une fonction serverless jusqu'à la limite
+// de la plateforme, pendant que l'utilisateur regarde une page qui charge.
+//
+// Pourquoi 8 s, et pourquoi PAS 4 s. Valeur choisie sur MESURE, pas au jugé.
+// Le 27/07/2026, 12 processus froids ont fait chacun un premier appel réel
+// sans plafond, depuis Brumath : 165, 185, 321, 352, 369, 433, 628, 736,
+// 1219, 1945, 5295 et 6825 ms — tous RÉUSSIS. La latence à froid ne se range
+// pas en deux paquets nets (« rapide » ou « bloqué ») : elle s'étale. Un
+// plafond à 4 s aurait donc coupé DEUX appels sur douze qui allaient aboutir,
+// c'est-à-dire transformé des réussites lentes en pannes. Un délai trop zélé
+// est pire que pas de délai : il fabrique les erreurs qu'il prétend éviter.
+//
+// Le garde-fou reste utile en haut de l'échelle : le même jour, un appel
+// réellement bloqué a mis 10 s à échouer, deux fois de suite (réessai) =
+// 20,6 s au total. 8 s le ramène à un échec propre et immédiat.
+//
+// Budget, et il faut être précis parce que le plafond est PAR TENTATIVE :
+//   - source qui PEND : le délai n'est pas réessayé et une panne totale
+//     court-circuite le second tour, donc 8 s ;
+//   - source qui répond LENTEMENT EN ERREUR (un 503 au bout de 7,9 s) : là le
+//     réessai s'applique, donc 2 x 8 s = 16 s avant le court-circuit, même sur
+//     une position ordinaire à une seule boîte ;
+//   - pire cas extérieur (antiméridien + panne partielle sur les deux marges) :
+//     de l'ordre de 32 s.
+// Les deux derniers dépassent les 10 s par défaut de Vercel : la plateforme
+// tuerait alors l'invocation et le client recevrait une erreur de plateforme
+// au lieu de notre `{"error":"network_error"}`. Il FAUT donc régler
+// `maxDuration` dans vercel.json avant la mise en ligne, ou borner le total.
+export const TIMEOUT_MS = 8000;
+
 // Tolérance vers le futur. Une station mal réglée peut publier une heure en
 // avance ; sans garde-fou elle passerait pour « ultra fraîche » et gagnerait
 // le tri. Au-delà d'une heure d'avance, on considère l'horodatage faux.
@@ -90,7 +125,15 @@ export type NearestResult = ({ found: true } & NearestHit) | { found: false; rea
 // Forme minimale attendue d'un `fetch`. On ne dépend pas du type DOM complet :
 // on décrit juste ce qu'on utilise. Le `fetch` natif de Node y est conforme,
 // et un faux `fetch` de test aussi.
-export type FetchLike = (url: string) => Promise<{
+//
+// Le second paramètre `init` porte le signal d'abandon du délai d'attente. Il
+// est OPTIONNEL à dessein : un faux `fetch` de test écrit `(url) => ...` sans
+// se soucier du signal reste parfaitement valable (en TypeScript, une fonction
+// qui prend moins de paramètres est acceptée là où on en fournit plus).
+export type FetchLike = (
+  url: string,
+  init?: { signal?: AbortSignal },
+) => Promise<{
   ok: boolean;
   status: number;
   json: () => Promise<unknown>;
@@ -102,6 +145,7 @@ export interface FetchNearestOptions {
   maxAgeMs?: number; // limite de fraîcheur ; 3 h par défaut
   retryDelayMs?: number; // attente avant le second essai ; 0 en test
   maxAttempts?: number; // tentatives par URL ; 2 par défaut, 1 = aucun réessai
+  timeoutMs?: number; // plafond par tentative ; 8 s par défaut, 0 = aucun plafond
 }
 
 // ---------- 3. Construction de l'URL (pure) ----------
@@ -298,12 +342,28 @@ const attendre = (ms: number): Promise<void> =>
 //   - "reessayable" : la panne est passagère, insister a des chances d'aboutir
 //     (coupure réseau, DNS, 5xx, 429 de limitation, réponse tronquée) ;
 //   - "fatal" : le serveur nous dit que NOTRE requête est fautive (400, 403...).
-//     Réessayer ne ferait que doubler la charge sans aucune chance de succès.
-type Tentative = AwcStation[] | "reessayable" | "fatal";
+//     Réessayer ne ferait que doubler la charge sans aucune chance de succès ;
+//   - "delai_depasse" : la connexion est restée suspendue et on l'a coupée.
+//     Non réessayé lui aussi, mais pour une raison OPPOSÉE à celle du 400 : ici
+//     la requête n'a rien de fautif, c'est le TEMPS qui manque. Réessayer une
+//     connexion morte doublerait mécaniquement l'attente, donc aggraverait
+//     exactement le mal que le délai vient soigner. Les deux mènent au même
+//     `network_error` ; on les sépare parce que ce ne sont pas les mêmes faits.
+type Tentative = AwcStation[] | "reessayable" | "fatal" | "delai_depasse";
 
-async function tenterUnAppel(url: string, fetchImpl: FetchLike): Promise<Tentative> {
+async function tenterUnAppel(
+  url: string,
+  fetchImpl: FetchLike,
+  timeoutMs: number,
+): Promise<Tentative> {
+  // Un signal qui se déclenche tout seul au bout du délai imparti. `fetch` le
+  // surveille et interrompt l'appel, y compris pendant la lecture du corps.
+  // Le compte à rebours part à la CRÉATION du signal, donc un signal neuf par
+  // tentative : sinon le réessai hériterait du temps déjà consommé.
+  // À 0 (ou moins), aucun signal : c'est la façon de désactiver le plafond.
+  const signal = timeoutMs > 0 ? AbortSignal.timeout(timeoutMs) : undefined;
   try {
-    const res = await fetchImpl(url);
+    const res = await fetchImpl(url, { signal });
     if (!res.ok) {
       // 429 = limitation de débit, 5xx = défaillance du serveur : passager.
       // Le reste (400, 403, 404...) vient de notre requête : définitif.
@@ -319,6 +379,12 @@ async function tenterUnAppel(url: string, fetchImpl: FetchLike): Promise<Tentati
     const payload = await res.json();
     return normalizeRows(payload);
   } catch {
+    // On interroge le SIGNAL plutôt que le message de l'erreur : c'est le seul
+    // critère fiable. Selon l'environnement, un abandon se présente comme un
+    // `AbortError`, un `TimeoutError` ou autre chose encore ; le signal, lui,
+    // dit toujours la vérité. Et il couvre aussi bien l'attente de la réponse
+    // que la lecture d'un corps qui s'interrompt en cours de route.
+    if (signal?.aborted === true) return "delai_depasse";
     // Coupure réseau, DNS, TLS, ou corps illisible (réponse tronquée) :
     // typiquement le hoquet d'un processus froid, donc réessayable.
     return "reessayable";
@@ -340,11 +406,18 @@ async function fetchStations(
   fetchImpl: FetchLike,
   retryDelayMs: number,
   maxAttempts: number,
+  timeoutMs: number,
 ): Promise<AwcStation[] | "network_error"> {
   for (let essai = 1; essai <= maxAttempts; essai += 1) {
-    const r = await tenterUnAppel(url, fetchImpl);
-    if (r !== "reessayable" && r !== "fatal") return r; // succès
-    if (r === "fatal") return "network_error"; // inutile d'insister
+    const r = await tenterUnAppel(url, fetchImpl, timeoutMs);
+    // Un tableau = succès (même vide : une zone déserte a bien répondu).
+    // `Array.isArray` plutôt qu'une liste de marqueurs à énumérer : un motif
+    // d'échec ajouté plus tard sera d'office traité comme un échec, et non
+    // confondu avec des stations par un test devenu incomplet.
+    if (Array.isArray(r)) return r;
+    // Tout marqueur autre que "reessayable" est définitif, chacun pour sa
+    // raison propre : requête fautive (400) ou connexion suspendue (délai).
+    if (r !== "reessayable") return "network_error";
     if (essai < maxAttempts) await attendre(retryDelayMs);
   }
   return "network_error";
@@ -362,12 +435,19 @@ export async function fetchNearest(
   lon: number,
   options: FetchNearestOptions = {},
 ): Promise<NearestResult> {
-  const fetchImpl = options.fetchImpl ?? ((url: string) => fetch(url));
+  // Le `init` est RELAYÉ au fetch natif, et c'est tout sauf un détail : c'est
+  // la seule ligne du module qui fait exister le délai d'attente en PRODUCTION.
+  // L'omettre laisserait toute la suite de tests au vert, puisque chaque test
+  // injecte son propre `fetchImpl` et ne passe jamais par ici. Un test dédié
+  // remplace le `fetch` global pour verrouiller cette ligne précise.
+  const fetchImpl =
+    options.fetchImpl ?? ((url: string, init?: { signal?: AbortSignal }) => fetch(url, init));
   const nowMs = options.nowMs ?? Date.now();
   const maxAgeMs = options.maxAgeMs ?? MAX_AGE_MS;
   const retryDelayMs = options.retryDelayMs ?? RETRY_DELAY_MS;
   // Math.max(1, ...) : même mal réglé, on tente toujours au moins une fois.
   const maxAttempts = Math.max(1, options.maxAttempts ?? MAX_ATTEMPTS);
+  const timeoutMs = options.timeoutMs ?? TIMEOUT_MS;
 
   // Garde d'entrée : une position invalide ne mérite pas un appel réseau.
   if (!isFiniteNumber(lat) || !isFiniteNumber(lon)) {
@@ -386,7 +466,9 @@ export async function fetchNearest(
     // l'un après l'autre doublerait le temps de réponse pour rien.
     const urls = buildBboxUrls(lat, lon, margin);
     const resultats = await Promise.all(
-      urls.map((url) => fetchStations(url, fetchImpl, retryDelayMs, maxAttempts)),
+      urls.map((url) =>
+        fetchStations(url, fetchImpl, retryDelayMs, maxAttempts, timeoutMs),
+      ),
     );
 
     const pannes = resultats.filter((r) => r === "network_error").length;

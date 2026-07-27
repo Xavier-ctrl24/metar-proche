@@ -10,40 +10,67 @@ et toute la traduction sont ici.
 
 
 
-\## Règles absolues
+## Règles absolues
 
+Ces règles-là ne se négocient pas et ne se redécident pas en session.
 
+- `src/types.ts` est la source de vérité. Toute évolution du contrat d'API se
+  fait là en premier, jamais dans un fichier consommateur.
+- Les tests précèdent le code. Aucun décodeur n'est écrit avant l'existence du
+  cas de test correspondant.
+- ANTI « PARSER CONTRE LUI-MÊME » : Claude ne fabrique JAMAIS une valeur de
+  référence ni une formulation destinée à l'utilisateur final. Les `expect` de
+  `tests/corpus.json` et les phrases des fichiers `src/i18n/*` sont écrits par
+  Xavier. Claude peut proposer, jamais entériner. Une valeur attendue produite
+  par le code qu'elle est censée vérifier ne prouve rien.
+  Deux exceptions, déjà convenues : les mathématiques pures (`src/units.ts`),
+  où Claude calcule les attendus et les vérifie par programme ; et les
+  propriétés STRUCTURELLES (une chaîne vide, un séparateur décimal, une place
+  d'intensité, la parité entre deux langues), qui ne dépendent d'aucun choix de
+  vocabulaire. Tout ce qui reste en attente de validation est signalé.
+- Les sorties sont métriques par défaut. Les unités sources varient : SM et
+  inHg en Amérique du Nord, MPS en Russie et en Chine, kt ailleurs.
+- L'heure affichée est l'heure locale de la STATION, jamais celle du client.
+- Le calcul jour/nuit se fait sur les coordonnées de la station.
+- Ne jamais produire un bloc de code sans le commenter.
 
-\- `src/types.ts` est la source de vérité. Toute évolution du contrat
+## Mode de travail
 
-&#x20; d'API se fait là en premier, jamais dans un fichier consommateur.
+Xavier a demandé le 27/07/2026 une AUTONOMIE LARGE. Ce qui suit remplace le
+fonctionnement par étapes validées une à une.
 
-\- Les tests précèdent le code. Aucun décodeur n'est écrit avant
+- Une demande se mène de bout en bout, sans s'arrêter pour faire valider. Autant
+  de fichiers que la demande en exige, y compris les tests, le câblage et le
+  journal de décisions. Plus de limite d'un fichier par demande.
+- Les décisions de conception COURANTES se tranchent seules : découpage des
+  modules, nommage, structure des tests, valeurs de réglage, ordre des travaux.
+  On documente le pourquoi, on ne demande pas l'autorisation.
+- On interrompt Xavier dans trois cas seulement : un choix qui ENGAGE LE CONTRAT
+  d'API (`src/types.ts`), une action irréversible ou tournée vers l'extérieur
+  (pousser, déployer, supprimer), et une valeur de référence ou une formulation
+  qui relève de la règle anti « parser contre lui-même ».
+- Sur un test qui résiste : trois tentatives, puis on change d'approche au lieu
+  de s'acharner. On ne s'arrête pas pour autant, et on ne désactive JAMAIS un
+  test pour faire passer la suite. Si le blocage tient, on finit tout le reste
+  et on rapporte précisément ce qui coince.
+- GIT : Claude commite lui-même, sur une branche de travail, dès que
+  `npm test` et `npm run type-check` passent tous les deux. Jamais de `push`,
+  jamais de commit sur `main` sans demande explicite.
+- Ce qu'on ne troque PAS contre de la vitesse : les tests avant le code, la
+  vérification par MUTATION des branches critiques (casser le code doit faire
+  tomber un test précis), la mesure avant de figer une constante, et le rapport
+  honnête (un échec se dit, une étape sautée se dit, une valeur non validée se
+  signale).
+- Le rapport de fin de travail dit ce qui a été fait, ce qui a été tranché seul
+  et pourquoi, et ce qui reste en attente de Xavier. Il n'énumère pas les pistes
+  écartées.
 
-&#x20; l'existence du cas de test correspondant dans `tests/corpus.json`.
+## Contexte
 
-\- Les sorties sont métriques par défaut. Les unités sources varient :
-
-&#x20; SM et inHg en Amérique du Nord, MPS en Russie et en Chine, kt ailleurs.
-
-\- L'heure affichée est l'heure locale de la STATION, jamais celle du client.
-
-\- Le calcul jour/nuit se fait sur les coordonnées de la station.
-
-\- Maximum 3 itérations sur un test qui échoue, puis arrêt et rapport.
-
-\- Un seul fichier par demande sauf instruction contraire explicite.
-
-
-
-\## Contexte
-
-
-
-Utilisateur débutant en TypeScript. Expliquer chaque décision.
-
-Ne jamais produire un bloc de code sans le commenter.
-
+Xavier est débutant en TypeScript : les décisions s'expliquent, et les
+commentaires du code portent le journal de conception (c'est la mémoire du
+projet d'une session à l'autre). L'autonomie porte sur le fait de ne plus
+demander la permission, jamais sur le fait d'expliquer moins.
 
 
 \## Contrat d'API
@@ -200,9 +227,10 @@ npx tsc --noEmit  vérification des types
 
 ## État d'avancement (dernière session : 26/07/2026)
 
-Construction par étapes selon `PROMPT.md`. On s'arrête après CHAQUE étape et on
-attend la validation explicite de Xavier avant la suivante. Les tests précèdent
-toujours le code. À ce jour : 244 tests passent, `npm run type-check` exit 0.
+Construction par étapes selon `PROMPT.md`. L'arrêt-validation après chaque étape
+a été LEVÉ le 27/07/2026 (voir « Mode de travail ») : les étapes s'enchaînent
+désormais sans attendre. Les tests précèdent toujours le code.
+À ce jour : 298 tests passent, `npm run type-check` exit 0.
 
 Fait et validé :
 - Étape 1 — `src/types.ts` (contrat d'API, source de vérité).
@@ -269,15 +297,44 @@ Fait et validé :
   est un premier appel. Vérifié par mutation dans les deux sens : supprimer le
   réessai fait tomber 9 tests, réessayer un 400 en fait tomber 1.
 
+- Hors plan, 27/07/2026 — DÉLAI D'ATTENTE dans `src/awc.ts` (+ tests). FAIT :
+  `AbortSignal.timeout` par tentative, `TIMEOUT_MS = 8000`, option `timeoutMs`
+  (0 = désactivé). `FetchLike` prend un second paramètre `init` OPTIONNEL, donc
+  les faux `fetch` existants et `api/nearest.ts` compilent sans retouche.
+  250 tests passent, `npm run type-check` exit 0.
+
+- Étape 10 VALIDÉE par Xavier le 27/07/2026 (relecture faite).
+
+- Hors plan, 27/07/2026 — TRADUCTION ANGLAISE. `src/i18n/en.ts` +
+  `tests/i18n.en.test.ts` (40 tests), plus le CÂBLAGE dans `api/nearest.ts` et
+  5 tests de langue dans `tests/nearest.test.ts`. `src/types.ts` NON touché :
+  `Lang` valait déjà `"fr" | "en"`. `lang=en` n'est donc plus un mensonge du
+  contrat. 295 tests passent, `npm run type-check` exit 0.
+
 Prochaine étape (à décider avec Xavier) :
-- PAS DE TIMEOUT sur les appels réseau, et c'est le point à traiter en premier
-  avant une mise en ligne. `fetch` n'a aucune limite de temps ici : face à une
-  source qui PEND (au lieu de refuser franchement), le réessai fait maintenant
-  attendre DEUX fois plus longtemps qu'avant. Le réessai aide contre un refus
-  rapide et aggrave la connexion suspendue. Complément attendu :
-  `AbortSignal.timeout` par tentative — ce qui change le contrat de `FetchLike`
-  (second paramètre `init`), d'où la décision séparée.
-- `src/i18n/en.ts` n'existe pas : `lang=en` est accepté et servi EN FRANÇAIS.
+- VOCABULAIRE ANGLAIS À VALIDER par Xavier. C'est la seule vraie dette de
+  cette session, et le 27/07/2026 Xavier a explicitement MAINTENU la règle qui
+  la rend anormale : les formulations restent à sa main. Ce qui est dans
+  `en.ts` est donc une PROPOSITION en attente, pas un acquis, et c'est le seul
+  endroit du projet dans cet état. La règle anti « parser contre lui-même » veut que Xavier
+  formule les phrases (c'est ainsi que le français a été fait à l'étape 6) ;
+  pour l'anglais, Claude les a proposées faute de mieux. Les tests le disent en
+  tête de fichier et vérifient donc surtout ce qui est OBJECTIF (séparateur
+  décimal, place de l'intensité, sentinelles, parité), mais les mots eux-mêmes
+  n'engagent que Claude. À relire en priorité : « No wind », « Partly cloudy »
+  (SCT), « Mostly cloudy » (BKN), « A few clouds » (FEW), « Clear sky ».
+- Pas de BUDGET GLOBAL de temps, seulement un plafond PAR TENTATIVE. Deux cas
+  peuvent donc encore dépasser 10 s : panne PARTIELLE à l'antiméridien sur les
+  deux tours (2 x 8 s), et un 5xx qui arrive juste avant l'expiration puis un
+  blocage (~4 x 8 s). Rares tous les deux. Un budget global lèverait la tension
+  entre « plafond assez large pour un démarrage à froid » et « total assez court
+  pour Vercel », mais c'est une machinerie d'un autre ordre : décision séparée.
+  Si on la prend, NE PAS réutiliser `nowMs` (horloge d'observation, figée en
+  test) : le temps écoulé exige sa propre source. À défaut, régler `maxDuration`
+  dans vercel.json, ce qui est une ligne.
+- `timeoutMs` n'est PAS relayé par `handleNearest` (`api/nearest.ts`), à la
+  différence de `retryDelayMs`. Sans conséquence : la valeur par défaut
+  s'applique. À ajouter le jour où un test de l'étape 10 en aura besoin.
 - `tests/corpus.json` : les `expect` restent à compléter par Xavier (voir plus bas).
 - Utile pour les essais manuels : le flux AWC ne contient pas
   toutes les stations attendues à tout instant (le 26/07/2026, Nadi NFFN était
@@ -424,11 +481,103 @@ Décisions déjà tranchées en session (ne pas les redécider) :
   constaté avant l'injection). `maxAttempts: 1` coupe le réessai sans toucher
   au code, et un test fige ce comportement. `handleNearest` (api/nearest.ts)
   relaie `retryDelayMs`.
+- Délai d'attente (27/07/2026), L'ARBITRAGE CENTRAL : un délai dépassé n'est
+  JAMAIS réessayé, contrairement à un ECONNRESET. Raisons opposées à celles du
+  400 : la requête n'est pas fautive, c'est le temps qui manque, et réessayer
+  une connexion suspendue double mécaniquement l'attente, donc aggrave le mal
+  que le délai vient soigner. D'où un 3e marqueur `"delai_depasse"` dans
+  `Tentative` (même sortie `network_error` que `"fatal"`, mais ce ne sont pas
+  les mêmes faits, et les commentaires de ce dépôt portent le journal).
+  PROUVÉ, pas supposé : sur un processus froid réellement en panne (mesure du
+  27/07/2026, sans plafond), les DEUX tentatives ont échoué en 20,6 s au total,
+  soit ~10 s chacune (délai de connexion interne d'undici). Réessayer un blocage
+  n'a donc rien sauvé et a coûté le double. Avec le plafond : 4 s et un échec
+  propre, au lieu de 20,6 s et le même échec.
+- Détection du délai : on interroge `signal.aborted`, JAMAIS le nom ni le
+  message de l'erreur (`AbortError`, `TimeoutError`... varient selon
+  l'environnement). Le signal couvre aussi la lecture d'un corps interrompue en
+  cours de route, pas seulement l'attente de l'en-tête.
+- Valeur de 8 s, et le PIÈGE évité de justesse. Premier choix : 4 s, calculé sur
+  le seul budget Vercel. Mesure faite ENSUITE (12 processus froids, un appel
+  réel chacun, sans plafond, depuis Brumath) : 165, 185, 321, 352, 369, 433,
+  628, 736, 1219, 1945, 5295, 6825 ms, TOUS réussis. À chaud, 26 à 466 ms sur
+  10 appels. La latence à froid ne se range donc PAS en deux paquets nets
+  (rapide / bloqué), elle s'étale : un plafond à 4 s aurait coupé 2 appels sur
+  12 qui allaient aboutir. Leçon générale : un délai trop zélé fabrique les
+  erreurs qu'il prétend éviter, et seule la mesure le dit.
+  8 s couvre le pire démarrage à froid observé (6825 ms) tout en ramenant le
+  blocage réel de 20,6 s à un échec propre. Budget : panne totale = court-circuit
+  au premier tour = 8 s, et c'est le cas de ~99 % des positions (une seule
+  boîte). 16 s exige une panne PARTIELLE, donc l'antiméridien. Au-delà des 10 s
+  par défaut de Vercel, régler `maxDuration` dans vercel.json.
+  RÉSERVE : mesuré depuis une ligne domestique française vers un service
+  américain. Vercel devrait être meilleur. Si des `network_error` inexpliqués
+  apparaissent en production, c'est le premier réglage à remonter.
+- `timeoutMs: 0` n'est pas de la configuration morte : c'est ce qui a permis de
+  MESURER la latence nue et le blocage de 20,6 s. Ne pas le supprimer.
+- Piège vérifié par MUTATION (27/07/2026) : le `fetch` natif de `fetchNearest`
+  doit RELAYER `init`. Écrire `(url) => fetch(url)` laisse les 250 tests au vert
+  (chacun injecte son propre `fetchImpl`) pendant que le délai est purement
+  décoratif en production. Un test remplace donc le `fetch` GLOBAL (`vi.stubGlobal`)
+  pour verrouiller cette ligne-là. Mutations passées : supprimer la transmission
+  du signal fait tomber 4 tests (dont 2 qui pendent 5 s avant que vitest ne les
+  tue, ce qui EST la panne de production) ; classer le délai comme réessayable
+  en fait tomber 2.
 - Coût maximal du réessai, mesuré par les tests (ne pas s'inquiéter en lisant
   les comptes d'URL) : source totalement à terre = 4 requêtes (2 boîtes x 2
   tentatives, court-circuit AVANT l'élargissement) ; pire cas réel = 6 (panne
   partielle à l'antiméridien sur les deux tours). Jamais 8. D'où les attendus
   3 / 6 / 4 dans les tests d'antiméridien, qui valaient 2 / 4 / 2 avant.
+
+- Anglais (27/07/2026), les décisions de structure. COPIE STRUCTURÉE de fr.ts
+  et non factorisation : les deux langues ne partagent pas leur grammaire (le
+  français accorde en genre et en nombre et élide « d'ouest », l'anglais ne
+  fait ni l'un ni l'autre), une fonction commune aurait dû modéliser les deux
+  grammaires pour deux langues. Coût réel de la duplication : quatre tables de
+  mots. `fr.ts` n'a PAS été retouché (244 tests en dépendaient).
+- Trois écarts qu'un portage ligne à ligne aurait ratés :
+  (a) SÉPARATEUR DÉCIMAL. `fr.ts` finit par `.replace(".", ",")` pour écrire
+  « 2,5 km ». Recopié tel quel, l'anglais aurait dit « 2,5 km ».
+  (b) PLACE DE L'INTENSITÉ. Suffixe en français (« Pluie faible »), préfixe en
+  anglais (« Light rain »)... mais pas toujours devant le PREMIER mot : dans
+  `-TSRA` c'est la pluie qui est faible, pas l'orage. Préfixer bêtement donnait
+  « Light thunderstorm with rain », qui affirme autre chose que le METAR. D'où
+  un repère d'insertion `{i}` dans chaque libellé : `"thunderstorm with {i}rain"`
+  → « Thunderstorm with light rain ». `VC` reste un SUFFIXE dans les deux langues.
+  PIÈGE DANS LE PIÈGE, trouvé en relecture : `TS` SEUL n'a pas de précipitation
+  associée, donc l'intensité y qualifie l'orage et repasse devant. Le libellé
+  composé et le libellé simple n'obéissent pas à la même règle de place. Écrit
+  d'abord `"thunderstorm{i}"`, ce qui rendait « Thunderstormlight ». Corrigé en
+  `"{i}thunderstorm"` (« Light thunderstorm »), avec `-TS`, `+TS` et `VCTS`
+  ajoutés au tableau de cas. Aucun test ne le voyait : le tableau ne contenait
+  que `TS` (sans intensité) et `-TSRA` (composé), et la parité ne compare que
+  les VIDES, or « Thunderstormlight » n'est pas vide.
+  (c) L'élision `du`/`d'` de `ventDe` n'est pas traduite, elle DISPARAÎT :
+  « from the » est invariable.
+- Unités : l'anglais reste MÉTRIQUE (« km/h », « m »). L'impérial est une
+  affaire du paramètre `units` (V2), jamais de la langue. Un test l'interdit
+  explicitement (`not.toContain("mph")`) : c'est le réflexe le plus tentant et
+  il casserait le contrat, qui promet des valeurs et des textes séparés.
+- Test de PARITÉ fr/en : sur 6 cas représentatifs, on vérifie les mêmes clés,
+  le même motif de CHAÎNES VIDES, et qu'au moins une phrase diffère. Il ne
+  regarde aucun mot, donc il survivra à une reformulation de Xavier. C'est lui
+  qui attrape la branche oubliée dans en.ts, c'est-à-dire le trou qu'un test
+  écrit de mémoire ne voit jamais (on ne teste que les cas auxquels on pense).
+  « au moins une phrase diffère » et non « toutes » : une visibilité de 400 m
+  s'écrit « 400 m » dans les deux langues.
+- Câblage : `buildResponse` prend un 3e paramètre `lang` OBLIGATOIRE, jamais
+  optionnel. Motif : la fonction est appelée à DEUX endroits de `handleNearest`
+  (cache et réseau) et le chemin du cache n'est atteint qu'à la SECONDE requête
+  sur la même position. Un défaut `"fr"` aurait rendu l'oubli silencieux et
+  invisible aux tests ; obligatoire, l'oubli est une erreur de compilation.
+  Un test le verrouille quand même (deux requêtes `en` d'affilée, la seconde
+  `fromCache: true`), vérifié par MUTATION : figer `"fr"` sur le chemin du
+  cache fait tomber 2 tests. Mutation de la parité vérifiée aussi : faire
+  diverger une sentinelle de `cloudsText` en fait tomber 2, dont 1 de parité.
+- `cacheKey` ne contient toujours PAS la langue, et c'est cohérent : on met en
+  cache la STATION, jamais le texte traduit. Un test fige la conséquence
+  visible (un francophone passé avant ne fait pas servir du français à
+  l'anglophone suivant). Ne pas « corriger » cacheKey.
 
 Sur les `expect` du corpus :
 - Règle stricte : Xavier remplit les valeurs attendues (anti « parser contre

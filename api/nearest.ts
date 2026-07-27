@@ -28,6 +28,7 @@ import { decode } from "../src/decode";
 import { resolveTimezone, solar } from "../src/geo";
 import { pickIcon } from "../src/icon";
 import { translateFr } from "../src/i18n/fr";
+import { translateEn } from "../src/i18n/en";
 
 // ---------- 1. Réglages ----------
 
@@ -104,8 +105,8 @@ export function parseQuery(raw: Record<string, string | string[] | undefined>): 
 
   const langBrut = first(raw.lang);
   const unitsBrut = first(raw.units);
-  // v1 : seul le français est rédigé (i18n/fr.ts). "en" est accepté par le
-  // contrat et sera servi en français jusqu'à l'écriture de i18n/en.ts.
+  // Les deux langues du contrat sont rédigées : i18n/fr.ts et i18n/en.ts.
+  // Toute autre valeur retombe sur le français sans faire échouer la requête.
   const lang: Lang = langBrut === "en" ? "en" : "fr";
   const units: UnitSystem = unitsBrut === "imperial" ? "imperial" : "metric";
 
@@ -234,7 +235,16 @@ const round1 = (v: number): number => Math.round(v * 10) / 10;
 // la réponse. `DecodedMetar` contient un `observedAt` reconstruit depuis le
 // groupe `DDHHMMZ` du METAR, qui n'a ni mois ni année ; la décision du projet
 // est d'utiliser l'`obsTime` d'AWC. Champ par champ, donc, sans raccourci.
-export function buildResponse(hit: NearestHit, nowMs: number): MetarResponse {
+// `lang` est un paramètre OBLIGATOIRE, et c'est délibéré. Lui donner une valeur
+// par défaut ("fr") aurait été plus commode et bien plus dangereux : il y a DEUX
+// appels à cette fonction dans handleNearest (le cache et le réseau), et oublier
+// de transmettre la langue à l'un des deux aurait servi du français en silence,
+// sans qu'aucun test ne tombe. Le chemin du cache est particulièrement traître :
+// il n'est atteint qu'à la SECONDE requête sur la même position, donc un test qui
+// n'appelle qu'une fois ne le traverse jamais. En le rendant obligatoire, l'oubli
+// devient une erreur de compilation. Un test verrouille quand même le cas, mais
+// c'est le compilateur qui monte la garde en premier.
+export function buildResponse(hit: NearestHit, nowMs: number, lang: Lang): MetarResponse {
   const station = hit.station;
   const observedInstant = new Date(station.observedAtMs);
 
@@ -294,7 +304,10 @@ export function buildResponse(hit: NearestHit, nowMs: number): MetarResponse {
       sunrise: formatWallTime(solDuJour.sunriseUtc, timezone),
       sunset: formatWallTime(solDuJour.sunsetUtc, timezone),
     },
-    text: translateFr({
+    // Le SEUL endroit de la réponse qui dépend de la langue. Tout le reste
+    // (valeurs numériques, icône, jetons) est neutre, conformément au contrat :
+    // le client peut donc changer de langue sans rien recalculer d'autre.
+    text: (lang === "en" ? translateEn : translateFr)({
       wind: d.wind,
       visibility: d.visibility,
       clouds: d.clouds,
@@ -354,7 +367,10 @@ export async function handleNearest(
   const entree = cache?.get(cle);
   if (entree !== undefined && nowMs - entree.storedAtMs < CACHE_TTL_MS) {
     // Réassemblage complet : l'âge et `isStale` sont donc recalculés à l'instant.
-    return { status: 200, body: buildResponse(entree.hit, nowMs), fromCache: true };
+    // La langue vient de la REQUÊTE en cours, pas de celle qui a rempli le
+    // cache : on met en cache la station, jamais le texte traduit. Un premier
+    // visiteur en français ne fige donc pas la langue du suivant.
+    return { status: 200, body: buildResponse(entree.hit, nowMs, query.lang), fromCache: true };
   }
 
   // 2. Sinon, on interroge la source. fetchNearest ne lève jamais : un échec
@@ -373,7 +389,7 @@ export async function handleNearest(
 
   const { found: _ignore, ...hit } = r; // on retire le drapeau d'union
   cache?.set(cle, { hit, storedAtMs: nowMs });
-  return { status: 200, body: buildResponse(hit, nowMs), fromCache: false };
+  return { status: 200, body: buildResponse(hit, nowMs, query.lang), fromCache: false };
 }
 
 // ---------- 9. Entrée HTTP (Vercel) ----------

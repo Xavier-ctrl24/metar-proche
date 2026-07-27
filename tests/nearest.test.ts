@@ -64,10 +64,11 @@ async function appel(
   lignes: unknown,
   nowMs: number = NOW_MS,
   cache = new Map(),
+  lang: "fr" | "en" = "fr",
 ) {
   const { impl, nbAppels } = fakeFetch(lignes);
   const r = await handleNearest(
-    { lat, lon, lang: "fr", units: "metric" },
+    { lat, lon, lang, units: "metric" },
     { fetchImpl: impl, nowMs, cache },
   );
   return { ...r, nbAppels, cache };
@@ -374,6 +375,71 @@ describe("handleNearest — échecs", () => {
 });
 
 // ---------- 9. Cache 5 minutes ----------
+// ---------- 8 bis. Langue de la réponse ----------
+// `lang=en` était jusqu'ici ACCEPTÉ mais servi en français : le contrat mentait.
+// Ces tests ferment ce trou, et surtout ils couvrent le chemin le plus facile
+// à oublier, celui du CACHE.
+describe("handleNearest — langue", () => {
+  it("sert les textes en anglais quand lang=en", async () => {
+    const r = await appel(BRUMATH.lat, BRUMATH.lon, [LFST], NOW_MS, new Map(), "en");
+    expect(r.status).toBe(200);
+    const body = r.body as MetarResponse;
+    expect(body.text.headline).toBe("Partly cloudy");
+    expect(body.text.visibility).toBe("More than 10 km");
+    expect(body.text.wind).toContain("Wind from the southwest");
+  });
+
+  it("sert toujours le français par défaut", async () => {
+    const r = await appel(BRUMATH.lat, BRUMATH.lon, [LFST]);
+    const body = r.body as MetarResponse;
+    expect(body.text.headline).toBe("Éclaircies");
+    expect(body.text.visibility).toBe("Plus de 10 km");
+  });
+
+  it("ne traduit QUE le bloc text : valeurs et icône sont identiques", async () => {
+    // Vérifie une promesse explicite du contrat : les nombres et l'icône sont
+    // neutres, donc le client peut proposer un sélecteur de langue sans que la
+    // météo elle-même bouge d'un iota.
+    const fr = (await appel(BRUMATH.lat, BRUMATH.lon, [LFST])).body as MetarResponse;
+    const en = (await appel(BRUMATH.lat, BRUMATH.lon, [LFST], NOW_MS, new Map(), "en"))
+      .body as MetarResponse;
+    expect(en.icon).toBe(fr.icon);
+    expect(en.temperature).toEqual(fr.temperature);
+    expect(en.wind).toEqual(fr.wind);
+    expect(en.pressure).toEqual(fr.pressure);
+    expect(en.text).not.toEqual(fr.text);
+  });
+
+  it("garde l'anglais sur une réponse SERVIE DEPUIS LE CACHE", async () => {
+    // LE test qui discrimine. `buildResponse` est appelé à DEUX endroits de
+    // handleNearest, et celui du cache n'est atteint qu'à la seconde requête
+    // sur la même position : un test qui n'appelle qu'une fois ne le traverse
+    // jamais et laisserait passer un cache qui reparle français.
+    const cache = new Map();
+    const un = await appel(BRUMATH.lat, BRUMATH.lon, [LFST], NOW_MS, cache, "en");
+    const deux = await appel(BRUMATH.lat, BRUMATH.lon, [LFST], NOW_MS, cache, "en");
+    expect(un.fromCache).toBe(false);
+    expect(deux.fromCache).toBe(true); // sans ça le test ne prouverait rien
+    expect((deux.body as MetarResponse).text.headline).toBe("Partly cloudy");
+  });
+
+  it("la langue du premier visiteur ne contamine pas le suivant", async () => {
+    // Conséquence directe du choix « on met en cache la STATION, pas le texte »,
+    // et raison pour laquelle `cacheKey` ne contient pas la langue. Si le corps
+    // traduit était mis en cache, cet anglophone recevrait du français parce
+    // qu'un francophone du même quartier est passé quatre minutes plus tôt.
+    const cache = new Map();
+    const enFrancais = await appel(BRUMATH.lat, BRUMATH.lon, [LFST], NOW_MS, cache, "fr");
+    const enAnglais = await appel(BRUMATH.lat, BRUMATH.lon, [LFST], NOW_MS, cache, "en");
+    expect(enFrancais.fromCache).toBe(false);
+    expect(enAnglais.fromCache).toBe(true);
+    expect((enFrancais.body as MetarResponse).text.headline).toBe("Éclaircies");
+    expect((enAnglais.body as MetarResponse).text.headline).toBe("Partly cloudy");
+    // Une seule requête réseau pour les deux : le cache a bien servi.
+    expect(enAnglais.nbAppels()).toBe(0);
+  });
+});
+
 describe("handleNearest — cache", () => {
   it("ne rappelle pas le réseau pour la même position dans les 5 minutes", async () => {
     const cache = new Map();

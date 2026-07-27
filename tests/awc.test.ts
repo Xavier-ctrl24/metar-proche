@@ -13,7 +13,7 @@
 // 24/07/2026 sur aviationweather.gov (bbox autour de Strasbourg), copiées
 // telles quelles. Ce ne sont pas des données inventées par le code testé.
 
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import {
   splitBboxes,
   buildBboxUrls,
@@ -99,12 +99,14 @@ function fakeFetch(reponses: unknown[]) {
 //   - "est"   = moitié aux longitudes NÉGATIVES (juste après la ligne).
 // Une boîte NON découpée ne correspond à aucun côté : elle reçoit une liste
 // vide, comme une URL sans règle.
-// Deux réponses spéciales, en plus d'une charge utile ordinaire :
+// Trois réponses spéciales, en plus d'une charge utile ordinaire :
 //   "panne"   : la requête échoue (coupure réseau) ;
 //   "vide204" : HTTP 204 avec un corps VIDE, ce qu'AWC renvoie réellement pour
-//               une zone sans station (vérifié le 26/07/2026 en plein océan).
+//               une zone sans station (vérifié le 26/07/2026 en plein océan) ;
+//   "pend"    : la connexion reste ouverte sans jamais répondre. Elle ne se
+//               termine que si on l'abandonne, donc uniquement grâce au délai.
 type Cote = "ouest" | "est";
-type ReglesParUrl = Array<{ cote: Cote; reponse: unknown | "panne" | "vide204" }>;
+type ReglesParUrl = Array<{ cote: Cote; reponse: unknown | "panne" | "vide204" | "pend" }>;
 
 // Réponse 204 fidèle à la réalité : le corps est vide, donc .json() lève.
 const REPONSE_204 = {
@@ -127,13 +129,20 @@ function coteDeLUrl(url: string): Cote | null {
 function fakeFetchParUrl(regles: ReglesParUrl) {
   const urlsAppelees: string[] = [];
   const cotesServis: Cote[] = []; // trace des moitiés réellement exploitées
-  const impl = async (url: string) => {
+  const impl = async (url: string, init?: { signal?: AbortSignal }) => {
     urlsAppelees.push(url);
     const cote = coteDeLUrl(url);
     const regle = regles.find((r) => r.cote === cote);
     if (regle === undefined) return { ok: true, status: 200, json: async () => [] };
     if (regle.reponse === "panne") throw new Error("ECONNRESET");
     if (regle.reponse === "vide204") return REPONSE_204;
+    if (regle.reponse === "pend") {
+      return new Promise<never>((_resolve, reject) => {
+        init?.signal?.addEventListener("abort", () =>
+          reject(new Error("The operation was aborted")),
+        );
+      });
+    }
     cotesServis.push(regle.cote);
     return { ok: true, status: 200, json: async () => regle.reponse };
   };
@@ -692,6 +701,133 @@ describe("fetchNearest", () => {
   });
 });
 
+// ---------- 4 bis. Délai d'attente (timeout) ----------
+// Le complément indispensable du réessai. `fetch` n'a AUCUNE limite de temps
+// par défaut : face à une source qui PEND (connexion ouverte, aucun octet qui
+// arrive) au lieu de refuser franchement, l'appel attend indéfiniment. Sur
+// Vercel, ça veut dire une fonction qui tourne jusqu'à la limite de la
+// plateforme, un utilisateur devant une page qui charge, et de la facturation.
+//
+// Ces tests utilisent des délais RÉELS mais minuscules (10 ms) : contrairement
+// au réessai, on ne peut pas mettre le délai à 0 sans supprimer ce qu'on teste.
+describe("fetchNearest et le délai d'attente", () => {
+  // Faux `fetch` qui ne répond JAMAIS de lui-même : il ne se résout que si on
+  // l'abandonne. C'est la simulation fidèle d'une connexion suspendue, et le
+  // seul montage qui prouve DEUX choses à la fois : que le signal est bien
+  // transmis, et qu'il est bien honoré. Sans transmission du signal, ce test
+  // ne finirait jamais (vitest le tuerait au bout de 5 s).
+  function fakeFetchQuiPend() {
+    let appels = 0;
+    const impl = async (_url: string, init?: { signal?: AbortSignal }) => {
+      appels += 1;
+      return new Promise<never>((_resolve, reject) => {
+        init?.signal?.addEventListener("abort", () =>
+          reject(new Error("The operation was aborted")),
+        );
+      });
+    };
+    return { impl, nbAppels: () => appels };
+  }
+
+  it("abandonne une connexion qui pend au lieu d'attendre indéfiniment", async () => {
+    const { impl, nbAppels } = fakeFetchQuiPend();
+    const r = await fetchNearest(BRUMATH.lat, BRUMATH.lon, {
+      fetchImpl: impl,
+      nowMs: NOW_MS,
+      timeoutMs: 10, // 10 ms au lieu des 8 s de production
+      retryDelayMs: 0,
+    });
+    expect(r.found).toBe(false);
+    if (!r.found) expect(r.reason).toBe("network_error");
+
+    // LA seconde assertion, celle qui porte l'arbitrage : UNE seule tentative.
+    // Un délai dépassé n'est PAS réessayé, contrairement à un ECONNRESET (voir
+    // le test « s'arrête après deux tentatives », qui lui compte 2 appels).
+    // Réessayer une connexion suspendue doublerait mécaniquement l'attente,
+    // c'est-à-dire aggraverait précisément le mal que le délai vient soigner.
+    expect(nbAppels()).toBe(1);
+  });
+
+  it("transmet bien un signal d'abandon au fetch injecté", async () => {
+    // Contrôle direct du câblage : sans ce paramètre, le délai n'existe pas.
+    const recus: Array<{ signal?: AbortSignal } | undefined> = [];
+    const impl = async (_url: string, init?: { signal?: AbortSignal }) => {
+      recus.push(init);
+      return { ok: true, status: 200, json: async () => ROWS_REELLES };
+    };
+    const r = await fetchNearest(BRUMATH.lat, BRUMATH.lon, {
+      fetchImpl: impl,
+      nowMs: NOW_MS,
+    });
+    expect(r.found).toBe(true);
+    expect(recus).toHaveLength(1);
+    expect(recus[0]?.signal).toBeInstanceOf(AbortSignal);
+    // Le signal n'est évidemment pas déjà déclenché au moment de l'appel.
+    expect(recus[0]?.signal?.aborted).toBe(false);
+  });
+
+  it("transmet le signal même au fetch natif, quand rien n'est injecté", async () => {
+    // Le test le plus important du lot, et le moins évident. En production
+    // aucun `fetchImpl` n'est injecté : c'est le `fetch` natif qui sert, via
+    // une petite fonction par défaut dans fetchNearest. Oublier de lui relayer
+    // le second paramètre laisserait TOUS les autres tests au vert (ils
+    // injectent leur propre faux fetch) pendant qu'en production le délai
+    // serait purement décoratif. On remplace donc le `fetch` global le temps
+    // d'un appel pour verrouiller cette ligne-là.
+    const recus: Array<unknown> = [];
+    vi.stubGlobal("fetch", async (_url: unknown, init?: unknown) => {
+      recus.push(init);
+      return { ok: true, status: 200, json: async () => ROWS_REELLES };
+    });
+    try {
+      const r = await fetchNearest(BRUMATH.lat, BRUMATH.lon, { nowMs: NOW_MS });
+      expect(r.found).toBe(true);
+    } finally {
+      // `finally` : le `fetch` global doit être rendu même si l'attente échoue,
+      // sinon les tests suivants hériteraient du faux.
+      vi.unstubAllGlobals();
+    }
+    expect(recus).toHaveLength(1);
+    expect((recus[0] as { signal?: AbortSignal } | undefined)?.signal).toBeInstanceOf(
+      AbortSignal,
+    );
+  });
+
+  it("laisse aboutir un appel lent mais qui répond dans les temps", async () => {
+    // Un délai trop zélé serait pire que pas de délai du tout : il couperait
+    // des réponses valables. 30 ms de latence sous un plafond de 500 ms passe.
+    const impl = async () => {
+      await new Promise((r) => setTimeout(r, 30));
+      return { ok: true, status: 200, json: async () => ROWS_REELLES };
+    };
+    const r = await fetchNearest(BRUMATH.lat, BRUMATH.lon, {
+      fetchImpl: impl,
+      nowMs: NOW_MS,
+      timeoutMs: 500,
+    });
+    expect(r.found).toBe(true);
+    if (r.found) expect(r.station.icao).toBe("LFST");
+  });
+
+  it("timeoutMs à 0 désactive le délai, comme maxAttempts à 1 désactive le réessai", async () => {
+    // Même patron que le réessai : le garde-fou reste un RÉGLAGE. À 0, aucun
+    // signal n'est transmis du tout (et non un signal qui expire aussitôt,
+    // ce qui couperait toutes les requêtes).
+    const recus: Array<{ signal?: AbortSignal } | undefined> = [];
+    const impl = async (_url: string, init?: { signal?: AbortSignal }) => {
+      recus.push(init);
+      return { ok: true, status: 200, json: async () => ROWS_REELLES };
+    };
+    const r = await fetchNearest(BRUMATH.lat, BRUMATH.lon, {
+      fetchImpl: impl,
+      nowMs: NOW_MS,
+      timeoutMs: 0,
+    });
+    expect(r.found).toBe(true);
+    expect(recus[0]?.signal).toBeUndefined();
+  });
+});
+
 // ---------- 5. Antiméridien : deux requêtes, une seule réponse ----------
 // Le cœur de l'étape. Depuis les Fidji, la zone de recherche est à cheval sur
 // la ligne de changement de date : elle est donc interrogée en DEUX appels,
@@ -808,6 +944,30 @@ describe("fetchNearest à cheval sur l'antiméridien", () => {
     // Panne TOTALE : court-circuit immédiat, pas de tour élargi inutile.
     // 4 requêtes = les 2 moitiés, chacune tentée deux fois.
     expect(urlsAppelees).toHaveLength(4);
+  });
+
+  it("sert la moitié disponible quand l'autre PEND, sans la réessayer", async () => {
+    // Le pire scénario du découpage, et la raison d'être du délai : une moitié
+    // répond normalement, l'autre reste suspendue. Sans délai, la réponse déjà
+    // obtenue serait retenue en otage par une connexion morte, indéfiniment.
+    //
+    // Deux assertions, à comparer au test jumeau « sert quand même la moitié
+    // disponible si l'autre requête tombe en panne » : celui-là compte 3 URL
+    // (la moitié en panne est réessayée), celui-ci en compte 2. La différence
+    // est exactement l'arbitrage « un délai dépassé ne se réessaie pas ».
+    const { impl, urlsAppelees } = fakeFetchParUrl([
+      { cote: "ouest", reponse: [ROW_OUEST] },
+      { cote: "est", reponse: "pend" },
+    ]);
+    const r = await fetchNearest(PACIFIQUE.lat, PACIFIQUE.lon, {
+      fetchImpl: impl,
+      nowMs: NOW_MS,
+      timeoutMs: 10,
+      retryDelayMs: 0,
+    });
+    expect(r.found).toBe(true);
+    if (r.found) expect(r.station.icao).toBe("NFXW");
+    expect(urlsAppelees).toHaveLength(2);
   });
 
   it("recalcule le découpage à l'élargissement : 1 requête puis 2", async () => {

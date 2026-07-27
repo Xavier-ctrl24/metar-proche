@@ -350,9 +350,16 @@ Fait et validé :
   `corpus.json` et doit désormais écrire `with { type: "json" }`.
   On écrit `.js` même si le fichier est un `.ts` : c'est la convention ESM, le
   nom désigne le fichier COMPILÉ.
+- EN LIGNE ET VÉRIFIÉ le 27/07/2026 : https://github.com/Xavier-ctrl24/metar-proche
+  déployé sur Vercel. `/api/nearest?lat=48.73&lon=7.71` rend LFST, 27 °C,
+  `few_day`, `Europe/Paris`, lever 05:57 / coucher 21:14, textes français
+  corrects. Il aura fallu trois échecs de déploiement pour y arriver
+  (TypeScript 7, détection de framework Vite, imports sans extension), aucun
+  détectable en local.
 - Diagnostiquer une panne qui n'existe qu'en production : ne pas deviner, mais
-  déployer une SONDE (`api/diag.ts`, temporaire) qui contourne les modules et
-  rend ce qu'ils masquent. Deux enseignements de celle du 27/07/2026 :
+  déployer une SONDE (`api/diag.ts`, temporaire, SUPPRIMÉE depuis) qui
+  contourne les modules et rend ce qu'ils masquent. À recréer sur le même
+  patron le jour où ça se reproduit. Deux enseignements de celle du 27/07/2026 :
   (a) elle a écarté en un coup les hypothèses réseau (aviationweather.gov
   répond 200 en 23 ms depuis iad1, aucun filtrage d'IP, aucune question
   d'en-tête), alors qu'on aurait pu les creuser longtemps ;

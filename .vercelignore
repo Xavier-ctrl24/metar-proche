@@ -51,6 +51,11 @@ PROMPT.md
 design/
 icones.png
 icones-controle.html
+# Le logo fourni par Xavier et sa planche de tailles. Même statut que la
+# planche d'icônes : une SOURCE. Les icônes réellement installables sont
+# les quatre fichiers de public/ déclarés par le manifeste, et elles
+# seules partent en production.
+logo/
 
 # --- Outillage local ---
 .claude/

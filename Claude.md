@@ -524,6 +524,93 @@ Fait et validé :
   la première reformulation de Xavier, alors que la parité, elle, attrape la
   branche oubliée.
 
+- 28/07/2026 — SYSTÈME DE DESIGN APPLIQUÉ (handoff Claude Design, zip fourni
+  par Xavier dans `design/`). Refonte VISUELLE de `public/index.html` : la
+  logique existante a été PORTÉE sur la nouvelle mise en page, pas réécrite.
+  L'idée directrice de la maquette : LE CIEL EST L'INTERFACE. Le fond n'est
+  plus un thème à deux couleurs mais la traduction visuelle du METAR.
+  DEUX AXES INDÉPENDANTS, à ne jamais confondre : `data-sky` = la CONDITION
+  (10 dégradés : les 8 de la maquette + `neutral` pour le chargement et
+  `err` pour la panne), `data-lum` = la LUMIÈRE de la station (`sun.isDay`,
+  inchangé depuis le 27/07/2026), `data-pol` = la POLARITÉ d'encre.
+  Le contrat rend 24 jetons, la maquette dessine 8 ciels : la table `CIELS`
+  fait la correspondance par FAMILLE visuelle. Deux choix à ne pas
+  redécouvrir : `unknown` prend le ciel NEUTRE et non un beau bleu (un jeton
+  illisible ne doit rien affirmer), et `dust`/`smoke` prennent le ciel de
+  brouillard faute d'un ciel ocre — en inventer un serait écrire du design,
+  pas l'appliquer. Un jeton inconnu ou nul retombe aussi sur `neutral` :
+  même réflexe que le repli `#i-unknown` des icônes.
+  LA NUIT EST UN VOILE, pas sept dégradés inventés. La maquette n'en dessine
+  qu'un (CAVOK nuit), et légende elle-même son écran nocturne « luminosité
+  divisée par trois ». Seul le ciel clair garde son dégradé étoilé dédié.
+
+  LE TROU QUE LA MAQUETTE NE MONTRE PAS, et la vraie difficulté de la
+  session. Elle ne dessine ses cartes de verre que sur CAVOK, un bleu moyen.
+  Or ses ciels `fg` et `sn` sont presque blancs, et TOUS ses dégradés
+  finissent près du blanc en bas (#E2F0FB sur CAVOK). Appliquée telle
+  quelle, sa carte `rgba(255,255,255,.13)` sous encre blanche donne du blanc
+  sur blanc. Ses fondations ne règlent pas le cas : elles déclarent
+  `--ink-on-dark` / `--ink-on-light` et s'arrêtent là.
+  MESURÉ, PAS ESTIMÉ, et c'est la méthode à réutiliser : une sonde en page
+  a composé le dégradé + le voile de nuit + le voile de lecture + le verre,
+  pour 10 ciels x jour/nuit x 21 hauteurs d'écran, puis calculé le rapport
+  WCAG réel. Verdict des valeurs de la maquette : `sct` de jour à 3,34:1 sur
+  le texte courant et 2,38:1 sur les intitulés, `cavok` à 3,84 / 2,65. Sous
+  AA, et invisible à l'œil sur la seule capture qui existe.
+  Corrigé par un jeu de jetons de POLARITÉ (encre, verre, DEUX épaisseurs de
+  bordure, voile de lecture) plus un voile renforcé. Mesures finales, pires
+  cas tous ciels confondus : texte sur carte 5,56 / 5,00 / 4,73 (encre,
+  atténuée, intitulé) ; texte sur ciel 6,64 / 5,38 ; bordure de carte 3,27 ;
+  bordure de CONTRÔLE 3,90. Le verre BLANC de la maquette est conservé :
+  c'est le voile qui a changé, pas le composant.
+  `--ctl-border` existe parce que la maquette n'a qu'une bordure (.20), qui
+  suffit sur son bleu et disparaît ailleurs : un bouton dont on ne voit pas
+  le bord n'est plus un bouton (1.4.11). Les cibles tactiles ont été portées
+  à 24 px minimum (2.5.8) : pastilles FR/EN 23 -> 27 px, « fermer » 13 -> 27
+  par marge NÉGATIVE, donc sans déplacer le dessin d'un pixel.
+
+  CE QUI A ÉTÉ RETIRÉ de la maquette, et pourquoi : le cadre de téléphone,
+  la fausse barre d'état (9:41, batterie — une page web ne ment pas sur la
+  charge de l'appareil) et la planche de pilotage, qui sont la présentation
+  de la maquette et non le produit. Les trois écrans que le backend ne sait
+  pas alimenter (décodage groupe par groupe, recherche de ville, « GPS
+  refusé ») sont HORS PÉRIMÈTRE sur arbitrage de Xavier : le premier
+  exigerait une évolution de `types.ts` et une dizaine de formulations, le
+  deuxième un géocodeur absent du projet, et le troisième CONTREDIT le repli
+  documenté (sans position, on sert Brumath « plutôt qu'un écran mort »).
+  La feuille de localisation, elle, est bien là : elle ne fait que reloger
+  ce qui existait dans le `<details>`, que la nouvelle mise en page ne
+  pouvait plus accueillir.
+  ARBITRAGE DE XAVIER sur les icônes : les 5 icônes de RUBRIQUE restent
+  affichées, la grande icône de tête disparaît (le ciel dit déjà le temps
+  qu'il fait, la doubler serait deux signaux pour une information). Les 24
+  icônes du contrat RESTENT dans le sprite, inutilisées mais prêtes : elles
+  sont validées, et les redessiner coûterait une session.
+  POLICES : Instrument Sans + JetBrains Mono, auto-hébergées en `public/fonts/`
+  (4 woff2 variables, latin + latin-ext, 84 Ko). Choix de Xavier contre le
+  CDN Google de la maquette : la règle « aucun fichier externe » vaut aussi
+  pour les polices. Piège documenté dans `public/fonts/LICENCE.txt` :
+  Instrument Sans ne descend PAS sous la graisse 400 ; la maquette écrit 200
+  sur le chiffre géant, le navigateur rend 400. On écrit donc 400.
+  DEUX DÉFAUTS TROUVÉS PAR LA VÉRIFICATION, tous deux invisibles à la
+  lecture : (a) l'écran d'accueil réaffiché après une panne gardait le fond
+  chaud de la panne, donc disait deux choses à la fois ; (b) la feuille
+  s'ouvrait via `requestAnimationFrame`, qui NE SE DÉCLENCHE PAS dans un
+  onglet qui ne compose pas d'image — remplacé par une lecture d'
+  `offsetHeight`, qui force le calcul sans dépendre d'une frame.
+  VÉRIFIÉ SANS CAPTURE D'ÉCRAN (le volet navigateur ne composait toujours
+  pas d'image), donc par sonde, et c'est encore la méthode : contraste
+  composé sur les 20 combinaisons de ciel, table `CIELS` parcourue sur les
+  24 jetons, `elementFromPoint` sur chaque contrôle de la feuille, hauteurs
+  de cibles tactiles, débordement horizontal nul à 375 px et à 1280 px,
+  états chargement / panne FR et EN / accueil forcés à la main. Détail à
+  connaître pour la prochaine fois : sans composition, ni les TRANSITIONS
+  ni les ANIMATIONS ne s'exécutent — on les coupe (`transition:none`) pour
+  mesurer l'état FINAL, sinon on lit l'état de départ et on croit à un bug.
+  Le jugement visuel revient à Xavier : la page tourne sur `npm run dev`.
+  PAS DE TEST, comme la version précédente de cette page et pour la même
+  raison (voir l'entrée du 28/07/2026 sur la traduction de la page).
+
 Prochaine étape (à décider avec Xavier) :
 - Pas de BUDGET GLOBAL de temps, seulement un plafond PAR TENTATIVE. Deux cas
   peuvent donc encore dépasser 10 s : panne PARTIELLE à l'antiméridien sur les

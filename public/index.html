@@ -1,199 +1,575 @@
 <!doctype html>
-<html lang="fr" data-sky="day">
+<html lang="fr" data-sky="neutral" data-lum="day">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>METAR Proche</title>
 <meta name="description" content="La météo de la station d'observation la plus proche, en clair.">
+<meta name="theme-color" content="#0a1526">
 <style>
+/* ==================================================================
+   SYSTÈME DE DESIGN — d'après le handoff Claude Design du 28/07/2026
+   (« Application météo interactive mobile »).
+
+   L'IDÉE DIRECTRICE, et tout le reste en découle : LE CIEL EST
+   L'INTERFACE. Le fond n'est pas un décor, c'est la traduction visuelle
+   du METAR. La maquette supprime d'ailleurs l'icône météo de tête : le
+   dégradé, la lumière et l'encre disent déjà le temps qu'il fait.
+
+   Deux axes indépendants, et c'est le point à ne pas confondre :
+     1. data-sky  = la CONDITION (cavok, sct, ovc, fg, ra, sn, ts, night,
+                    + neutral pour l'inconnu et err pour la panne).
+     2. data-lum  = la LUMIÈRE de la station (day / night), qui vient de
+                    sun.isDay et non du navigateur. Consulter Fidji à 3 h
+                    locales donne une page de nuit : c'est le parti pris
+                    de la page depuis le 27/07/2026, il ne bouge pas.
+
+   La maquette ne montre qu'un seul ciel de nuit (CAVOK nuit). Les sept
+   autres conditions existent pourtant aussi la nuit. Plutôt que
+   d'inventer sept dégradés nocturnes (ce serait écrire du design, pas
+   l'appliquer), la nuit est un VOILE posé sur le ciel du jour : la
+   maquette légende elle-même son écran nocturne « même hiérarchie,
+   luminosité divisée par trois ». Seul le ciel clair a droit à son
+   dégradé nocturne dédié, parce qu'il est dessiné dans la maquette.
+   ================================================================== */
+
 /* ------------------------------------------------------------------
-   Palette. Deux jeux complets, choisis par la LUMIÈRE DE LA STATION
-   (sun.isDay renvoyé par l'API), et non par le thème du navigateur.
-   C'est le parti pris de la page : on consulte Fidji, on voit sa nuit.
+   Polices. Servies depuis public/fonts/, jamais depuis un CDN : voir
+   public/fonts/LICENCE.txt pour le pourquoi et les licences.
+   Fichiers VARIABLES, d'où `font-weight: 400 700` sur une seule règle.
    ------------------------------------------------------------------ */
-:root[data-sky="day"] {
-  --bg: #e6eef5;          /* bleu de carte aéronautique, très pâle */
-  --surface: #f7fafc;
-  --ink: #12233b;         /* encre marine */
-  --muted: #61748f;
-  --line: #c3d2e2;
-  --accent: #0e7c86;      /* cyan profond, couleur des isobares */
-  /* Les deux accents des icônes, repris de la planche de Xavier : l'ambre
-     de l'astre et de l'éclair, le bleu de tout ce qui est mouillé.
-     L'ambre est CUIVRÉ ici et non jaune : le #f5a623 de la planche ne fait
-     que 1,7:1 sur ce fond très pâle, sous le seuil de 3:1 des éléments
-     graphiques. Mesuré, pas estimé. Ce cuivre tient 3,3:1 en restant chaud ;
-     descendre plus bas virerait au brun. C'est exactement la correction
-     faite au bleu de nuit, mais dans l'autre sens. */
-  --ico-sun: #c96a00;
-  --ico-wet: #2b6cb0;
+@font-face {
+  font-family: "Instrument Sans";
+  font-style: normal; font-weight: 400 700; font-display: swap;
+  src: url(/fonts/instrument-sans-latin.woff2) format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA,
+    U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193,
+    U+2212, U+2215, U+FEFF, U+FFFD;
 }
-:root[data-sky="night"] {
-  --bg: #0d1524;
-  --surface: #141f33;
-  --ink: #e8eef7;
-  --muted: #8296b0;
-  --line: #26344b;
-  --accent: #e8b04b;      /* ambre de lampe : la lumière qu'on voit la nuit */
-  /* Le bleu de la planche est illisible sur le fond nuit (#0d1524) : on
-     l'éclaircit ici plutôt que de le figer en dur dans le SVG. C'est tout
-     l'intérêt de passer les accents par des variables de thème. */
-  --ico-sun: #e8b04b;
-  --ico-wet: #7fb3e8;
+@font-face {
+  font-family: "Instrument Sans";
+  font-style: normal; font-weight: 400 700; font-display: swap;
+  src: url(/fonts/instrument-sans-latin-ext.woff2) format("woff2");
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF,
+    U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020,
+    U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: "JetBrains Mono";
+  font-style: normal; font-weight: 400 700; font-display: swap;
+  src: url(/fonts/jetbrains-mono-latin.woff2) format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA,
+    U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193,
+    U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: "JetBrains Mono";
+  font-style: normal; font-weight: 400 700; font-display: swap;
+  src: url(/fonts/jetbrains-mono-latin-ext.woff2) format("woff2");
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF,
+    U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020,
+    U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
 }
 
+/* ------------------------------------------------------------------
+   Jetons du système. Les noms sont ceux du panneau « Variables CSS » de
+   la maquette : reprendre le vocabulaire fait partie de l'application du
+   système, ça évite qu'un jeton parte dans deux directions.
+   ------------------------------------------------------------------ */
+:root {
+  --sans: "Instrument Sans", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --mono: "JetBrains Mono", "Cascadia Mono", ui-monospace, Consolas, monospace;
+
+  --radius-card: 24px;
+  --radius-sheet: 32px;
+  --radius-pill: 999px;
+  --card-blur: 24px;
+  --space: 8px;
+
+  --ease-sky: cubic-bezier(.2, .85, .2, 1);
+  --dur-enter: 700ms;
+  --dur-tap: 180ms;
+
+  /* Réglages par défaut du ciel, écrasés par chaque [data-sky]. */
+  --sky: linear-gradient(180deg, #101827 0%, #1C2941 60%, #2A3A57 100%);
+  --glow: none;
+  --fx: none;
+  --fx-op: 0;
+  --fx-anim: none;
+  --c1: .12;   /* opacité du premier banc de nuages */
+  --c2: .08;   /* opacité du second */
+}
+
+/* ------------------------------------------------------------------
+   POLARITÉ D'ENCRE — le trou que la maquette ne montre pas.
+
+   Elle ne dessine ses cartes de verre que sur CAVOK, un ciel bleu moyen.
+   Or deux de ses huit ciels (fg, sn) sont presque blancs et passent
+   l'encre en sombre. Sur ceux-là, `background: rgba(255,255,255,.13)` et
+   `border: rgba(255,255,255,.2)` donnent du blanc sur blanc : la carte
+   DISPARAÎT. Ses fondations ne règlent pas le cas, elles se contentent
+   de déclarer --ink-on-dark et --ink-on-light.
+
+   D'où un second jeu de jetons, choisi par la POLARITÉ et non par la
+   condition : encre, verre, bordures et voile de lecture changent
+   ensemble. Un seul endroit à corriger le jour où un ciel s'ajoute.
+
+   TOUTES les valeurs ci-dessous sont MESURÉES et non estimées : une sonde
+   a composé, pour les dix ciels x jour/nuit x 21 hauteurs d'écran, le
+   dégradé + le voile de nuit + le voile de lecture + le verre de la
+   carte, puis calculé le rapport WCAG réel. Les pires cas retenus sont
+   dans le rapport de la session. Ne pas retoucher un de ces nombres
+   sans repasser la sonde : ils tiennent ENSEMBLE, pas séparément.
+   ------------------------------------------------------------------ */
+:root, [data-pol="dark"] {           /* encre CLAIRE sur ciel SOMBRE */
+  --ink: #FFFFFF;
+  --ink-soft: rgba(255, 255, 255, .92);
+  --ink-faint: rgba(255, 255, 255, .88);
+  --card-bg: rgba(255, 255, 255, .14);
+  --card-bg-strong: rgba(255, 255, 255, .22);
+  /* Deux épaisseurs de bordure et non une : la maquette n'en connaît
+     qu'une (.20), qui suffit sur son ciel bleu moyen et disparaît
+     ailleurs. --ctl-border est celle des CONTRÔLES (boutons, saisies),
+     tenue au-dessus de 3:1 parce qu'un bouton dont on ne voit pas le
+     bord n'est plus un bouton. */
+  --card-border: rgba(255, 255, 255, .46);
+  --ctl-border: rgba(255, 255, 255, .58);
+  --hair: rgba(255, 255, 255, .22);
+  --btn-bg: #EAF2FB;
+  --btn-ink: #0B1728;
+  /* Assombrissement de lecture. Les dégradés de la maquette finissent
+     presque blancs en bas (#E2F0FB sur CAVOK) : sans ce voile, une carte
+     en bas d'écran serait du blanc sur du blanc. C'est le trou que la
+     maquette ne montre pas, parce qu'elle ne dessine ses cartes que sur
+     un CAVOK bleu moyen. */
+  --scrim: linear-gradient(180deg,
+      rgba(3, 9, 20, .46) 0%, rgba(3, 9, 20, .44) 22%,
+      rgba(3, 9, 20, .60) 58%, rgba(3, 9, 20, .82) 100%);
+}
+[data-pol="light"] {                 /* encre SOMBRE sur ciel CLAIR */
+  --ink: #16212C;
+  --ink-soft: rgba(22, 33, 44, .92);
+  --ink-faint: rgba(22, 33, 44, .88);
+  /* Le verre ÉCLAIRCIT ici aussi, contrairement au premier réflexe : sur
+     un ciel presque blanc, c'est la BORDURE sombre qui fait exister la
+     carte, pas son fond. Un fond sombre aurait dégradé l'encre sombre
+     posée dessus, donc échangé un problème contre un autre. */
+  --card-bg: rgba(255, 255, 255, .34);
+  --card-bg-strong: rgba(255, 255, 255, .44);
+  --card-border: rgba(20, 32, 46, .70);
+  --ctl-border: rgba(20, 32, 46, .78);
+  --hair: rgba(20, 32, 46, .22);
+  --btn-bg: #16212C;
+  --btn-ink: #F2F7FC;
+  /* Ces ciels-là s'éclaircissent vers le bas : l'encre sombre y gagne du
+     contraste au lieu d'en perdre. Le voile n'a donc à agir qu'en haut,
+     là où le dégradé est le plus foncé (#8D989E sur le brouillard). */
+  --scrim: linear-gradient(180deg,
+      rgba(255, 255, 255, .26) 0%, rgba(255, 255, 255, .06) 34%,
+      rgba(255, 255, 255, .18) 100%);
+}
+
+/* ------------------------------------------------------------------
+   LES HUIT CIELS. Dégradés, lueurs et effets repris tels quels du
+   fichier de handoff : ce sont eux, l'identité du produit.
+   ------------------------------------------------------------------ */
+[data-sky="cavok"] {
+  --sky: linear-gradient(180deg, #0F5FC4 0%, #3E93E8 44%, #9BD0F6 78%, #E2F0FB 100%);
+  --glow: radial-gradient(40% 22% at 76% 16%, rgba(255, 244, 205, .9), transparent 70%);
+  --c1: .10; --c2: .06;
+}
+[data-sky="sct"] {
+  --sky: linear-gradient(180deg, #2A78CE 0%, #63A4E2 46%, #B4D5EE 80%, #E6EFF6 100%);
+  --glow: radial-gradient(36% 20% at 22% 14%, rgba(255, 246, 214, .6), transparent 70%);
+  --c1: .55; --c2: .40;
+}
+[data-sky="ovc"] {
+  --sky: linear-gradient(180deg, #3E4C5C 0%, #697A8B 52%, #98A5B1 82%, #B7C0C8 100%);
+  --glow: radial-gradient(60% 34% at 50% 22%, rgba(255, 255, 255, .18), transparent 74%);
+  --c1: .30; --c2: .34;
+}
+[data-sky="fg"] {
+  --sky: linear-gradient(180deg, #8D989E 0%, #B9C0C1 50%, #D6D9D6 82%, #E9EAE6 100%);
+  --glow: radial-gradient(70% 44% at 50% 56%, rgba(255, 255, 255, .8), transparent 74%);
+  --c1: .22; --c2: .20;
+  --fx: radial-gradient(80% 50% at 50% 60%, rgba(255, 255, 255, .85), transparent 76%);
+  --fx-op: .8; --fx-anim: mpBreathe 9s ease-in-out infinite;
+}
+[data-sky="ra"] {
+  --sky: linear-gradient(180deg, #26374A 0%, #42586E 50%, #6C8095 84%, #8A9BAC 100%);
+  --glow: radial-gradient(60% 30% at 50% 18%, rgba(255, 255, 255, .12), transparent 74%);
+  --c1: .20; --c2: .24;
+  --fx: repeating-linear-gradient(14deg, rgba(255, 255, 255, .3) 0 1px, transparent 1px 9px);
+  --fx-op: .45; --fx-anim: mpRain 1.1s linear infinite;
+}
+[data-sky="sn"] {
+  --sky: linear-gradient(180deg, #6E88AC 0%, #A7BED8 48%, #D5E3F1 80%, #EFF5FB 100%);
+  --glow: radial-gradient(60% 30% at 50% 16%, rgba(255, 255, 255, .5), transparent 74%);
+  --c1: .30; --c2: .26;
+  --fx: radial-gradient(2.2px 2.2px at 30px 40px, rgba(255, 255, 255, .95), transparent),
+        radial-gradient(2px 2px at 180px 120px, rgba(255, 255, 255, .85), transparent);
+  --fx-op: .9; --fx-anim: mpSnow 12s linear infinite;
+}
+[data-sky="ts"] {
+  --sky: linear-gradient(180deg, #11133A 0%, #33235F 44%, #54388A 74%, #2B2456 100%);
+  --glow: radial-gradient(60% 34% at 58% 26%, rgba(160, 130, 240, .32), transparent 74%);
+  --c1: .16; --c2: .20;
+  --fx: radial-gradient(60% 34% at 60% 28%, rgba(210, 190, 255, .55), transparent 72%);
+  --fx-op: 1; --fx-anim: mpFlash 7s ease-in-out infinite;
+}
+[data-sky="night"] {
+  --sky: linear-gradient(180deg, #05091A 0%, #0D1734 52%, #1A2A50 84%, #243560 100%);
+  --glow: radial-gradient(30% 16% at 78% 14%, rgba(190, 210, 255, .28), transparent 70%);
+  --c1: .05; --c2: .04;
+  --fx: radial-gradient(1.5px 1.5px at 40px 90px, #fff, transparent),
+        radial-gradient(1.3px 1.3px at 240px 60px, #fff, transparent),
+        radial-gradient(1.7px 1.7px at 140px 200px, #fff, transparent),
+        radial-gradient(1.2px 1.2px at 320px 260px, #fff, transparent),
+        radial-gradient(1.4px 1.4px at 80px 330px, #fff, transparent);
+  --fx-op: 1; --fx-anim: mpTwinkle 6s ease-in-out infinite;
+}
+/* Deux ciels HORS maquette météo, repris de sa section « états système » :
+   le neutre du chargement (le ciel reste muet tant que le METAR est
+   inconnu, c'est sa légende) et le brun chaud de la panne. Le second est
+   volontairement chaud et jamais rouge d'alarme : il ne fait pas froid
+   dehors parce que notre réseau tousse. */
+[data-sky="neutral"] {
+  --sky: linear-gradient(180deg, #101827 0%, #1C2941 60%, #2A3A57 100%);
+  --glow: none; --c1: .10; --c2: .08;
+}
+[data-sky="err"] {
+  --sky: linear-gradient(180deg, #221A1C 0%, #3A2A2C 60%, #4C3639 100%);
+  --glow: radial-gradient(50% 28% at 50% 30%, rgba(255, 200, 170, .12), transparent 74%);
+  --c1: .06; --c2: .05;
+}
+
+/* La NUIT sur une condition qui n'a pas de dégradé nocturne dessiné :
+   on baisse la lumière au lieu d'inventer un ciel. Le voile est bleu
+   marine et non gris neutre — une nuit n'est pas une photo désaturée. */
+[data-lum="night"] { --veil: 1; }
+[data-lum="day"] { --veil: 0; }
+
+/* ------------------------------------------------------------------
+   Le ciel lui-même. FIXE dans la fenêtre (et non collé au document) :
+   le contenu défile par-dessus, la bande claire du bas reste à sa
+   place, et le voile de lecture garde donc un effet constant.
+   ------------------------------------------------------------------ */
+.sky { position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; }
+.sky > * { position: absolute; inset: 0; }
+.sky-base { background: var(--sky); transition: background var(--dur-enter) var(--ease-sky); }
+.sky-glow { background: var(--glow); }
+.sky-cloud {
+  inset: -10% -20%;
+  background:
+    radial-gradient(60% 46% at 22% 30%, rgba(255, 255, 255, .9), transparent 70%),
+    radial-gradient(52% 40% at 68% 22%, rgba(255, 255, 255, .7), transparent 72%);
+  filter: blur(14px);
+  opacity: var(--c1);
+  animation: mpDrift 64s ease-in-out infinite alternate;
+}
+.sky-cloud.b {
+  background:
+    radial-gradient(46% 34% at 76% 44%, rgba(255, 255, 255, .75), transparent 72%),
+    radial-gradient(40% 30% at 30% 56%, rgba(255, 255, 255, .55), transparent 74%);
+  filter: blur(20px);
+  opacity: var(--c2);
+  animation: mpDrift2 92s ease-in-out infinite alternate;
+}
+.sky-fx { background: var(--fx); opacity: var(--fx-op); animation: var(--fx-anim); }
+.sky-veil {
+  background: linear-gradient(180deg, rgba(4, 8, 22, .80), rgba(8, 16, 40, .70));
+  opacity: var(--veil);
+  transition: opacity var(--dur-enter) var(--ease-sky);
+}
+.sky-scrim { background: var(--scrim); }
+
+@keyframes mpDrift { from { transform: translate3d(-14%, 0, 0); } to { transform: translate3d(14%, 0, 0); } }
+@keyframes mpDrift2 { from { transform: translate3d(12%, 0, 0); } to { transform: translate3d(-12%, 0, 0); } }
+@keyframes mpBreathe { 0%, 100% { opacity: .42; transform: scale(1); } 50% { opacity: .78; transform: scale(1.06); } }
+@keyframes mpRain { from { background-position: 0 -240px; } to { background-position: -60px 240px; } }
+@keyframes mpSnow { from { background-position: 0 -200px, 0 -300px; } to { background-position: 40px 300px, -40px 400px; } }
+@keyframes mpTwinkle { 0%, 100% { opacity: .35; } 50% { opacity: .95; } }
+@keyframes mpFlash { 0%, 92%, 100% { opacity: 0; } 94% { opacity: .55; } 96% { opacity: .1; } 97% { opacity: .4; } }
+@keyframes mpRise { from { opacity: 0; transform: translate3d(0, 18px, 0); } to { opacity: 1; transform: none; } }
+@keyframes mpSpin { from { transform: rotate(0); } to { transform: rotate(360deg); } }
+@keyframes mpShimmer { from { background-position: -260px 0; } to { background-position: 260px 0; } }
+
+/* ------------------------------------------------------------------
+   Mise en page. Maquette pensée pour 390 px de large : sur grand écran
+   la page reste une COLONNE centrée plutôt que de s'étaler, parce que
+   c'est une lecture, pas un tableau de bord.
+   ------------------------------------------------------------------ */
 * { box-sizing: border-box; }
+
+html { background: #101827; }
 
 body {
   margin: 0;
   min-height: 100vh;
-  padding: clamp(1.25rem, 5vw, 4rem);
-  background: var(--bg);
   color: var(--ink);
-  font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
-  font-size: 17px;
+  background: transparent;
+  font-family: var(--sans);
+  font-size: 16px;
   line-height: 1.5;
-  /* La bascule jour/nuit se voit : c'est le geste signature de la page. */
-  transition: background-color .6s ease, color .6s ease;
+  -webkit-font-smoothing: antialiased;
+  transition: color var(--dur-enter) var(--ease-sky);
 }
 
-main { max-width: 46rem; margin: 0 auto; }
+main {
+  position: relative;
+  z-index: 1;
+  max-width: 27rem;
+  margin: 0 auto;
+  padding: max(1rem, env(safe-area-inset-top)) 1.5rem
+           calc(2.5rem + env(safe-area-inset-bottom));
+}
 
-/* ------------------------------------------------------------------
-   1. La ligne brute. Elle ouvre la page parce que c'est L'ARTEFACT du
-   sujet : la chaîne que personne ne sait lire, et dont tout le reste
-   de la page est la traduction. Elle est donc en tête, en chasse fixe,
-   et volontairement discrète : c'est la provenance, pas le message.
-   ------------------------------------------------------------------ */
+/* La carte de verre : LE composant du système. Tout ce qui porte de
+   l'information est posé dessus. */
+.card {
+  padding: 1.15rem 1.25rem;
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius-card);
+  background: var(--card-bg);
+  backdrop-filter: blur(var(--card-blur));
+  -webkit-backdrop-filter: blur(var(--card-blur));
+}
+
+/* Intitulé en chasse fixe, très espacé : la signature typographique du
+   système. La maquette le pose à 9 px et opacité .65 ; ces deux valeurs
+   ensemble passent SOUS le seuil AA. Ici 10 px et une couleur pleine
+   (--ink-faint, mesurée), parce qu'une appli météo se lit dehors. */
+.label {
+  font: 500 10px/1 var(--mono);
+  letter-spacing: .22em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+/* ---- 1. Barre du haut : la bascule de langue ---- */
+.top { display: flex; justify-content: flex-end; padding-top: .5rem; }
+
+.langs {
+  display: flex; gap: 2px; padding: 4px;
+  border: none; border-radius: var(--radius-pill);
+  background: var(--card-bg-strong);
+  backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+}
+/* 8 px de haut et non 6 : la maquette dessine des pastilles de 23 px, et
+   la cible tactile minimale est de 24 px (WCAG 2.5.8). Un pixel, mais du
+   bon côté de la règle, et invisible à l'œil. */
+.langs button {
+  padding: 8px 12px; border: none; border-radius: var(--radius-pill);
+  background: transparent; color: var(--ink);
+  font: 500 11px/1 var(--mono); letter-spacing: .08em;
+  cursor: pointer; transition: background var(--dur-tap) ease, color var(--dur-tap) ease;
+}
+.langs button[aria-pressed="true"] { background: var(--btn-bg); color: var(--btn-ink); }
+
+/* ---- 2. La ligne brute ----
+   Elle reste en tête, comme depuis le premier jour : c'est l'artefact du
+   sujet, la chaîne que personne ne sait lire. La maquette la traite
+   comme la signature du produit et la met dans une carte à part. */
 .raw {
-  font-family: "Cascadia Mono", ui-monospace, Consolas, monospace;
-  font-size: .8rem;
-  letter-spacing: .02em;
-  color: var(--muted);
+  margin: 1rem 0 0;
+  font: 500 12.5px/1.55 var(--mono);
+  letter-spacing: .02em; word-spacing: .22em;
   word-break: break-word;
-  padding-bottom: 1rem;
-  border-bottom: 1px solid var(--line);
+  color: var(--ink-soft);
 }
+.raw .label { display: block; margin-bottom: .6rem; }
 
-/* ------------------------------------------------------------------
-   2. Le message en clair.
-   ------------------------------------------------------------------ */
-.lede { display: flex; gap: 1.5rem; align-items: flex-start; padding: 2rem 0 1.5rem; }
+/* ---- 3. Le message en clair ---- */
+.hero { padding: 2.5rem 0 0; }
 
 .headline {
   margin: 0;
-  font-size: clamp(2.2rem, 8vw, 3.4rem);
-  font-weight: 350;
-  letter-spacing: -.02em;
-  line-height: 1.05;
-}
-
-.temp {
-  margin-left: auto;
-  font-size: clamp(2.2rem, 8vw, 3.4rem);
-  font-weight: 300;
-  font-variant-numeric: tabular-nums;
+  font: 400 clamp(2rem, 9vw, 2.5rem)/1.05 var(--sans);
   letter-spacing: -.03em;
-  white-space: nowrap;
+  text-wrap: pretty;
 }
 
-.place { margin: 0; color: var(--muted); }
-.place strong { color: var(--ink); font-weight: 600; }
+/* Le chiffre géant. Instrument Sans s'arrête à la graisse 400 : la
+   maquette écrit 200, le navigateur rend 400. On écrit donc 400, pour
+   que le fichier dise ce qui se passe vraiment. */
+.temp {
+  display: flex; align-items: flex-start; gap: 2px;
+  margin-top: .35rem;
+  font: 400 clamp(5rem, 33vw, 8.1rem)/.86 var(--sans);
+  letter-spacing: -.06em;
+  font-variant-numeric: tabular-nums;
+}
+.temp .deg { font-size: .42em; opacity: .6; margin-top: .18em; letter-spacing: 0; }
 
-/* Mention de fraîcheur : muette d'habitude, franche quand ça compte. */
-.stale { color: var(--accent); font-weight: 600; }
+.place { margin: .9rem 0 0; font-size: 17px; letter-spacing: -.01em; font-weight: 500; }
+.obs { display: block; margin-top: .2rem; font-size: 15px; font-weight: 400; color: var(--ink-soft); }
+/* Fraîcheur : muette d'habitude, franche quand ça compte. */
+.stale { color: var(--ink); font-weight: 600; }
 
-/* ------------------------------------------------------------------
-   3. Le relevé. Une liste de définitions : les intitulés reprennent
-   les groupes du METAR lui-même, en français. La structure porte donc
-   une information vraie, elle ne décore pas.
-   ------------------------------------------------------------------ */
-.report { border-top: 1px solid var(--line); margin: 0; padding-top: 1.25rem; }
-
-.row { display: flex; gap: 1.25rem; padding: .5rem 0; align-items: baseline; }
-
-.row dt {
-  flex: 0 0 7.5rem;
-  font-size: .78rem;
-  text-transform: lowercase;
-  letter-spacing: .08em;
-  color: var(--muted);
+/* ---- 4. La course du soleil ----
+   Fabriquée avec des champs que le backend calcule vraiment, à la
+   position de la station : le point dit où en est la journée LÀ-BAS. */
+.sun { margin-top: 1.5rem; }
+.sun svg { display: block; width: 100%; height: auto; margin-top: .5rem; overflow: visible; }
+.sun-ends {
+  display: flex; justify-content: space-between; margin-top: .15rem;
+  font: 500 12px/1 var(--mono); letter-spacing: .06em; color: var(--ink-soft);
 }
 
-.row dd { margin: 0; flex: 1; }
+/* ---- 5. Le relevé ---- */
+.grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: .75rem; margin-top: .75rem; }
+.grid .card { grid-column: span 3; }
 
-/* ------------------------------------------------------------------
-   4. La course du soleil. Fabriquée avec des champs que le backend
-   calcule vraiment (lever, coucher, heure d'observation), à la
-   longitude de la station. Le point dit où en est la journée LÀ-BAS.
-   ------------------------------------------------------------------ */
-.sun { margin-top: 2rem; padding-top: 1.25rem; border-top: 1px solid var(--line); }
-.sun-track { position: relative; height: 1px; background: var(--line); margin: 1.5rem 0 .5rem; }
-.sun-dot {
-  position: absolute; top: 50%; width: 11px; height: 11px;
-  margin: -5.5px 0 0 -5.5px; border-radius: 50%;
-  background: var(--accent);
-  transition: left .8s cubic-bezier(.22,1,.36,1);
+.row-head { display: flex; align-items: center; gap: .5rem; }
+.row-txt { margin-top: .6rem; font-size: 17px; letter-spacing: -.01em; }
+
+/* Le vent : la flèche pointe où le vent VA (le METAR donne d'où il
+   vient, d'où le demi-tour), et ne tourne que s'il est variable. La
+   maquette la fait tourner en permanence, mais son exemple est VRB04KT :
+   c'est une propriété de la donnée, pas une décoration. */
+.wind-row { display: flex; align-items: center; gap: .9rem; margin-top: .6rem; }
+.dial {
+  width: 38px; height: 38px; flex: none;
+  border-radius: 50%; border: 1px solid var(--card-border);
+  display: grid; place-items: center;
 }
-.sun-ends { display: flex; justify-content: space-between; font-size: .8rem; color: var(--muted); }
-
-/* ------------------------------------------------------------------
-   5. Commandes. Discrètes : la page sert à lire la météo, pas à régler
-   un instrument. Elles ne s'ouvrent que si on les demande.
-   ------------------------------------------------------------------ */
-.tools { margin-top: 2.5rem; border-top: 1px solid var(--line); padding-top: 1rem; font-size: .9rem; }
-.tools summary { cursor: pointer; color: var(--muted); }
-.tools summary:hover { color: var(--ink); }
-.fields { display: flex; flex-wrap: wrap; gap: .6rem; margin-top: 1rem; align-items: center; }
-
-input, select, button {
-  font: inherit; font-size: .9rem;
-  padding: .45rem .7rem;
-  color: var(--ink); background: var(--surface);
-  border: 1px solid var(--line); border-radius: 3px;
+.dial.vrb { animation: mpSpin 26s linear infinite; }
+.arrow {
+  width: 0; height: 0;
+  border-left: 5px solid transparent; border-right: 5px solid transparent;
+  border-bottom: 13px solid currentColor;
 }
-input { width: 7.5rem; font-variant-numeric: tabular-nums; }
-button { cursor: pointer; border-color: var(--accent); color: var(--accent); font-weight: 600; }
-button:hover { background: var(--accent); color: var(--surface); }
-:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* Les mesures chiffrées : trois colonnes dans une seule carte. La
+   maquette en fait trois cartes séparées ; les regrouper garde la
+   rubrique « mesures » et son icône, qui existent depuis la version
+   précédente et que le relevé perdrait sinon. */
+.mesures { display: flex; gap: .5rem; margin-top: .75rem; }
+.mesure { flex: 1; min-width: 0; }
+.mesure + .mesure { border-left: 1px solid var(--hair); padding-left: .5rem; }
+.mesure b { display: block; font: 400 clamp(1.05rem, 5vw, 1.3rem)/1.1 var(--sans); letter-spacing: -.02em; }
+.mesure .label { display: block; margin-bottom: .45rem; font-size: 9px; letter-spacing: .16em; }
+
+/* ---- 6. Pied : action principale et détail technique ---- */
+.foot { margin-top: 1.4rem; }
+.cta {
+  width: 100%; padding: 1.05rem;
+  border: 1px solid var(--ctl-border); border-radius: 20px;
+  background: var(--card-bg-strong);
+  backdrop-filter: blur(var(--card-blur)); -webkit-backdrop-filter: blur(var(--card-blur));
+  color: var(--ink); font: 500 15px/1 var(--sans); letter-spacing: -.01em;
+  cursor: pointer; transition: background var(--dur-tap) ease;
+}
+.cta:hover { background: var(--card-border); }
+.cta.plein { background: var(--btn-bg); color: var(--btn-ink); border-color: transparent; }
+.cta.plein:hover { filter: brightness(1.08); }
 
 .tech {
-  margin-top: 1rem; font-size: .78rem; color: var(--muted);
-  font-family: "Cascadia Mono", ui-monospace, Consolas, monospace;
+  margin: .9rem 0 0; text-align: center;
+  font: 400 11px/1.5 var(--mono); letter-spacing: .08em;
+  color: var(--ink-faint); text-transform: uppercase;
 }
 
-/* États de service. Un écran vide invite à agir, une erreur dit quoi faire. */
-.notice { padding: 2rem 0; color: var(--muted); }
-.notice b { display: block; color: var(--ink); font-size: 1.15rem; font-weight: 500; margin-bottom: .35rem; }
+/* ---- 7. États de service ---- */
+.notice { padding: 25vh 0 2rem; text-align: center; }
+.notice b { display: block; font: 400 24px/1.25 var(--sans); letter-spacing: -.02em; margin-bottom: .6rem; }
+.notice span { display: block; color: var(--ink-soft); text-wrap: pretty; }
+.notice .cta { margin-top: 1.6rem; }
+.notice .mark {
+  margin: 0 auto 1.4rem; width: 46px; height: 46px;
+  border-radius: 50%; border: 1px solid var(--card-border);
+  display: grid; place-items: center; font: 400 22px/1 var(--sans);
+}
+.notice .mark.attente { border-style: dashed; }
 
-[hidden] { display: none !important; }
+/* Squelette de chargement : le ciel reste neutre tant que le METAR est
+   inconnu. Il fallait un état DISTINCT de l'écran d'accueil, qui servait
+   jusqu'ici les deux à la fois. */
+.skel > div {
+  border-radius: 16px;
+  background: linear-gradient(90deg, rgba(255, 255, 255, .06), rgba(255, 255, 255, .16), rgba(255, 255, 255, .06));
+  background-size: 260px 100%;
+  animation: mpShimmer 1.6s linear infinite;
+}
+.skel .s1 { height: 52px; margin-top: 1rem; }
+.skel .s2 { height: 26px; width: 62%; margin-top: 2.6rem; border-radius: 8px; animation-delay: .1s; }
+.skel .s3 { height: 84px; width: 52%; margin-top: .9rem; border-radius: 12px; animation-delay: .2s; }
+.skel .s4 { height: 84px; margin-top: 2rem; }
+.skel .s5 { height: 78px; margin-top: .75rem; }
+.skel p { margin: 3rem 0 0; text-align: center; }
 
-/* ------------------------------------------------------------------
-   6. Icônes. Dessinées d'après la planche de Xavier (icones.png) :
-   trait seul, pas d'aplat, deux accents seulement.
+/* ---- 8. La feuille « où êtes-vous ? » ----
+   Elle remplace le <details> discret de la version précédente : dans
+   cette mise en page il n'y avait plus d'endroit pour lui, et la
+   maquette en fait l'action principale du bas d'écran. */
+.veil {
+  position: fixed; inset: 0; z-index: 2;
+  background: rgba(4, 12, 24, .5);
+  backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+  opacity: 0; pointer-events: none; transition: opacity 420ms ease;
+}
+.veil.on { opacity: 1; pointer-events: auto; }
 
-   Elles sont un SPRITE SVG en ligne, en bas du document. Aucune requête
-   réseau, aucun fichier à servir, aucun CDN : c'est la même règle que le
-   reste de la page. On les pose avec <use href="#i-...">.
+.sheet {
+  position: fixed; z-index: 3; left: 0; right: 0; bottom: 0;
+  max-width: 27rem; margin: 0 auto;
+  padding: 1.5rem 1.5rem calc(2.1rem + env(safe-area-inset-bottom));
+  border-radius: var(--radius-sheet) var(--radius-sheet) 0 0;
+  border-top: 1px solid rgba(255, 255, 255, .16);
+  background: rgba(12, 22, 38, .92);
+  backdrop-filter: blur(30px); -webkit-backdrop-filter: blur(30px);
+  color: #EAF2FB;
+  transform: translateY(110%);
+  transition: transform var(--dur-enter) var(--ease-sky);
+}
+.sheet.on { transform: translateY(0); }
+/* La feuille garde SA propre polarité : elle est toujours sombre, quel
+   que soit le ciel derrière. C'est un plan au-dessus de la page, pas une
+   carte posée dedans. */
+.sheet {
+  --ink: #EAF2FB; --ink-soft: rgba(234, 242, 251, .90); --ink-faint: rgba(234, 242, 251, .82);
+  --card-bg: rgba(255, 255, 255, .10);
+  --card-border: rgba(255, 255, 255, .28); --ctl-border: rgba(255, 255, 255, .38);
+  --btn-bg: #EAF2FB; --btn-ink: #0B1728; --hair: rgba(255, 255, 255, .16);
+}
+.grip { width: 38px; height: 4px; border-radius: 2px; background: rgba(255, 255, 255, .28); margin: 0 auto 1.1rem; }
+.sheet-head { display: flex; align-items: baseline; justify-content: space-between; gap: .75rem; }
+.sheet-head h2 { margin: 0; font: 400 22px/1.2 var(--sans); letter-spacing: -.02em; }
+/* Le « fermer » est un mot, donc haut de 11 px : on l'entoure de marge
+   NÉGATIVE pour lui donner une cible de 27 px sans le déplacer d'un
+   pixel. Le dessin ne bouge pas, le doigt gagne 16 px. */
+.sheet-head button {
+  border: none; background: none; color: var(--ink-soft); cursor: pointer;
+  padding: 8px 6px; margin: -8px -6px;
+  font: 500 11px/1 var(--mono); letter-spacing: .14em; text-transform: uppercase;
+}
+.champs { display: flex; gap: .5rem; margin-top: .75rem; }
+.champs input {
+  flex: 1; min-width: 0;
+  padding: .95rem 1rem;
+  border: 1px solid var(--ctl-border); border-radius: 18px;
+  background: var(--card-bg); color: var(--ink);
+  font: 400 15px/1 var(--sans); font-variant-numeric: tabular-nums;
+}
+.champs input::placeholder { color: var(--ink-faint); }
+.sheet .cta { margin-top: .75rem; }
+.pastille {
+  width: 13px; height: 13px; border-radius: 50%;
+  border: 2px solid currentColor; display: inline-block; margin-right: .55rem;
+  vertical-align: -1px;
+}
 
-   --sw est l'épaisseur du trait, exprimée dans le repère du dessin
-   (viewBox 64). Une même épaisseur ne marche PAS aux deux tailles : à
-   3,4 rem elle donnerait un trait gras, à 1 rem un cheveu. Chaque taille
-   a donc la sienne, et les primitives mises à l'échelle divisent la
-   leur d'autant (classes .sc*).
-   ------------------------------------------------------------------ */
+/* ---- 9. Icônes de rubrique ----
+   Le sprite en ligne survit à la refonte : aucune requête réseau, aucun
+   CDN. Les 24 icônes météo, elles, ne sont plus POSÉES (le ciel dit le
+   temps qu'il fait) mais restent dans le document, prêtes à resservir.
+   --sw est l'épaisseur du trait dans le repère du dessin (viewBox 64). */
 .ico {
-  width: 1em; height: 1em;
-  flex: none;
-  fill: none;
-  stroke: currentColor;
-  stroke-width: var(--sw, 3);
-  stroke-linecap: round;
-  stroke-linejoin: round;
-  overflow: visible;
+  width: 1em; height: 1em; flex: none;
+  fill: none; stroke: currentColor; stroke-width: var(--sw, 3);
+  stroke-linecap: round; stroke-linejoin: round; overflow: visible;
 }
-/* Compensation d'échelle : une primitive agrandie 1,9 fois verrait son
-   trait grossir d'autant. On divise donc, et l'épaisseur reste unie. */
+/* Une primitive agrandie verrait son trait grossir d'autant : on divise. */
 .sc08 { stroke-width: calc(var(--sw, 3) / 0.8); }
 .sc11 { stroke-width: calc(var(--sw, 3) / 1.1); }
 .sc13 { stroke-width: calc(var(--sw, 3) / 1.3); }
@@ -202,59 +578,63 @@ button:hover { background: var(--accent); color: var(--surface); }
 .sc19 { stroke-width: calc(var(--sw, 3) / 1.9); }
 .sc22 { stroke-width: calc(var(--sw, 3) / 2.2); }
 .sc26 { stroke-width: calc(var(--sw, 3) / 2.6); }
-/* Les deux seules couleurs qui échappent à currentColor. */
-.c-sun { stroke: var(--ico-sun); }
-.c-wet { stroke: var(--ico-wet); }
+.c-sun { stroke: var(--ico-sun, currentColor); }
+.c-wet { stroke: var(--ico-wet, currentColor); }
 .dash { stroke-dasharray: 3 4; }
+.ico-dt { font-size: 1.15rem; --sw: 4.4; color: var(--ink-faint); }
 
-/* Grande icône de tête, à côté de la phrase. Elle porte la même
-   information que le titre : elle est donc aria-hidden, et c'est le texte
-   qui parle aux lecteurs d'écran. */
-.ico-lede { font-size: clamp(3rem, 11vw, 4.6rem); --sw: 2.4; color: var(--ink); }
+/* ---- 10. Entrées en scène. L'ordre EST la hiérarchie : la ligne
+   brute d'abord, puis sa traduction, puis le détail. ---- */
+.rise { animation: mpRise var(--dur-enter) var(--ease-sky) both; }
+.d1 { animation-delay: 80ms; }
+.d2 { animation-delay: 160ms; }
+.d3 { animation-delay: 240ms; }
+.d4 { animation-delay: 320ms; }
 
-/* Petites icônes des intitulés du relevé. Trait plus épais : à cette
-   taille, l'épaisseur du grand format donnerait un cheveu invisible. */
-.row dt { display: flex; align-items: center; gap: .5rem; }
-.ico-dt { font-size: 1.35rem; --sw: 4.2; }
+:focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; border-radius: 4px; }
+[hidden] { display: none !important; }
 
-/* Apparition en deux temps : la ligne brute, puis sa traduction. */
-@keyframes rise { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
-.reveal { animation: rise .5s ease both; }
-.reveal-late { animation: rise .5s ease .18s both; }
-
+/* La maquette ajoute neuf animations, dont un éclair qui flashe. Le
+   coupe-circuit d'accessibilité les couvre toutes, y compris celles du
+   ciel : il ne bouge pas. */
 @media (prefers-reduced-motion: reduce) {
-  * { animation: none !important; transition: none !important; }
-}
-
-@media (max-width: 30rem) {
-  .lede { flex-direction: column; gap: .5rem; }
-  .temp { margin-left: 0; }
-  .row { flex-direction: column; gap: .1rem; }
-  .row dt { flex-basis: auto; }
+  *, *::before, *::after { animation: none !important; transition: none !important; }
 }
 </style>
 </head>
 <body>
 
+<!-- Le ciel. Six plans superposés, dans l'ordre où la maquette les
+     empile : dégradé, lueur de l'astre, deux bancs de nuages qui
+     dérivent, l'effet propre à la condition (pluie, neige, étoiles,
+     éclair), le voile de nuit, puis le voile de lecture. -->
+<div class="sky" aria-hidden="true">
+  <div class="sky-base"></div>
+  <div class="sky-glow"></div>
+  <div class="sky-cloud"></div>
+  <div class="sky-cloud b"></div>
+  <div class="sky-fx"></div>
+  <div class="sky-veil"></div>
+  <div class="sky-scrim"></div>
+</div>
+
 <!-- ==================================================================
-     SPRITE D'ICÔNES.
+     SPRITE D'ICÔNES, en ligne : aucune requête réseau, aucun CDN.
 
-     Deux étages, et c'est volontaire :
-     1. des PRIMITIVES (#p-...) : soleil, lune, nuage, gouttes, éclair...
-        Chacune est centrée sur son origine, ce qui permet de la POSER
-        n'importe où avec un simple translate().
-     2. les 24 ICÔNES du contrat (#i-...), composées de primitives.
+     Deux étages : des PRIMITIVES (#p-...) centrées sur leur origine,
+     puis les symboles composés par <use>.
 
-     Pourquoi composer plutôt que dessiner 24 fois : le contrat distingue
-     rain_light / rain / rain_heavy, qui ne diffèrent QUE par le nombre de
-     gouttes sous le même nuage. Dessiner chacune en entier ferait 24
-     nuages à maintenir, et un nuage retouché dans 23 fichiers sur 24.
+     CE QUI A CHANGÉ LE 28/07/2026 : le système de design remplace
+     l'icône météo de tête par le ciel lui-même. Les 24 icônes du
+     contrat ne sont donc plus posées nulle part. Elles RESTENT ici,
+     validées et prêtes, parce qu'elles ne coûtent rien à conserver et
+     que les redessiner coûterait une session. Seules les 5 icônes de
+     rubrique (#d-...) sont réellement affichées aujourd'hui.
      ================================================================== -->
 <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
 <defs>
 
-  <!-- Le nuage. Repère natif 24 (celui des jeux d'icônes à trait), recentré
-       sur son origine, puis mis à l'échelle voulue par chaque icône. -->
+  <!-- Le nuage. Repère natif 24, recentré sur son origine. -->
   <g id="p-cloud" transform="translate(-12,-11)">
     <path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/>
   </g>
@@ -265,79 +645,45 @@ button:hover { background: var(--accent); color: var(--surface); }
     <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
   </g>
 
-  <!-- La lune. La planche de Xavier n'a pas de variante nocturne : le
-       contrat en exige pourtant huit (clear/few/partly_cloudy/showers).
-       Un croissant est le seul dessin qui dise « nuit » sans un mot. -->
+  <!-- La lune : le seul dessin qui dise « nuit » sans un mot. -->
   <g id="p-moon" transform="translate(-12,-12)">
     <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
   </g>
 
-  <!-- Les gouttes. Repère final (64), donc AUCUNE mise à l'échelle : leur
-       épaisseur suit directement celle de l'icône. Inclinées comme sur la
-       planche, la pluie ne tombe pas à la verticale.
-       Quatre densités, parce que le contrat en distingue quatre :
-       drizzle < rain_light < rain < rain_heavy. -->
+  <!-- Les gouttes, en repère final (64) : leur épaisseur suit celle de
+       l'icône. Quatre densités, parce que le contrat en distingue quatre. -->
   <g id="p-drop1"><path d="M1.5,-5 -1.5,5"/></g>
   <g id="p-rain2"><path d="M-5.5,-5 -8.5,5 M8.5,-5 5.5,5"/></g>
   <g id="p-rain2w"><path d="M-13.5,-5 -16.5,5 M16.5,-5 13.5,5"/></g>
   <g id="p-rain3"><path d="M-9.5,-5 -12.5,5 M1.5,-5 -1.5,5 M12.5,-5 9.5,5"/></g>
   <g id="p-rain4"><path d="M-13.5,-5 -16.5,5 M-3.5,-5 -6.5,5 M6.5,-5 3.5,5 M16.5,-5 13.5,5"/></g>
-  <!-- La bruine : mêmes traits, mais courts. C'est ce qui la distingue. -->
   <g id="p-drizzle"><path d="M-9,-3 -11,3 M1,-3 -1,3 M11,-3 9,3"/></g>
 
-  <!-- Le flocon : trois axes et deux chevrons. -->
   <g id="p-flake">
     <path d="M0,-8V8M-6.9,-4 6.9,4M-6.9,4 6.9,-4M-3,-5 0,-8 3,-5M-3,5 0,8 3,5"/>
   </g>
-
-  <!-- L'éclair. -->
   <g id="p-bolt"><path d="M3,-9 -5,2 1,2 -3,10"/></g>
-
-  <!-- La grêle : des grains, donc des anneaux et non des traits. -->
   <g id="p-hail">
     <circle cx="-9" cy="-1" r="1.8"/><circle cx="0" cy="2" r="1.8"/><circle cx="9" cy="-1" r="1.8"/>
   </g>
-
-  <!-- Le sol pris en glace : ce qui distingue la pluie VERGLAÇANTE de la
-       pluie ordinaire n'est pas la goutte, c'est ce qu'elle devient en bas. -->
   <g id="p-glace"><path d="M-15,0H15"/></g>
-
-  <!-- Brouillard : des couches horizontales. Brume : des ondes. C'est la
-       distinction de la planche (FG/BR d'un côté, HZ de l'autre). -->
   <g id="p-fog"><path d="M-22,-12H8M-14,-4H22M-22,4H14M-8,12H22"/></g>
   <g id="p-waves">
     <path d="M-21,-10c7,-8 14,-8 21,0s14,8 21,0M-21,0c7,-8 14,-8 21,0s14,8 21,0M-21,10c7,-8 14,-8 21,0s14,8 21,0"/>
   </g>
-  <!-- La fumée monte : les mêmes ondes, mais debout. -->
   <g id="p-plumes">
     <path d="M-14,18c0,-8 8,-10 0,-18s8,-10 0,-18M0,18c0,-8 8,-10 0,-18s8,-10 0,-18M14,18c0,-8 8,-10 0,-18s8,-10 0,-18"/>
   </g>
 
 </defs>
 
-<!-- ==================================================================
-     LES 24 ICÔNES DU CONTRAT.
-
-     La liste n'est pas recopiée de la planche (12 dessins) mais des
-     littéraux que `pickIcon` peut réellement rendre (src/icon.ts). Un
-     jeton sans symbole donnerait un carré vide EN PRODUCTION, sur un cas
-     que rien en local ne déclenche : exactement la forme du défaut
-     d'imports du 27/07/2026. La page retombe en plus sur #i-unknown si
-     l'identifiant est inconnu.
-     ================================================================== -->
-
-<!-- Ciel dégagé. -->
+<!-- LES 24 ICÔNES DU CONTRAT — en réserve, voir le commentaire plus haut. -->
 <symbol id="i-clear_day" viewBox="0 0 64 64">
   <use href="#p-sun" class="c-sun sc22" transform="translate(32,32) scale(2.2)"/>
 </symbol>
 <symbol id="i-clear_night" viewBox="0 0 64 64">
-  <!-- Échelle 2,6 et non 2,2 : le croissant occupe moins de place que le
-       soleil rayonnant, il faut l'agrandir pour que les deux pèsent pareil
-       dans la page (mesuré : 39,5 contre 48,4 unités à échelle égale). -->
   <use href="#p-moon" class="c-sun sc26" transform="translate(32,32) scale(2.6)"/>
 </symbol>
-
-<!-- FEW : l'astre et un nuage. -->
 <symbol id="i-few_day" viewBox="0 0 64 64">
   <use href="#p-sun" class="c-sun sc13" transform="translate(21,20) scale(1.3)"/>
   <use href="#p-cloud" class="sc15" transform="translate(35,38) scale(1.5)"/>
@@ -346,8 +692,6 @@ button:hover { background: var(--accent); color: var(--surface); }
   <use href="#p-moon" class="c-sun sc13" transform="translate(21,20) scale(1.3)"/>
   <use href="#p-cloud" class="sc15" transform="translate(35,38) scale(1.5)"/>
 </symbol>
-
-<!-- SCT : l'astre et deux nuages, le ciel se charge. -->
 <symbol id="i-partly_cloudy_day" viewBox="0 0 64 64">
   <use href="#p-sun" class="c-sun sc11" transform="translate(19,19) scale(1.1)"/>
   <use href="#p-cloud" class="sc15" transform="translate(31,36) scale(1.5)"/>
@@ -358,8 +702,6 @@ button:hover { background: var(--accent); color: var(--surface); }
   <use href="#p-cloud" class="sc15" transform="translate(31,36) scale(1.5)"/>
   <use href="#p-cloud" class="sc08" transform="translate(50,44) scale(0.8)"/>
 </symbol>
-
-<!-- BKN et OVC : plus d'astre du tout, et c'est le message. -->
 <symbol id="i-cloudy" viewBox="0 0 64 64">
   <use href="#p-cloud" class="sc17" transform="translate(28,26) scale(1.7)"/>
   <use href="#p-cloud" class="sc11" transform="translate(44,42) scale(1.1)"/>
@@ -369,8 +711,6 @@ button:hover { background: var(--accent); color: var(--surface); }
   <use href="#p-cloud" class="sc13" transform="translate(45,27) scale(1.3)"/>
   <use href="#p-cloud" class="sc19" transform="translate(32,38) scale(1.9)"/>
 </symbol>
-
-<!-- Pluie : même nuage, densité croissante. -->
 <symbol id="i-drizzle" viewBox="0 0 64 64">
   <use href="#p-cloud" class="sc19" transform="translate(32,25) scale(1.9)"/>
   <use href="#p-drizzle" class="c-wet" transform="translate(32,50)"/>
@@ -387,9 +727,6 @@ button:hover { background: var(--accent); color: var(--surface); }
   <use href="#p-cloud" class="sc19" transform="translate(32,25) scale(1.9)"/>
   <use href="#p-rain4" class="c-wet" transform="translate(32,49)"/>
 </symbol>
-
-<!-- Averses : l'astre reste visible, c'est toute la différence avec la
-     pluie continue. D'où la seule paire jour/nuit du groupe humide. -->
 <symbol id="i-showers_day" viewBox="0 0 64 64">
   <use href="#p-sun" class="c-sun sc11" transform="translate(17,16) scale(1.1)"/>
   <use href="#p-cloud" class="sc17" transform="translate(36,29) scale(1.7)"/>
@@ -400,8 +737,6 @@ button:hover { background: var(--accent); color: var(--surface); }
   <use href="#p-cloud" class="sc17" transform="translate(36,29) scale(1.7)"/>
   <use href="#p-rain2" class="c-wet" transform="translate(36,51)"/>
 </symbol>
-
-<!-- Solide et mixte. -->
 <symbol id="i-snow" viewBox="0 0 64 64">
   <use href="#p-cloud" class="sc19" transform="translate(32,24) scale(1.9)"/>
   <use href="#p-flake" class="c-wet" transform="translate(32,49)"/>
@@ -420,40 +755,24 @@ button:hover { background: var(--accent); color: var(--surface); }
   <use href="#p-rain2" class="c-wet" transform="translate(32,45)"/>
   <use href="#p-glace" class="c-wet" transform="translate(32,56)"/>
 </symbol>
-
-<!-- Orage. Le seul jeton en `danger` du contrat : l'éclair prend l'ambre. -->
 <symbol id="i-thunderstorm" viewBox="0 0 64 64">
   <use href="#p-cloud" class="sc19" transform="translate(32,24) scale(1.9)"/>
   <use href="#p-rain2w" class="c-wet" transform="translate(32,49)"/>
   <use href="#p-bolt" class="c-sun" transform="translate(32,47)"/>
 </symbol>
-
-<!-- Ce qui gêne la vue. -->
-<symbol id="i-fog" viewBox="0 0 64 64">
-  <use href="#p-fog" transform="translate(32,32)"/>
-</symbol>
-<symbol id="i-mist" viewBox="0 0 64 64">
-  <use href="#p-waves" transform="translate(32,32)"/>
-</symbol>
+<symbol id="i-fog" viewBox="0 0 64 64"><use href="#p-fog" transform="translate(32,32)"/></symbol>
+<symbol id="i-mist" viewBox="0 0 64 64"><use href="#p-waves" transform="translate(32,32)"/></symbol>
 <symbol id="i-dust" viewBox="0 0 64 64">
   <use href="#p-waves" transform="translate(32,26)"/>
   <use href="#p-hail" transform="translate(32,51)"/>
 </symbol>
-<symbol id="i-smoke" viewBox="0 0 64 64">
-  <use href="#p-plumes" transform="translate(32,32)"/>
-</symbol>
-
-<!-- Rien de lisible. Le nuage en pointillé dit « on ne sait pas » sans
-     un mot, donc sans rien à traduire. -->
+<symbol id="i-smoke" viewBox="0 0 64 64"><use href="#p-plumes" transform="translate(32,32)"/></symbol>
 <symbol id="i-unknown" viewBox="0 0 64 64">
   <use href="#p-cloud" class="sc19 dash" transform="translate(32,32) scale(1.9)"/>
 </symbol>
 
-<!-- ==================================================================
-     ICÔNES DE DONNÉES (#d-...), pour les intitulés du relevé. Elles ne
-     viennent PAS du contrat : ce sont les rubriques de la page, donc
-     elles ne suivent pas la liste de WeatherIcon et n'ont pas de repli.
-     ================================================================== -->
+<!-- LES 5 ICÔNES DE RUBRIQUE (#d-...). Elles ne viennent pas du contrat :
+     ce sont les rubriques de la page. Ce sont les seules affichées. -->
 <symbol id="d-vent" viewBox="0 0 64 64">
   <path d="M6,24H36a7,7 0 1 0 -7,-7M6,34H44a8,8 0 1 1 -8,8M10,44H28a6,6 0 1 0 -6,6"/>
 </symbol>
@@ -478,68 +797,98 @@ button:hover { background: var(--accent); color: var(--surface); }
 
 <main>
 
-  <!-- État de départ et messages de service. Le contenu ci-dessous est le
-       repli AVANT exécution du script : dès qu'il tourne, appliquerChrome()
-       le réécrit dans la langue choisie. -->
+  <header class="top">
+    <!-- La bascule de langue remplace le <select> : deux pastilles, comme
+         dans la maquette. Les deux libellés restent des ENDONYMES. -->
+    <div class="langs" role="group" id="langs">
+      <button type="button" data-lang="fr" aria-pressed="true">FR</button>
+      <button type="button" data-lang="en" aria-pressed="false">EN</button>
+    </div>
+  </header>
+
+  <!-- Écran de service : accueil, panne, GPS. Réécrit par le script dès
+       qu'il tourne ; ce qui suit est le repli AVANT exécution. -->
   <div class="notice" id="notice">
     <b>Recherche de la station la plus proche</b>
-    Autorisez la localisation, ou saisissez une position plus bas.
+    <span>Autorisez la localisation, ou saisissez une position plus bas.</span>
   </div>
 
-  <!-- Le relevé, masqué tant qu'il n'y a rien à montrer -->
-  <article id="card" hidden>
-    <p class="raw reveal" id="raw"></p>
+  <!-- Chargement. État DISTINCT de l'accueil : jusqu'ici les deux
+       partageaient le même bloc, donc on ne pouvait pas dire « je
+       cherche » autrement qu'en disant « je n'ai rien ». -->
+  <div class="skel" id="skel" hidden aria-hidden="true">
+    <div class="s1"></div><div class="s2"></div><div class="s3"></div>
+    <div class="s4"></div><div class="s5"></div>
+    <p class="label" id="skelTxt"></p>
+  </div>
 
-    <div class="lede reveal-late">
-      <!-- L'icône du ciel. Elle dit la MÊME chose que le titre juste à côté
-           (les deux sortent du même sélecteur, src/icon.ts), donc elle est
-           aria-hidden : la doubler à voix haute n'apporterait rien, et lui
-           écrire un texte de remplacement créerait une formulation de plus
-           à traduire et à faire valider. -->
-      <svg class="ico ico-lede" id="skyIcon" viewBox="0 0 64 64" aria-hidden="true" focusable="false">
-        <use id="skyUse" href="#i-unknown"/>
-      </svg>
-      <h1 class="headline" id="headline"></h1>
-      <div class="temp" id="temp"></div>
+  <article id="card" hidden>
+
+    <div class="card raw rise">
+      <span class="label" id="rawLabel"></span><span id="raw"></span>
     </div>
 
-    <p class="place reveal-late" id="place"></p>
-
-    <dl class="report reveal-late" id="report"></dl>
-
-    <section class="sun reveal-late" id="sun">
-      <div class="sun-track"><span class="sun-dot" id="sunDot"></span></div>
-      <div class="sun-ends">
-        <span id="sunrise"></span>
-        <span id="sunset"></span>
-      </div>
+    <section class="hero rise d1">
+      <h1 class="headline" id="headline"></h1>
+      <div class="temp"><span id="tempV"></span><span class="deg" id="tempDeg" hidden>°</span></div>
+      <p class="place"><span id="lieu"></span><span class="obs" id="obs"></span></p>
     </section>
+
+    <section class="card sun rise d2" id="sun">
+      <span class="label" id="sunLabel"></span>
+      <!-- L'arc du soleil. La portion PARCOURUE est pleine, le reste
+           pointillé, et le disque est posé par getPointAtLength : c'est
+           le tracé lui-même qui donne la position, pas une formule
+           recopiée à côté qui pourrait en diverger. -->
+      <svg viewBox="0 0 300 110" aria-hidden="true" focusable="false">
+        <path id="arcFull" d="M10 95 Q150 -25 290 95" fill="none" stroke="currentColor"
+              stroke-opacity=".3" stroke-width="1.5" stroke-dasharray="2 6" stroke-linecap="round"/>
+        <path id="arcDone" d="M10 95 Q150 -25 290 95" fill="none" stroke="currentColor"
+              stroke-opacity=".65" stroke-width="1.5" stroke-linecap="round"/>
+        <circle id="sunHalo" r="17" fill="#FFE7A8" opacity=".26"/>
+        <circle id="sunDot" r="7.5" fill="#FFF3D0"/>
+        <circle cx="10" cy="95" r="3" fill="currentColor" opacity=".5"/>
+        <circle cx="290" cy="95" r="3" fill="currentColor" opacity=".5"/>
+      </svg>
+      <div class="sun-ends"><span id="sunrise"></span><span id="sunset"></span></div>
+    </section>
+
+    <div class="grid rise d3" id="report"></div>
+
+    <div class="foot rise d4">
+      <button class="cta" id="openSheet" type="button"></button>
+      <p class="tech" id="tech"></p>
+    </div>
   </article>
 
-  <details class="tools">
-    <summary id="toolsTitre">Choisir une position</summary>
-    <div class="fields">
-      <input id="lat" type="number" step="0.01" placeholder="latitude" aria-label="Latitude">
-      <input id="lon" type="number" step="0.01" placeholder="longitude" aria-label="Longitude">
-      <!-- Les noms de langue restent des ENDONYMES (« Français », jamais
-           « French ») : c'est la convention d'un sélecteur de langue, et non
-           une chaîne oubliée à la traduction. -->
-      <select id="lang" aria-label="Langue">
-        <option value="fr">Français</option>
-        <option value="en">English</option>
-      </select>
-      <button id="go">Consulter</button>
-      <button id="here" type="button">Me localiser</button>
-    </div>
-    <p class="tech" id="tech"></p>
-  </details>
-
 </main>
+
+<div class="veil" id="veil"></div>
+
+<!-- La feuille de localisation. Elle n'offre QUE ce que le backend sait
+     faire aujourd'hui : se localiser, ou saisir une position. La
+     recherche de ville et les lieux récents de la maquette exigeraient un
+     géocodeur, qui n'existe pas dans le projet : ils ne sont pas là. -->
+<section class="sheet" id="sheet" role="dialog" aria-modal="true" aria-labelledby="sheetTitre" hidden>
+  <div class="grip"></div>
+  <div class="sheet-head">
+    <h2 id="sheetTitre"></h2>
+    <button type="button" id="closeSheet"></button>
+  </div>
+  <button class="cta plein" id="here" type="button"><span class="pastille"></span><span id="hereTxt"></span></button>
+  <div class="champs">
+    <input id="lat" type="number" step="0.01" inputmode="decimal" placeholder="latitude" aria-label="Latitude">
+    <input id="lon" type="number" step="0.01" inputmode="decimal" placeholder="longitude" aria-label="Longitude">
+  </div>
+  <button class="cta" id="go" type="button"></button>
+</section>
 
 <script>
 // ---------------------------------------------------------------
 // Le client ne décode RIEN. Il affiche ce que l'API a déjà rédigé :
 // c'est la règle du projet, et c'est pour ça que ce fichier est court.
+// La refonte du 28/07/2026 est VISUELLE : la logique ci-dessous est
+// celle qui existait, portée sur la nouvelle mise en page.
 // ---------------------------------------------------------------
 
 const $ = (id) => document.getElementById(id);
@@ -549,25 +898,25 @@ const $ = (id) => document.getElementById(id);
 //
 // L'API traduit déjà le bloc `text` (vent, visibilité, nuages...). Mais tout
 // ce qui entoure ces phrases appartient à la page : intitulés, provenance,
-// messages d'échec, boutons. Ils étaient écrits en français en dur, donc
-// `lang=en` rendait une page à moitié anglaise (constat du 28/07/2026).
+// messages d'échec, boutons.
 //
 // PHRASES ENTIÈRES, JAMAIS DE FRAGMENTS RECOLLÉS. C'est la leçon déjà payée
 // dans src/i18n/en.ts avec le repère `{i}` : « il y a 22 min » place le
 // marqueur temporel DEVANT, l'anglais le place DERRIÈRE (« 22 min ago »).
-// Un dictionnaire mot à mot recollé par concaténation produirait de l'anglais
-// faux. Chaque entrée porte donc sa phrase complète, avec des trous `{nom}`
-// remplis au rendu.
+// Chaque entrée porte donc sa phrase complète, avec des trous `{nom}`.
 //
-// Les formulations anglaises ci-dessous ont été proposées par Claude puis
-// VALIDÉES par Xavier le 28/07/2026, comme celles de src/i18n/en.ts. Elles
-// sont donc acquises : on ne les retouche plus sans lui, au même titre que le
-// français.
+// Les formulations existantes ont été VALIDÉES par Xavier le 28/07/2026.
+// Celles marquées « [design] » sont NOUVELLES : elles viennent du
+// dictionnaire du fichier de handoff, donc de la maquette elle-même, et
+// attendent d'être confirmées au même titre.
 // ---------------------------------------------------------------
 const TEXTES = {
   fr: {
     chercheTitre: "Recherche de la station la plus proche",
     chercheSuite: "Autorisez la localisation, ou saisissez une position plus bas.",
+    chargement: "LECTURE DE LA STATION LA PLUS PROCHE", // [design]
+
+    rawLabel: "observation brute", // [design]
 
     ligneVent: "vent",
     ligneVisibilite: "visibilité",
@@ -584,17 +933,26 @@ const TEXTES = {
     age: "il y a {min} min",
     agePerime: "relevé vieux de {min} minutes",
 
-    ressenti: "ressenti {v}°",
-    humidite: "humidité {v} %",
-    pression: "{v} hPa",
+    // Intitulés courts des trois mesures chiffrées, séparés de leurs
+    // valeurs : la maquette les met en tête de carte, pas dans la phrase.
+    labelRessenti: "ressenti",
+    labelHumidite: "humidité",
+    labelPression: "pression",
+    valRessenti: "{v}°",
+    valHumidite: "{v} %",
+    valPression: "{v} hPa",
 
+    sunLabel: "course du soleil", // [design]
     lever: "lever {heure}",
     coucher: "coucher {heure}",
     fuseauInconnu: "fuseau inconnu",
 
-    outilsTitre: "Choisir une position",
+    changerLieu: "Changer de lieu",        // [design]
+    ouEtesVous: "Où êtes-vous ?",          // [design]
+    fermer: "fermer",                      // [design]
     boutonConsulter: "Consulter",
     boutonIci: "Me localiser",
+    reessayer: "Réessayer",                // [design]
     labelLat: "Latitude",
     labelLon: "Longitude",
     labelLangue: "Langue",
@@ -614,6 +972,9 @@ const TEXTES = {
   en: {
     chercheTitre: "Looking for the nearest station",
     chercheSuite: "Allow location access, or enter a position below.",
+    chargement: "READING THE NEAREST STATION", // [design]
+
+    rawLabel: "raw observation", // [design]
 
     ligneVent: "wind",
     ligneVisibilite: "visibility",
@@ -630,17 +991,24 @@ const TEXTES = {
     age: "{min} min ago",
     agePerime: "observation is {min} minutes old",
 
-    ressenti: "feels like {v}°",
-    humidite: "humidity {v} %",
-    pression: "{v} hPa",
+    labelRessenti: "feels like",
+    labelHumidite: "humidity",
+    labelPression: "pressure",
+    valRessenti: "{v}°",
+    valHumidite: "{v} %",
+    valPression: "{v} hPa",
 
+    sunLabel: "sun path", // [design]
     lever: "sunrise {heure}",
     coucher: "sunset {heure}",
     fuseauInconnu: "unknown time zone",
 
-    outilsTitre: "Choose a position",
+    changerLieu: "Change location", // [design]
+    ouEtesVous: "Where are you?",   // [design]
+    fermer: "close",                // [design]
     boutonConsulter: "Show",
     boutonIci: "Locate me",
+    reessayer: "Try again",         // [design]
     labelLat: "Latitude",
     labelLon: "Longitude",
     labelLangue: "Language",
@@ -656,12 +1024,17 @@ const TEXTES = {
   },
 };
 
-// La langue est TOUJOURS passée en paramètre, jamais relue depuis le <select>
-// au fond d'une fonction d'affichage. Même raison que `buildResponse(…, lang)`
-// côté serveur : un défaut implicite rendrait un oubli silencieux. En prime,
-// cela ferme la fenêtre où l'utilisateur change de langue pendant la requête
-// et où le chrome ne dirait plus la même langue que les phrases de l'API.
+// La langue est TOUJOURS passée en paramètre, jamais relue depuis les
+// pastilles au fond d'une fonction d'affichage. Même raison que
+// `buildResponse(…, lang)` côté serveur : un défaut implicite rendrait un
+// oubli silencieux. En prime, cela ferme la fenêtre où l'utilisateur change
+// de langue pendant la requête et où le chrome ne dirait plus la même langue
+// que les phrases de l'API.
 const T = (lang) => TEXTES[lang] ?? TEXTES.fr;
+
+// Langue courante. Elle ne vit plus dans un <select> : les pastilles n'ont
+// pas de valeur, donc c'est cette variable qui fait foi.
+let langue = "fr";
 
 // Remplit les trous `{nom}` d'un modèle. Aucun échappement ici : tout ce qui
 // en sort passe par textContent, jamais par innerHTML.
@@ -670,43 +1043,168 @@ const remplir = (modele, valeurs) =>
 
 // Séparateur décimal. Propriété STRUCTURELLE de la langue et non un choix de
 // vocabulaire : le français écrit « 21,4 km », l'anglais « 21.4 km ». C'est la
-// même règle que le .replace(".", ",") qui termine src/i18n/fr.ts, et le
-// défaut visible sur la capture (« à 21.4 km » en français).
+// même règle que le .replace(".", ",") qui termine src/i18n/fr.ts.
 const nombre = (v, lang) => (lang === "fr" ? String(v).replace(".", ",") : String(v));
 
 // Dernier échec affiché, retenu pour pouvoir le RE-rendre si la langue change
 // alors qu'aucune donnée n'est à l'écran (un échec ne déclenche pas de
 // nouvelle requête, donc rien ne repasserait par afficherEchec sans cela).
 let dernierEchec = null;
+// Dernière position consultée, pour le bouton « Réessayer » de l'écran de panne.
+let dernierePosition = null;
 
-// Une ligne du relevé : icône, intitulé, phrase. L'icône est décorative
-// (aria-hidden) parce que l'intitulé juste à côté dit déjà la même chose.
-function rangee(intitule, phrase, icone) {
+// ---------------------------------------------------------------
+// LE CIEL. C'est ici que le contrat rencontre le système de design.
+//
+// Le contrat rend 24 jetons d'icône ; la maquette dessine 8 ciels. La
+// correspondance est donc à NOTRE charge, et elle regroupe par FAMILLE
+// visuelle : ce qui tombe (4 pluies + 2 averses) partage un ciel, ce qui
+// bouche la vue (brouillard, brume, poussière, fumée) en partage un autre.
+//
+// Deux points à ne pas rediscuter sans raison :
+//  - `unknown` ne prend PAS un ciel météo mais le neutre du chargement.
+//    Un jeton illisible ne doit pas afficher un beau ciel bleu affirmatif.
+//  - `dust`/`smoke` vont sur le ciel de brouillard, faute d'un ciel ocre
+//    dans la maquette. En inventer un serait écrire du design, pas
+//    l'appliquer. La famille est juste : ça bouche la vue.
+// ---------------------------------------------------------------
+const CIELS = {
+  clear_day: "cavok",
+  clear_night: "night",
+  few_day: "sct", few_night: "sct",
+  partly_cloudy_day: "sct", partly_cloudy_night: "sct",
+  cloudy: "ovc", overcast: "ovc",
+  fog: "fg", mist: "fg", dust: "fg", smoke: "fg",
+  drizzle: "ra", rain_light: "ra", rain: "ra", rain_heavy: "ra",
+  showers_day: "ra", showers_night: "ra",
+  snow: "sn", sleet: "sn", hail: "sn", freezing_rain: "sn",
+  thunderstorm: "ts",
+  unknown: "neutral",
+};
+
+// Les ciels dont l'encre est SOMBRE, parce que le dégradé y est presque
+// blanc. C'est cette liste, et elle seule, qui décide de la polarité des
+// cartes de verre : sur ciel clair, un verre blanc serait invisible.
+const CIELS_CLAIRS = new Set(["fg", "sn"]);
+
+function poserCiel(jeton, isDay) {
+  const ciel = CIELS[jeton] ?? "neutral";
+  // La nuit s'applique à toutes les conditions, mais le ciel étoilé n'est
+  // dessiné que pour le ciel clair : ailleurs, c'est un voile qui baisse
+  // la lumière. `isDay === null` (jour/nuit inconnu) reste du jour, comme
+  // `pickIcon` retombe déjà sur la variante diurne côté serveur.
+  const nuit = isDay === false;
+  const html = document.documentElement;
+  html.dataset.sky = ciel;
+  html.dataset.lum = nuit ? "night" : "day";
+  // De nuit tout redevient sombre, donc l'encre redevient claire.
+  html.dataset.pol = !nuit && CIELS_CLAIRS.has(ciel) ? "light" : "dark";
+}
+
+// Ciel de service : neutre pendant la recherche, chaud sur une panne.
+// Les deux sont SOMBRES, donc polarité d'encre claire dans les deux cas.
+function poserCielService(etat) {
+  const html = document.documentElement;
+  html.dataset.sky = etat === "panne" ? "err" : "neutral";
+  html.dataset.lum = "day";
+  html.dataset.pol = "dark";
+}
+
+// ---------------------------------------------------------------
+// Rendu
+// ---------------------------------------------------------------
+
+// Une carte de rubrique : icône, intitulé, phrase déjà rédigée par l'API.
+// L'icône est décorative (aria-hidden) : l'intitulé à côté dit la même chose.
+function carteTexte(intitule, phrase, icone) {
   const div = document.createElement("div");
-  div.className = "row";
+  div.className = "card";
   div.innerHTML =
-    `<dt><svg class="ico ico-dt" viewBox="0 0 64 64" aria-hidden="true" focusable="false">` +
-    `<use href="#${icone}"/></svg><span></span></dt><dd></dd>`;
-  div.querySelector("dt span").textContent = intitule;
-  div.querySelector("dd").textContent = phrase;
+    `<div class="row-head">` +
+    `<svg class="ico ico-dt" viewBox="0 0 64 64" aria-hidden="true" focusable="false">` +
+    `<use href="#${icone}"/></svg><span class="label"></span></div>` +
+    `<div class="row-txt"></div>`;
+  div.querySelector(".label").textContent = intitule;
+  div.querySelector(".row-txt").textContent = phrase;
   return div;
 }
 
-// Pose l'icône du ciel. REPLI OBLIGATOIRE : un jeton sans symbole rendrait
-// un carré vide, et ce serait invisible en local (les 24 jetons ne sortent
-// pas tous d'un METAR de Strasbourg). On retombe donc sur #i-unknown, qui
-// est un dessin, pas un trou.
-function poserIcone(jeton) {
-  const id = jeton && document.getElementById(`i-${jeton}`) ? jeton : "unknown";
-  $("skyUse").setAttribute("href", `#i-${id}`);
+// La carte du vent : même en-tête, mais une rose des vents en plus.
+function carteVent(intitule, phrase, vent) {
+  const div = carteTexte(intitule, "", "d-vent");
+  const txt = div.querySelector(".row-txt");
+  txt.remove();
+
+  const ligne = document.createElement("div");
+  ligne.className = "wind-row";
+
+  // Pas de flèche si le vent est calme ou sans direction : une flèche qui
+  // pointe le nord par défaut affirmerait quelque chose de faux.
+  const oriente = vent && !vent.isCalm && (vent.isVariable || vent.directionDeg !== null);
+  if (oriente) {
+    const dial = document.createElement("div");
+    dial.className = vent.isVariable ? "dial vrb" : "dial";
+    // Le METAR donne la direction D'OÙ VIENT le vent ; la flèche montre où
+    // il VA, d'où le demi-tour. Elle ne tourne que s'il est variable :
+    // la maquette l'anime en continu, mais son exemple est justement VRB.
+    if (!vent.isVariable) dial.style.transform = `rotate(${(vent.directionDeg + 180) % 360}deg)`;
+    dial.innerHTML = `<div class="arrow"></div>`;
+    ligne.append(dial);
+  }
+  const p = document.createElement("div");
+  p.className = "row-txt";
+  p.style.marginTop = "0";
+  p.textContent = phrase;
+  ligne.append(p);
+  div.append(ligne);
+  return div;
 }
 
-function rendreNotice(titre, suite) {
+// La carte des mesures : trois colonnes chiffrées sous une seule rubrique.
+function carteMesures(intitule, mesures) {
+  const div = carteTexte(intitule, "", "d-mesures");
+  div.querySelector(".row-txt").remove();
+  const bloc = document.createElement("div");
+  bloc.className = "mesures";
+  for (const [etiquette, valeur] of mesures) {
+    const col = document.createElement("div");
+    col.className = "mesure";
+    col.innerHTML = `<span class="label"></span><b></b>`;
+    col.querySelector(".label").textContent = etiquette;
+    col.querySelector("b").textContent = valeur;
+    bloc.append(col);
+  }
+  div.append(bloc);
+  return div;
+}
+
+function rendreNotice(titre, suite, options) {
+  const o = options ?? {};
   $("card").hidden = true;
+  $("skel").hidden = true;
   $("notice").hidden = false;
-  $("notice").innerHTML = `<b></b><span></span>`;
-  $("notice").firstChild.textContent = titre;
-  $("notice").lastChild.textContent = suite;
+  $("notice").textContent = "";
+
+  if (o.marque) {
+    const m = document.createElement("div");
+    m.className = o.marque === "attente" ? "mark attente" : "mark";
+    m.textContent = o.marque === "attente" ? "" : "!";
+    $("notice").append(m);
+  }
+  const b = document.createElement("b");
+  b.textContent = titre;
+  const s = document.createElement("span");
+  s.textContent = suite;
+  $("notice").append(b, s);
+
+  if (o.action) {
+    const bouton = document.createElement("button");
+    bouton.type = "button";
+    bouton.className = "cta plein";
+    bouton.textContent = o.action;
+    bouton.addEventListener("click", o.onAction);
+    $("notice").append(bouton);
+  }
 }
 
 function afficherEchec(code, status, lang) {
@@ -714,26 +1212,54 @@ function afficherEchec(code, status, lang) {
   const [titre, suite] = t[code] ?? t.inattendu;
   const detail = status ? remplir(t.codeHttp, { status }) : "";
   dernierEchec = { code, status };
-  rendreNotice(titre + detail, suite);
+  poserCielService("panne");
+  rendreNotice(titre + detail, suite, {
+    marque: "erreur",
+    // « Réessayer » n'a de sens que si l'on sait quoi réessayer ; sans
+    // position connue, on renvoie vers la feuille de localisation.
+    action: t.reessayer,
+    onAction: () => (dernierePosition ? consulter(...dernierePosition) : ouvrirFeuille()),
+  });
+}
+
+function afficherChargement(lang) {
+  poserCielService("attente");
+  $("notice").hidden = true;
+  $("card").hidden = true;
+  $("skel").hidden = false;
+  $("skelTxt").textContent = T(lang).chargement;
 }
 
 // Applique la langue à tout ce qui ne dépend PAS d'une réponse de l'API :
-// commandes, intitulés, et l'écran de service en cours. Appelée au démarrage
-// et à chaque changement de langue.
+// commandes, intitulés, et l'écran de service en cours.
 function appliquerChrome(lang) {
   const t = T(lang);
   document.documentElement.lang = lang;
-  $("toolsTitre").textContent = t.outilsTitre;
+  for (const b of $("langs").children) {
+    b.setAttribute("aria-pressed", String(b.dataset.lang === lang));
+  }
+  $("rawLabel").textContent = t.rawLabel;
+  $("sunLabel").textContent = t.sunLabel;
+  $("openSheet").textContent = t.changerLieu;
+  $("sheetTitre").textContent = t.ouEtesVous;
+  $("closeSheet").textContent = t.fermer;
+  $("hereTxt").textContent = t.boutonIci;
   $("go").textContent = t.boutonConsulter;
-  $("here").textContent = t.boutonIci;
+  $("skelTxt").textContent = t.chargement;
   $("lat").setAttribute("aria-label", t.labelLat);
   $("lon").setAttribute("aria-label", t.labelLon);
-  $("lang").setAttribute("aria-label", t.labelLangue);
+  $("langs").setAttribute("aria-label", t.labelLangue);
   // Les repères de saisie restent en minuscules et identiques dans les deux
   // langues (« latitude », « longitude ») : ce sont des termes techniques.
-  if ($("card").hidden) {
+  if ($("card").hidden && $("skel").hidden) {
     if (dernierEchec) afficherEchec(dernierEchec.code, dernierEchec.status, lang);
-    else rendreNotice(t.chercheTitre, t.chercheSuite);
+    else {
+      // Le ciel se remet au neutre AVEC le message : sans cette ligne, un
+      // écran d'accueil réaffiché après une panne gardait le fond chaud de
+      // la panne et disait donc deux choses contradictoires à la fois.
+      poserCielService("attente");
+      rendreNotice(t.chercheTitre, t.chercheSuite, { marque: "attente" });
+    }
   }
 }
 
@@ -748,21 +1274,35 @@ function fractionDuJour(obs, lever, coucher) {
   return Math.min(1, Math.max(0, (t - a) / (b - a)));
 }
 
+// Pose le disque sur l'arc, et coupe le trait plein là où il en est.
+// On interroge le tracé (getPointAtLength) au lieu de recalculer la courbe
+// à côté : deux formules finiraient par diverger, un seul chemin non.
+function poserSoleil(f) {
+  const arc = $("arcFull"), plein = $("arcDone");
+  const L = arc.getTotalLength();
+  const p = arc.getPointAtLength(L * f);
+  $("sunDot").setAttribute("cx", p.x); $("sunDot").setAttribute("cy", p.y);
+  $("sunHalo").setAttribute("cx", p.x); $("sunHalo").setAttribute("cy", p.y);
+  plein.setAttribute("stroke-dasharray", `${L * f} ${L}`);
+}
+
 function afficher(r, lang) {
   const t = T(lang);
 
-  // 1. La lumière de la page vient de la STATION, pas du navigateur.
-  document.documentElement.dataset.sky = r.sun && r.sun.isDay === false ? "night" : "day";
+  // 1. La lumière ET le ciel viennent de la STATION, pas du navigateur.
+  poserCiel(r.icon, r.sun ? r.sun.isDay : null);
   document.documentElement.lang = lang;
 
   dernierEchec = null;
   $("notice").hidden = true;
+  $("skel").hidden = true;
   $("card").hidden = false;
 
   $("raw").textContent = r.raw;
-  poserIcone(r.icon);
   $("headline").textContent = r.text.headline || t.headlineDefaut;
-  $("temp").textContent = r.temperature && r.temperature.value !== null ? `${r.temperature.value}°` : "";
+  const aTemp = r.temperature && r.temperature.value !== null;
+  $("tempV").textContent = aTemp ? String(r.temperature.value) : "";
+  $("tempDeg").hidden = !aTemp;
 
   // 2. Provenance : quelle station, à quelle distance, et à quelle heure
   // LOCALE de la station. L'âge n'est signalé que s'il devient gênant.
@@ -780,57 +1320,65 @@ function afficher(r, lang) {
     ? remplir(t.agePerime, { min: r.ageMinutes })
     : remplir(t.age, { min: r.ageMinutes });
 
-  $("place").innerHTML = `<strong></strong><span><br><span id="obs"></span> · <span id="ageTxt"></span></span>`;
-  $("place").firstChild.textContent = lieu;
-  $("obs").textContent = heure;
-  $("ageTxt").textContent = age;
-  if (r.isStale) $("ageTxt").className = "stale";
+  $("lieu").textContent = lieu;
+  $("obs").textContent = "";
+  const spanObs = document.createElement("span");
+  spanObs.textContent = heure;
+  const sep = document.createTextNode(" · ");
+  const spanAge = document.createElement("span");
+  spanAge.textContent = age;
+  if (r.isStale) spanAge.className = "stale";
+  $("obs").append(spanObs, sep, spanAge);
 
-  // 3. Le relevé. Une ligne n'apparaît que si le backend a quelque chose
-  // à en dire : un METAR muet sur les nuages ne produit pas de ligne vide.
+  // 3. Le relevé. Une carte n'apparaît que si le backend a quelque chose à
+  // en dire : un METAR muet sur les nuages ne produit pas de carte vide.
   // Chaque entrée pointe une phrase DÉJÀ écrite par le backend (bloc `text`),
   // jamais une valeur à formater ici ; seul l'INTITULÉ appartient à la page.
-  const LIGNES = [
-    [t.ligneVent, r.text.wind, "d-vent"],
+  const dl = $("report");
+  dl.textContent = "";
+  if (r.text.wind) dl.append(carteVent(t.ligneVent, r.text.wind, r.wind));
+
+  // Ligne de synthèse chiffrée, composée ici parce qu'elle n'existe pas
+  // comme phrase dans le contrat : ce sont des VALEURS, pas du texte.
+  const temp = r.temperature, mesures = [];
+  if (temp && temp.feelsLike !== null) mesures.push([t.labelRessenti, remplir(t.valRessenti, { v: temp.feelsLike })]);
+  if (temp && temp.humidity !== null) mesures.push([t.labelHumidite, remplir(t.valHumidite, { v: temp.humidity })]);
+  if (r.pressure && r.pressure.value !== null) mesures.push([t.labelPression, remplir(t.valPression, { v: r.pressure.value })]);
+  if (mesures.length) dl.append(carteMesures(t.ligneMesures, mesures));
+
+  const SUITE = [
     [t.ligneVisibilite, r.text.visibility, "d-visibilite"],
     [t.ligneNuages, r.text.clouds, "d-nuages"],
     [t.lignePhenomenes, r.text.phenomena, "d-phenomenes"],
   ];
-  const dl = $("report");
-  dl.textContent = "";
-  for (const [intitule, phrase, icone] of LIGNES) {
+  for (const [intitule, phrase, icone] of SUITE) {
     if (!phrase) continue;
-    dl.append(rangee(intitule, phrase, icone));
+    dl.append(carteTexte(intitule, phrase, icone));
   }
-  // Ligne de synthèse chiffrée, composée ici parce qu'elle n'existe pas
-  // comme phrase dans le contrat : ce sont des VALEURS, pas du texte.
-  const temp = r.temperature, chiffres = [];
-  if (temp && temp.feelsLike !== null) chiffres.push(remplir(t.ressenti, { v: temp.feelsLike }));
-  if (temp && temp.humidity !== null) chiffres.push(remplir(t.humidite, { v: temp.humidity }));
-  if (r.pressure && r.pressure.value !== null) chiffres.push(remplir(t.pression, { v: r.pressure.value }));
-  if (chiffres.length) dl.append(rangee(t.ligneMesures, chiffres.join(" · "), "d-mesures"));
 
-  // 4. La course du soleil, à la longitude de la station.
+  // 4. La course du soleil, à la position de la station.
   const f = r.sun ? fractionDuJour(r.observedLocal, r.sun.sunrise, r.sun.sunset) : null;
   $("sun").hidden = f === null;
   if (f !== null) {
-    $("sunDot").style.left = `${f * 100}%`;
+    poserSoleil(f);
     $("sunrise").textContent = remplir(t.lever, { heure: r.sun.sunrise });
     $("sunset").textContent = remplir(t.coucher, { heure: r.sun.sunset });
   }
 
   // 5. Détail technique, pour la mise au point.
   $("tech").textContent =
-    `icon=${r.icon} · cap ${r.station.bearingDeg}° · ${r.station.timezone ?? t.fuseauInconnu}` +
+    `${r.station.icao ?? "—"} · ${r.icon} · ${r.station.bearingDeg}° · ${r.station.timezone ?? t.fuseauInconnu}` +
     (r.warnings.length ? ` · ${r.warnings.join(" · ")}` : "");
 }
 
 async function consulter(lat, lon) {
   // La langue est LUE UNE FOIS ici, puis transmise partout : la requête et
-  // l'affichage parlent forcément la même, même si le <select> change pendant
-  // que la réponse voyage.
-  const lang = $("lang").value;
+  // l'affichage parlent forcément la même, même si les pastilles changent
+  // pendant que la réponse voyage.
+  const lang = langue;
+  dernierePosition = [lat, lon];
   appliquerChrome(lang);
+  afficherChargement(lang);
   $("lat").value = lat.toFixed(2);
   $("lon").value = lon.toFixed(2);
   const url = `/api/nearest?lat=${lat}&lon=${lon}&lang=${lang}&units=metric`;
@@ -855,29 +1403,67 @@ async function consulter(lat, lon) {
 }
 
 function localiser() {
+  fermerFeuille();
   if (!navigator.geolocation) return consulter(48.73, 7.71);
+  afficherChargement(langue);
   navigator.geolocation.getCurrentPosition(
     (p) => consulter(p.coords.latitude, p.coords.longitude),
-    // Refus ou échec : on sert quand même quelque chose plutôt qu'un écran mort.
+    // Refus ou échec : on sert quand même quelque chose plutôt qu'un écran
+    // mort. Décision déjà prise et toujours valable : la maquette propose un
+    // écran « GPS refusé », qui la contredirait.
     () => consulter(48.73, 7.71),
     { timeout: 8000 },
   );
 }
 
+// ---------------------------------------------------------------
+// La feuille. `hidden` est retiré AVANT la classe pour que la transition
+// ait un état de départ à animer ; il est remis à la fin de la fermeture.
+// ---------------------------------------------------------------
+let fermetureEnCours = null;
+function ouvrirFeuille() {
+  clearTimeout(fermetureEnCours);
+  $("sheet").hidden = false;
+  // On force un CALCUL de mise en page plutôt que d'attendre une frame
+  // (requestAnimationFrame) : lire offsetHeight oblige le navigateur à
+  // fixer l'état de départ tout de suite, donc la transition part bien de
+  // translateY(110%). Un rAF ne se déclenche PAS dans un onglet qui ne
+  // compose pas d'image, et la feuille resterait alors hors écran.
+  void $("sheet").offsetHeight;
+  $("sheet").classList.add("on");
+  $("veil").classList.add("on");
+}
+function fermerFeuille() {
+  $("sheet").classList.remove("on");
+  $("veil").classList.remove("on");
+  fermetureEnCours = setTimeout(() => { $("sheet").hidden = true; }, 700);
+}
+
+$("openSheet").addEventListener("click", ouvrirFeuille);
+$("closeSheet").addEventListener("click", fermerFeuille);
+$("veil").addEventListener("click", fermerFeuille);
+document.addEventListener("keydown", (e) => { if (e.key === "Escape") fermerFeuille(); });
+
 $("go").addEventListener("click", () => {
   const lat = Number($("lat").value), lon = Number($("lon").value);
-  if (Number.isFinite(lat) && Number.isFinite(lon)) consulter(lat, lon);
+  if (!Number.isFinite(lat) || !Number.isFinite(lon)) return;
+  fermerFeuille();
+  consulter(lat, lon);
 });
 $("here").addEventListener("click", localiser);
-$("lang").addEventListener("change", () => {
+
+$("langs").addEventListener("click", (e) => {
+  const b = e.target.closest("button[data-lang]");
+  if (!b || b.dataset.lang === langue) return;
+  langue = b.dataset.lang;
   const lat = Number($("lat").value), lon = Number($("lon").value);
   // Le chrome bascule TOUT DE SUITE, même sans position valide à consulter :
   // sinon changer de langue sur l'écran d'échec ne ferait rien du tout.
   if (Number.isFinite(lat) && Number.isFinite(lon)) consulter(lat, lon);
-  else appliquerChrome($("lang").value);
+  else appliquerChrome(langue);
 });
 
-appliquerChrome($("lang").value);
+appliquerChrome(langue);
 localiser();
 </script>
 </body>

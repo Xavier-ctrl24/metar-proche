@@ -1,0 +1,31 @@
+Polices embarquées dans public/fonts/
+=====================================
+
+Elles sont ici, et non chargées depuis Google Fonts, parce que la page
+METAR Proche ne fait AUCUNE requête vers un tiers : c'est la même règle
+que le sprite d'icônes en ligne et l'absence de CDN. Une page météo doit
+s'afficher entière même derrière un réseau qui filtre fonts.gstatic.com.
+
+Instrument Sans
+  Auteur : Instrument (https://github.com/Instrument/instrument-sans)
+  Licence : SIL Open Font License 1.1
+  Fichiers : instrument-sans-latin.woff2, instrument-sans-latin-ext.woff2
+
+JetBrains Mono
+  Auteur : JetBrains (https://github.com/JetBrains/JetBrainsMono)
+  Licence : SIL Open Font License 1.1
+  Fichiers : jetbrains-mono-latin.woff2, jetbrains-mono-latin-ext.woff2
+
+Les deux sont des fichiers VARIABLES (axe wght 400..700), récupérés le
+28/07/2026 depuis fonts.gstatic.com aux sous-ensembles « latin » et
+« latin-ext ». Seuls ces deux sous-ensembles sont embarqués : les noms de
+station servis par aviationweather.gov sont romanisés, et tout caractère
+hors couverture retombe sur la pile système déclarée après la police.
+
+À NOTER, parce que le fichier de design peut induire en erreur : Instrument
+Sans ne descend PAS sous la graisse 400. La maquette écrit `font-weight:200`
+sur le chiffre géant ; le navigateur rend 400, chez elle comme ici. On ne
+cherche donc pas à retrouver un « 200 » qui n'a jamais existé.
+
+La licence OFL 1.1 impose de conserver cette mention et interdit de vendre
+les fichiers de police seuls. Texte complet : https://openfontlicense.org

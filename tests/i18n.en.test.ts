@@ -1,18 +1,19 @@
 // tests/i18n.en.test.ts
 // Tests de src/i18n/en.ts, la traduction ANGLAISE.
 //
-// AVERTISSEMENT SUR LA RÈGLE ANTI « PARSER CONTRE LUI-MÊME ». Pour le français,
-// tests/i18n.test.ts ne teste QUE des phrases formulées par Xavier. Pour
-// l'anglais, cette garantie n'existe pas encore : c'est Claude qui a proposé le
-// vocabulaire, donc l'affirmer dans un test reviendrait à valider le code contre
-// sa propre invention. La parade retenue, et la lecture honnête de ce fichier :
+// VOCABULAIRE VALIDÉ PAR XAVIER LE 28/07/2026. Ces mots ont été PROPOSÉS par
+// Claude, ce qui est l'inverse du fonctionnement normal du projet (le français
+// de l'étape 6 a été écrit par Xavier) ; ils ont depuis été relus et acceptés,
+// et sont donc acquis au même titre que le français. On ne les retouche plus
+// sans lui.
 //
-//   - le VOCABULAIRE anglais (les mots eux-mêmes) reste À VALIDER par Xavier,
-//     exactement comme le français l'a été à l'étape 6 ;
-//   - ce qui est réellement vérifié ici est OBJECTIF et indépendant du choix des
-//     mots : le séparateur décimal anglais, la POSITION de l'intensité (avant le
-//     nom en anglais, après en français), les sentinelles de chaîne vide, et la
-//     PARITÉ de structure avec le français.
+// CE QUI NE CHANGE PAS POUR AUTANT, et c'est le vrai enseignement du fichier :
+// on continue de ne PRESQUE RIEN épingler du vocabulaire. Ce qui est vérifié
+// ici est OBJECTIF et indépendant du choix des mots : le séparateur décimal
+// anglais, la POSITION de l'intensité (avant le nom en anglais, après en
+// français), les sentinelles de chaîne vide, et la PARITÉ de structure avec le
+// français. Raison : un test qui fige une formulation tombe à la première
+// reformulation de Xavier, alors que ces propriétés-là, elles, survivent.
 //
 // C'est la parité qui porte le plus : elle attrape la branche oubliée dans
 // en.ts, c'est-à-dire précisément le trou qu'un test écrit de mémoire ne voit

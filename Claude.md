@@ -234,12 +234,29 @@ npx tsc --noEmit  vérification des types
 
 ```
 
-## État d'avancement (dernière session : 26/07/2026)
+## État d'avancement (dernière session : 28/07/2026)
 
 Construction par étapes selon `PROMPT.md`. L'arrêt-validation après chaque étape
 a été LEVÉ le 27/07/2026 (voir « Mode de travail ») : les étapes s'enchaînent
 désormais sans attendre. Les tests précèdent toujours le code.
 À ce jour : 298 tests passent, `npm run type-check` exit 0.
+
+Les dix étapes du plan sont FAITES et validées, et la V1 est en ligne. Le
+projet n'est donc plus en construction mais en amélioration : il n'y a plus
+d'« étape suivante » qui s'impose, seulement la liste « Prochaine étape (à
+décider avec Xavier) » plus bas, où rien n'est urgent.
+Aucune dette de validation ne reste ouverte côté TEXTES : français et anglais
+sont tous deux validés par Xavier. La seule chose encore en attente de lui est
+d'un autre ordre : les `expect` de `tests/corpus.json` (voir la fin du
+fichier).
+
+Depuis le 28/07/2026, le design est un chantier ouvert. Ce qui existe et qu'il
+faut connaître avant d'y toucher : la page prend la lumière de la STATION et
+non celle du navigateur (`sun.isDay`), les couleurs passent TOUTES par des
+variables de thème définies deux fois (`:root[data-sky="day"]` et `"night"`),
+et le sprite d'icônes vit en ligne dans `public/index.html`, sans aucun fichier
+ni CDN externe. Ces trois-là ne sont pas des détails d'implémentation : ce sont
+les contraintes qui rendent la page cohérente d'un bout à l'autre du globe.
 
 Fait et validé :
 - Étape 1 — `src/types.ts` (contrat d'API, source de vérité).
@@ -492,22 +509,22 @@ Fait et validé :
   copie ferait une seconde version du sprite qui divergerait au premier
   retouchage.
 
+- VOCABULAIRE ANGLAIS VALIDÉ par Xavier le 28/07/2026, dans les deux endroits
+  concernés : `src/i18n/en.ts` et la table `TEXTES.en` de `public/index.html`.
+  Ces phrases avaient été PROPOSÉES par Claude faute de mieux, ce qui est
+  l'inverse du fonctionnement normal (le français de l'étape 6 a été écrit par
+  Xavier). Elles sont désormais acquises, au même titre que le français : on ne
+  les retouche plus sans lui. Les en-têtes de `tests/i18n.en.test.ts` qui les
+  annoncent comme non validées sont donc PÉRIMÉS et à corriger au prochain
+  passage sur ce fichier.
+  Ce qui reste vrai en revanche, et qui explique la forme des tests : ils
+  vérifient surtout ce qui est OBJECTIF (séparateur décimal, place de
+  l'intensité, sentinelles, parité fr/en) et presque aucun mot. C'est
+  volontaire et ça doit le rester — un test qui épingle le vocabulaire tombe à
+  la première reformulation de Xavier, alors que la parité, elle, attrape la
+  branche oubliée.
+
 Prochaine étape (à décider avec Xavier) :
-- VOCABULAIRE ANGLAIS À VALIDER par Xavier. C'est la seule vraie dette de
-  cette session, et le 27/07/2026 Xavier a explicitement MAINTENU la règle qui
-  la rend anormale : les formulations restent à sa main. Ce qui est dans
-  `en.ts` est donc une PROPOSITION en attente, pas un acquis. Depuis le
-  28/07/2026 la table `TEXTES.en` de `public/index.html` est dans le MÊME état
-  et pour la même raison : à relire en priorité, « Show », « Locate me »,
-  « readings », « weather » (intitulé des phénomènes), « Observation
-  available », « The weather is not what is missing here: our own server
-  failed. » La règle anti « parser contre lui-même » veut que Xavier
-  formule les phrases (c'est ainsi que le français a été fait à l'étape 6) ;
-  pour l'anglais, Claude les a proposées faute de mieux. Les tests le disent en
-  tête de fichier et vérifient donc surtout ce qui est OBJECTIF (séparateur
-  décimal, place de l'intensité, sentinelles, parité), mais les mots eux-mêmes
-  n'engagent que Claude. À relire en priorité : « No wind », « Partly cloudy »
-  (SCT), « Mostly cloudy » (BKN), « A few clouds » (FEW), « Clear sky ».
 - Pas de BUDGET GLOBAL de temps, seulement un plafond PAR TENTATIVE. Deux cas
   peuvent donc encore dépasser 10 s : panne PARTIELLE à l'antiméridien sur les
   deux tours (2 x 8 s), et un 5xx qui arrive juste avant l'expiration puis un

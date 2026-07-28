@@ -64,6 +64,15 @@ fonctionnement par étapes validées une à une.
 - Le rapport de fin de travail dit ce qui a été fait, ce qui a été tranché seul
   et pourquoi, et ce qui reste en attente de Xavier. Il n'énumère pas les pistes
   écartées.
+- SYNTHÉTIQUE (demandé le 28/07/2026). Le rapport tient en une dizaine de
+  lignes : ce qui a été fait, ce qui a été tranché seul, ce qui attend Xavier.
+  Une phrase par point, pas de paragraphe d'explication, pas de reprise du
+  contenu des commentaires ni du message de commit. Le détail et le pourquoi
+  vivent dans le code et dans ce fichier, PAS dans le message de fin : le
+  rapport dit où regarder, il ne redit pas ce qui s'y trouve. Cette concision
+  ne vaut QUE pour le rapport de fin : une explication demandée en cours de
+  route reste aussi développée qu'il le faut (Xavier est débutant en
+  TypeScript, voir « Contexte »).
 
 ## Contexte
 

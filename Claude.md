@@ -381,12 +381,54 @@ Fait et validé :
   comme du Latin-1 et réencode, ce qui transforme « données » en « donnÃ©es »
   dans tout le fichier. Fait le 27/07/2026, réparé par `git checkout`.
 
+- 28/07/2026 — PAGE DE DÉMONSTRATION TRADUITE. Constat de Xavier sur capture :
+  en `lang=en`, l'API parlait anglais mais la page restait à moitié française
+  (« Strasbourg/Entzheim, à 21.4 km », « Observé à 12:30 heure locale »,
+  intitulés vent/visibilité/mesures, « lever »/« coucher », boutons). Cause :
+  le bloc `text` est traduit par le backend, mais tout ce qui l'ENTOURE
+  appartient à la page et y était écrit en dur.
+  Table `TEXTES = { fr, en }` dans `public/index.html`, et trois décisions :
+  (a) PHRASES ENTIÈRES avec trous `{nom}`, jamais de fragments recollés. Même
+  leçon que le repère `{i}` d'`en.ts` : « il y a 22 min » met le marqueur
+  devant, l'anglais derrière (« 22 min ago ») ; « , à 21,4 km » devient
+  « , 21.4 km away ». Une concaténation de mots traduits produirait de
+  l'anglais faux.
+  (b) `lang` est un PARAMÈTRE OBLIGATOIRE d'`afficher` et d'`afficherEchec`,
+  lu une seule fois en tête de `consulter`, jamais relu depuis le `<select>`
+  au fond d'une fonction. Même motif que `buildResponse(…, lang)` : un défaut
+  implicite rendrait l'oubli silencieux. Effet de bord utile : changer de
+  langue pendant que la réponse voyage ne peut plus mélanger les deux.
+  (c) SÉPARATEUR DÉCIMAL corrigé au passage (« à 21,4 km » en français). C'est
+  une propriété STRUCTURELLE, donc elle ne relève pas de la validation de
+  Xavier ; elle ne concernait que le français, l'anglais était déjà juste.
+  PAS DE TEST, et c'est un choix : le seul test utile serait une PARITÉ de
+  clés fr/en, or l'obtenir imposait de sortir la table dans un `.js` importé
+  par un test `.ts`, donc `allowJs` + un élargissement d'`include` dans
+  `tsconfig.json`. Ce fichier a déjà causé trois échecs de déploiement : on ne
+  le rouvre pas pour le chrome d'une page de démonstration. La page reste donc
+  non testée, comme elle l'était déjà.
+  Vérifié dans le navigateur le 28/07/2026 (serveur de développement, vrai
+  `handleNearest`) : `fr` → « à 20,8 km », `en` → « 20.8 km away », « 30 min
+  ago », « readings », « sunrise/sunset », boutons « Show »/« Locate me » ;
+  400 en anglais → « Unusable position » ; bascule de langue sur l'écran
+  d'échec sans position valide → message re-rendu (`dernierEchec`) ; branches
+  de repli forcées à la main → « Unknown station », « Observation available »,
+  « observation is 200 minutes old » (classe `stale` posée), « unknown time
+  zone ». `<meta name="description">` reste en français et n'est pas mis à
+  jour : hors périmètre, signalé.
+  Ajout annexe : `.claude/launch.json` (lancement du serveur de développement
+  depuis l'outillage), sans effet sur la production.
+
 Prochaine étape (à décider avec Xavier) :
 - VOCABULAIRE ANGLAIS À VALIDER par Xavier. C'est la seule vraie dette de
   cette session, et le 27/07/2026 Xavier a explicitement MAINTENU la règle qui
   la rend anormale : les formulations restent à sa main. Ce qui est dans
-  `en.ts` est donc une PROPOSITION en attente, pas un acquis, et c'est le seul
-  endroit du projet dans cet état. La règle anti « parser contre lui-même » veut que Xavier
+  `en.ts` est donc une PROPOSITION en attente, pas un acquis. Depuis le
+  28/07/2026 la table `TEXTES.en` de `public/index.html` est dans le MÊME état
+  et pour la même raison : à relire en priorité, « Show », « Locate me »,
+  « readings », « weather » (intitulé des phénomènes), « Observation
+  available », « The weather is not what is missing here: our own server
+  failed. » La règle anti « parser contre lui-même » veut que Xavier
   formule les phrases (c'est ainsi que le français a été fait à l'étape 6) ;
   pour l'anglais, Claude les a proposées faute de mieux. Les tests le disent en
   tête de fichier et vérifient donc surtout ce qui est OBJECTIF (séparateur

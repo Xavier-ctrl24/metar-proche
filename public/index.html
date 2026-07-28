@@ -174,7 +174,9 @@ button:hover { background: var(--accent); color: var(--surface); }
 <body>
 <main>
 
-  <!-- État de départ et messages de service -->
+  <!-- État de départ et messages de service. Le contenu ci-dessous est le
+       repli AVANT exécution du script : dès qu'il tourne, appliquerChrome()
+       le réécrit dans la langue choisie. -->
   <div class="notice" id="notice">
     <b>Recherche de la station la plus proche</b>
     Autorisez la localisation, ou saisissez une position plus bas.
@@ -203,10 +205,13 @@ button:hover { background: var(--accent); color: var(--surface); }
   </article>
 
   <details class="tools">
-    <summary>Choisir une position</summary>
+    <summary id="toolsTitre">Choisir une position</summary>
     <div class="fields">
       <input id="lat" type="number" step="0.01" placeholder="latitude" aria-label="Latitude">
       <input id="lon" type="number" step="0.01" placeholder="longitude" aria-label="Longitude">
+      <!-- Les noms de langue restent des ENDONYMES (« Français », jamais
+           « French ») : c'est la convention d'un sélecteur de langue, et non
+           une chaîne oubliée à la traduction. -->
       <select id="lang" aria-label="Langue">
         <option value="fr">Français</option>
         <option value="en">English</option>
@@ -227,35 +232,174 @@ button:hover { background: var(--accent); color: var(--surface); }
 
 const $ = (id) => document.getElementById(id);
 
-// Ordre d'affichage du relevé. Chaque entrée pointe une phrase DÉJÀ
-// écrite par le backend (bloc `text`), jamais une valeur à formater ici.
-const LIGNES = [
-  ["vent", (r) => r.text.wind],
-  ["visibilité", (r) => r.text.visibility],
-  ["nuages", (r) => r.text.clouds],
-  ["phénomènes", (r) => r.text.phenomena],
-];
+// ---------------------------------------------------------------
+// TEXTES DE LA PAGE (le « chrome »).
+//
+// L'API traduit déjà le bloc `text` (vent, visibilité, nuages...). Mais tout
+// ce qui entoure ces phrases appartient à la page : intitulés, provenance,
+// messages d'échec, boutons. Ils étaient écrits en français en dur, donc
+// `lang=en` rendait une page à moitié anglaise (constat du 28/07/2026).
+//
+// PHRASES ENTIÈRES, JAMAIS DE FRAGMENTS RECOLLÉS. C'est la leçon déjà payée
+// dans src/i18n/en.ts avec le repère `{i}` : « il y a 22 min » place le
+// marqueur temporel DEVANT, l'anglais le place DERRIÈRE (« 22 min ago »).
+// Un dictionnaire mot à mot recollé par concaténation produirait de l'anglais
+// faux. Chaque entrée porte donc sa phrase complète, avec des trous `{nom}`
+// remplis au rendu.
+//
+// EN ATTENTE DE VALIDATION : les formulations anglaises ci-dessous sont une
+// PROPOSITION de Claude, comme celles de src/i18n/en.ts, et non un acquis.
+// La règle du projet veut que Xavier écrive les phrases destinées au public.
+// ---------------------------------------------------------------
+const TEXTES = {
+  fr: {
+    chercheTitre: "Recherche de la station la plus proche",
+    chercheSuite: "Autorisez la localisation, ou saisissez une position plus bas.",
 
-// Messages d'échec : dire ce qui s'est passé et quoi faire, sans jargon.
-const ECHECS = {
-  invalid_position: ["Position inutilisable", "Vérifiez la latitude (-90 à 90) et la longitude (-180 à 180)."],
-  no_station: ["Aucune station à proximité", "Il n'y a pas d'aéroport observateur dans cette zone. Essayez une position plus proche d'une ville."],
-  only_stale: ["Aucune observation récente", "Les stations du secteur n'ont rien publié depuis plus de trois heures."],
-  network_error: ["Source météo injoignable", "Le service d'observation ne répond pas. Réessayez dans un instant."],
-  // Les deux ci-dessous ne viennent PAS de l'API : ce sont nos propres pannes,
-  // et les nommer distinctement évite d'accuser la source météo à tort.
-  serveur: ["Le service a rencontré une erreur", "Ce n'est pas la météo qui manque, c'est notre serveur qui a échoué."],
-  hors_ligne: ["Service inaccessible", "Vérifiez votre connexion, puis réessayez."],
+    ligneVent: "vent",
+    ligneVisibilite: "visibilité",
+    ligneNuages: "nuages",
+    lignePhenomenes: "phénomènes",
+    ligneMesures: "mesures",
+
+    headlineDefaut: "Relevé disponible",
+    stationInconnue: "Station inconnue",
+    lieu: "{nom}, à {km} km",
+    lieuSansDistance: "{nom}",
+    observe: "Observé à {heure} heure locale",
+    observeSansHeure: "Observé",
+    age: "il y a {min} min",
+    agePerime: "relevé vieux de {min} minutes",
+
+    ressenti: "ressenti {v}°",
+    humidite: "humidité {v} %",
+    pression: "{v} hPa",
+
+    lever: "lever {heure}",
+    coucher: "coucher {heure}",
+    fuseauInconnu: "fuseau inconnu",
+
+    outilsTitre: "Choisir une position",
+    boutonConsulter: "Consulter",
+    boutonIci: "Me localiser",
+    labelLat: "Latitude",
+    labelLon: "Longitude",
+    labelLangue: "Langue",
+
+    // Messages d'échec : dire ce qui s'est passé et quoi faire, sans jargon.
+    codeHttp: " (code {status})",
+    inattendu: ["Réponse inattendue", "Réessayez dans un instant."],
+    invalid_position: ["Position inutilisable", "Vérifiez la latitude (-90 à 90) et la longitude (-180 à 180)."],
+    no_station: ["Aucune station à proximité", "Il n'y a pas d'aéroport observateur dans cette zone. Essayez une position plus proche d'une ville."],
+    only_stale: ["Aucune observation récente", "Les stations du secteur n'ont rien publié depuis plus de trois heures."],
+    network_error: ["Source météo injoignable", "Le service d'observation ne répond pas. Réessayez dans un instant."],
+    // Les deux ci-dessous ne viennent PAS de l'API : ce sont nos propres pannes,
+    // et les nommer distinctement évite d'accuser la source météo à tort.
+    serveur: ["Le service a rencontré une erreur", "Ce n'est pas la météo qui manque, c'est notre serveur qui a échoué."],
+    hors_ligne: ["Service inaccessible", "Vérifiez votre connexion, puis réessayez."],
+  },
+  en: {
+    chercheTitre: "Looking for the nearest station",
+    chercheSuite: "Allow location access, or enter a position below.",
+
+    ligneVent: "wind",
+    ligneVisibilite: "visibility",
+    ligneNuages: "clouds",
+    lignePhenomenes: "weather",
+    ligneMesures: "readings",
+
+    headlineDefaut: "Observation available",
+    stationInconnue: "Unknown station",
+    lieu: "{nom}, {km} km away",
+    lieuSansDistance: "{nom}",
+    observe: "Observed at {heure} local time",
+    observeSansHeure: "Observed",
+    age: "{min} min ago",
+    agePerime: "observation is {min} minutes old",
+
+    ressenti: "feels like {v}°",
+    humidite: "humidity {v} %",
+    pression: "{v} hPa",
+
+    lever: "sunrise {heure}",
+    coucher: "sunset {heure}",
+    fuseauInconnu: "unknown time zone",
+
+    outilsTitre: "Choose a position",
+    boutonConsulter: "Show",
+    boutonIci: "Locate me",
+    labelLat: "Latitude",
+    labelLon: "Longitude",
+    labelLangue: "Language",
+
+    codeHttp: " (code {status})",
+    inattendu: ["Unexpected response", "Please try again in a moment."],
+    invalid_position: ["Unusable position", "Check the latitude (-90 to 90) and the longitude (-180 to 180)."],
+    no_station: ["No station nearby", "There is no reporting airport in this area. Try a position closer to a town."],
+    only_stale: ["No recent observation", "Stations in this area have published nothing for more than three hours."],
+    network_error: ["Weather source unreachable", "The observation service is not responding. Please try again in a moment."],
+    serveur: ["The service hit an error", "The weather is not what is missing here: our own server failed."],
+    hors_ligne: ["Service unreachable", "Check your connection, then try again."],
+  },
 };
 
-function afficherEchec(code, status) {
-  const [titre, suite] = ECHECS[code] ?? ["Réponse inattendue", "Réessayez dans un instant."];
-  const detail = status ? ` (code ${status})` : "";
+// La langue est TOUJOURS passée en paramètre, jamais relue depuis le <select>
+// au fond d'une fonction d'affichage. Même raison que `buildResponse(…, lang)`
+// côté serveur : un défaut implicite rendrait un oubli silencieux. En prime,
+// cela ferme la fenêtre où l'utilisateur change de langue pendant la requête
+// et où le chrome ne dirait plus la même langue que les phrases de l'API.
+const T = (lang) => TEXTES[lang] ?? TEXTES.fr;
+
+// Remplit les trous `{nom}` d'un modèle. Aucun échappement ici : tout ce qui
+// en sort passe par textContent, jamais par innerHTML.
+const remplir = (modele, valeurs) =>
+  modele.replace(/\{(\w+)\}/g, (_, cle) => valeurs[cle]);
+
+// Séparateur décimal. Propriété STRUCTURELLE de la langue et non un choix de
+// vocabulaire : le français écrit « 21,4 km », l'anglais « 21.4 km ». C'est la
+// même règle que le .replace(".", ",") qui termine src/i18n/fr.ts, et le
+// défaut visible sur la capture (« à 21.4 km » en français).
+const nombre = (v, lang) => (lang === "fr" ? String(v).replace(".", ",") : String(v));
+
+// Dernier échec affiché, retenu pour pouvoir le RE-rendre si la langue change
+// alors qu'aucune donnée n'est à l'écran (un échec ne déclenche pas de
+// nouvelle requête, donc rien ne repasserait par afficherEchec sans cela).
+let dernierEchec = null;
+
+function rendreNotice(titre, suite) {
   $("card").hidden = true;
   $("notice").hidden = false;
   $("notice").innerHTML = `<b></b><span></span>`;
-  $("notice").firstChild.textContent = titre + detail;
+  $("notice").firstChild.textContent = titre;
   $("notice").lastChild.textContent = suite;
+}
+
+function afficherEchec(code, status, lang) {
+  const t = T(lang);
+  const [titre, suite] = t[code] ?? t.inattendu;
+  const detail = status ? remplir(t.codeHttp, { status }) : "";
+  dernierEchec = { code, status };
+  rendreNotice(titre + detail, suite);
+}
+
+// Applique la langue à tout ce qui ne dépend PAS d'une réponse de l'API :
+// commandes, intitulés, et l'écran de service en cours. Appelée au démarrage
+// et à chaque changement de langue.
+function appliquerChrome(lang) {
+  const t = T(lang);
+  document.documentElement.lang = lang;
+  $("toolsTitre").textContent = t.outilsTitre;
+  $("go").textContent = t.boutonConsulter;
+  $("here").textContent = t.boutonIci;
+  $("lat").setAttribute("aria-label", t.labelLat);
+  $("lon").setAttribute("aria-label", t.labelLon);
+  $("lang").setAttribute("aria-label", t.labelLangue);
+  // Les repères de saisie restent en minuscules et identiques dans les deux
+  // langues (« latitude », « longitude ») : ce sont des termes techniques.
+  if ($("card").hidden) {
+    if (dernierEchec) afficherEchec(dernierEchec.code, dernierEchec.status, lang);
+    else rendreNotice(t.chercheTitre, t.chercheSuite);
+  }
 }
 
 // Position du soleil sur sa course, en fraction de 0 à 1.
@@ -269,42 +413,61 @@ function fractionDuJour(obs, lever, coucher) {
   return Math.min(1, Math.max(0, (t - a) / (b - a)));
 }
 
-function afficher(r) {
+function afficher(r, lang) {
+  const t = T(lang);
+
   // 1. La lumière de la page vient de la STATION, pas du navigateur.
   document.documentElement.dataset.sky = r.sun && r.sun.isDay === false ? "night" : "day";
-  document.documentElement.lang = $("lang").value;
+  document.documentElement.lang = lang;
 
+  dernierEchec = null;
   $("notice").hidden = true;
   $("card").hidden = false;
 
   $("raw").textContent = r.raw;
-  $("headline").textContent = r.text.headline || "Relevé disponible";
+  $("headline").textContent = r.text.headline || t.headlineDefaut;
   $("temp").textContent = r.temperature && r.temperature.value !== null ? `${r.temperature.value}°` : "";
 
   // 2. Provenance : quelle station, à quelle distance, et à quelle heure
   // LOCALE de la station. L'âge n'est signalé que s'il devient gênant.
+  // Chaque morceau est une phrase entière du dictionnaire : « à 21,4 km »
+  // devient « 21.4 km away », ce qu'une concaténation ne saurait pas faire.
   const s = r.station;
-  const place = `${s.name ?? s.icao ?? "Station inconnue"}`;
-  const dist = s.distanceKm !== null ? `, à ${s.distanceKm} km` : "";
-  const heure = r.observedLocal ? `Observé à ${r.observedLocal} heure locale` : "Observé";
+  const nom = s.name ?? s.icao ?? t.stationInconnue;
+  const lieu = s.distanceKm !== null
+    ? remplir(t.lieu, { nom, km: nombre(s.distanceKm, lang) })
+    : remplir(t.lieuSansDistance, { nom });
+  const heure = r.observedLocal
+    ? remplir(t.observe, { heure: r.observedLocal })
+    : t.observeSansHeure;
   const age = r.isStale
-    ? ` · <span class="stale">relevé vieux de ${r.ageMinutes} minutes</span>`
-    : ` · il y a ${r.ageMinutes} min`;
-  $("place").innerHTML = `<strong></strong><span></span>`;
-  $("place").firstChild.textContent = place + dist;
-  $("place").lastChild.innerHTML = `<br>${heure}${age}`;
+    ? remplir(t.agePerime, { min: r.ageMinutes })
+    : remplir(t.age, { min: r.ageMinutes });
+
+  $("place").innerHTML = `<strong></strong><span><br><span id="obs"></span> · <span id="ageTxt"></span></span>`;
+  $("place").firstChild.textContent = lieu;
+  $("obs").textContent = heure;
+  $("ageTxt").textContent = age;
+  if (r.isStale) $("ageTxt").className = "stale";
 
   // 3. Le relevé. Une ligne n'apparaît que si le backend a quelque chose
   // à en dire : un METAR muet sur les nuages ne produit pas de ligne vide.
+  // Chaque entrée pointe une phrase DÉJÀ écrite par le backend (bloc `text`),
+  // jamais une valeur à formater ici ; seul l'INTITULÉ appartient à la page.
+  const LIGNES = [
+    [t.ligneVent, r.text.wind],
+    [t.ligneVisibilite, r.text.visibility],
+    [t.ligneNuages, r.text.clouds],
+    [t.lignePhenomenes, r.text.phenomena],
+  ];
   const dl = $("report");
   dl.textContent = "";
-  for (const [nom, lire] of LIGNES) {
-    const phrase = lire(r);
+  for (const [intitule, phrase] of LIGNES) {
     if (!phrase) continue;
     const div = document.createElement("div");
     div.className = "row";
     const dt = document.createElement("dt");
-    dt.textContent = nom;
+    dt.textContent = intitule;
     const dd = document.createElement("dd");
     dd.textContent = phrase;
     div.append(dt, dd);
@@ -312,14 +475,15 @@ function afficher(r) {
   }
   // Ligne de synthèse chiffrée, composée ici parce qu'elle n'existe pas
   // comme phrase dans le contrat : ce sont des VALEURS, pas du texte.
-  const t = r.temperature, chiffres = [];
-  if (t && t.feelsLike !== null) chiffres.push(`ressenti ${t.feelsLike}°`);
-  if (t && t.humidity !== null) chiffres.push(`humidité ${t.humidity} %`);
-  if (r.pressure && r.pressure.value !== null) chiffres.push(`${r.pressure.value} hPa`);
+  const temp = r.temperature, chiffres = [];
+  if (temp && temp.feelsLike !== null) chiffres.push(remplir(t.ressenti, { v: temp.feelsLike }));
+  if (temp && temp.humidity !== null) chiffres.push(remplir(t.humidite, { v: temp.humidity }));
+  if (r.pressure && r.pressure.value !== null) chiffres.push(remplir(t.pression, { v: r.pressure.value }));
   if (chiffres.length) {
     const div = document.createElement("div");
     div.className = "row";
-    div.innerHTML = `<dt>mesures</dt><dd></dd>`;
+    div.innerHTML = `<dt></dt><dd></dd>`;
+    div.firstChild.textContent = t.ligneMesures;
     div.lastChild.textContent = chiffres.join(" · ");
     dl.append(div);
   }
@@ -329,20 +493,25 @@ function afficher(r) {
   $("sun").hidden = f === null;
   if (f !== null) {
     $("sunDot").style.left = `${f * 100}%`;
-    $("sunrise").textContent = `lever ${r.sun.sunrise}`;
-    $("sunset").textContent = `coucher ${r.sun.sunset}`;
+    $("sunrise").textContent = remplir(t.lever, { heure: r.sun.sunrise });
+    $("sunset").textContent = remplir(t.coucher, { heure: r.sun.sunset });
   }
 
   // 5. Détail technique, pour la mise au point.
   $("tech").textContent =
-    `icon=${r.icon} · cap ${r.station.bearingDeg}° · ${r.station.timezone ?? "fuseau inconnu"}` +
+    `icon=${r.icon} · cap ${r.station.bearingDeg}° · ${r.station.timezone ?? t.fuseauInconnu}` +
     (r.warnings.length ? ` · ${r.warnings.join(" · ")}` : "");
 }
 
 async function consulter(lat, lon) {
+  // La langue est LUE UNE FOIS ici, puis transmise partout : la requête et
+  // l'affichage parlent forcément la même, même si le <select> change pendant
+  // que la réponse voyage.
+  const lang = $("lang").value;
+  appliquerChrome(lang);
   $("lat").value = lat.toFixed(2);
   $("lon").value = lon.toFixed(2);
-  const url = `/api/nearest?lat=${lat}&lon=${lon}&lang=${$("lang").value}&units=metric`;
+  const url = `/api/nearest?lat=${lat}&lon=${lon}&lang=${lang}&units=metric`;
   try {
     const res = await fetch(url);
     // On lit d'abord en TEXTE. Un serveur en panne renvoie une page HTML, et
@@ -353,13 +522,13 @@ async function consulter(lat, lon) {
     let body = null;
     try { body = JSON.parse(texte); } catch { /* ce n'est pas du JSON */ }
 
-    if (body === null) return afficherEchec("serveur", res.status);
-    if (!res.ok) return afficherEchec(body.error);
-    afficher(body);
+    if (body === null) return afficherEchec("serveur", res.status, lang);
+    if (!res.ok) return afficherEchec(body.error, null, lang);
+    afficher(body, lang);
   } catch {
     // Ici, et ici seulement, la requête n'a jamais abouti : navigateur hors
     // ligne, ou service inaccessible. C'est le seul vrai cas « injoignable ».
-    afficherEchec("hors_ligne");
+    afficherEchec("hors_ligne", null, lang);
   }
 }
 
@@ -380,9 +549,13 @@ $("go").addEventListener("click", () => {
 $("here").addEventListener("click", localiser);
 $("lang").addEventListener("change", () => {
   const lat = Number($("lat").value), lon = Number($("lon").value);
+  // Le chrome bascule TOUT DE SUITE, même sans position valide à consulter :
+  // sinon changer de langue sur l'écran d'échec ne ferait rien du tout.
   if (Number.isFinite(lat) && Number.isFinite(lon)) consulter(lat, lon);
+  else appliquerChrome($("lang").value);
 });
 
+appliquerChrome($("lang").value);
 localiser();
 </script>
 </body>

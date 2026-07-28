@@ -428,7 +428,64 @@ Fait et validé :
   Ajout annexe : `.claude/launch.json` (lancement du serveur de développement
   depuis l'outillage), sans effet sur la production.
 
+- 28/07/2026 — ICÔNES. Xavier a fourni `icones.png`, une planche de style
+  (trait seul, deux accents : ambre pour l'astre et l'éclair, bleu pour tout
+  ce qui est mouillé). Sprite SVG EN LIGNE dans `public/index.html`, à deux
+  étages : des PRIMITIVES `#p-...` centrées sur leur origine, puis les 24
+  icônes `#i-...` composées par `<use>`. Motif : le contrat distingue
+  drizzle / rain_light / rain / rain_heavy, qui ne diffèrent que par le nombre
+  de gouttes sous le MÊME nuage ; dessiner chaque icône en entier ferait
+  24 nuages à maintenir. S'y ajoutent 5 icônes de rubrique `#d-...` (vent,
+  visibilité, nuages, phénomènes, mesures) qui, elles, ne viennent pas du
+  contrat.
+  LA LISTE VIENT DE `pickIcon`, PAS DE LA PLANCHE. La planche a 12 dessins, le
+  contrat 24 jetons. Un jeton sans symbole donnerait un carré vide EN
+  PRODUCTION sur un cas que rien en local ne déclenche : même forme que le
+  défaut d'imports du 27/07/2026. D'où aussi le repli obligatoire de
+  `poserIcone` sur `#i-unknown` (un nuage en pointillé, donc un dessin et pas
+  un trou). Les huit variantes nocturnes n'existent pas sur la planche : le
+  croissant est un ajout, agrandi à 2,6 (contre 2,2 pour le soleil) parce
+  qu'à échelle égale il pesait 39,5 unités contre 48,4.
+  DEUX RÉGLAGES QUI SE MESURENT, pas qui se raisonnent :
+  (a) `--sw`, l'épaisseur du trait dans le repère du dessin. Une seule valeur
+  ne marche pas aux deux tailles (2,4 à 3,4 rem donne un trait juste, mais un
+  cheveu invisible à 1,35 rem). Chaque taille a la sienne, et les primitives
+  agrandies divisent la leur d'autant (classes `.sc*`) : sans ça, un nuage
+  grossi 1,9 fois aurait un trait 1,9 fois plus gras que les gouttes d'à côté.
+  (b) les accents passent par des variables de THÈME (`--ico-sun`, `--ico-wet`)
+  et jamais par un hex dans le SVG : le bleu de la planche (#2b6cb0) tombe à
+  1,3:1 sur le fond de nuit. Éclairci en #7fb3e8 (8,4:1).
+  RÉSERVE ASSUMÉE, mesurée : l'ambre de la planche (#f5a623) ne fait que
+  1,7:1 sur le fond de jour, sous le seuil de 3:1 des éléments graphiques.
+  Non corrigé, pour deux raisons : c'est la couleur choisie par Xavier, et
+  l'icône est REDONDANTE avec le titre juste à côté (les deux sortent du même
+  sélecteur `dominantCondition`), donc elle est `aria-hidden` et aucune
+  information n'est portée par elle seule. Si on veut le seuil, il faut
+  descendre vers #a86f08, qui vire au brun.
+  Pas de nom accessible sur l'icône de tête, et c'est délibéré : lui en
+  écrire un créerait une formulation de plus à traduire et à faire valider,
+  pour redire ce que `text.headline` dit déjà.
+  VÉRIFIÉ SANS CAPTURE D'ÉCRAN (le volet navigateur ne composait pas d'image
+  ce jour-là), donc autrement, et c'est la méthode à réutiliser : `getBBox()`
+  sur chaque symbole posé (29 sur 29 non vides, dans la boîte, centrés à
+  moins de 4 unités) et `elementFromPoint` sur un point du trait — le test de
+  pointage n'atteint une forme QUE si elle est réellement peinte, ce qui
+  prouve d'un coup que les `<use>` imbriqués rendent et que `currentColor` et
+  les variables traversent bien les deux niveaux. Repli testé : jeton inconnu
+  et jeton nul → `#i-unknown`. Mobile 375 px : aucun débordement horizontal.
+  Planche de contrôle livrée à Xavier (`icones-controle.html`, fabriquée par
+  un script qui EXTRAIT le style et le sprite du vrai `index.html`, donc elle
+  ne peut pas diverger de la page). Le jugement visuel lui revient.
+
 Prochaine étape (à décider avec Xavier) :
+- LES DESSINS EUX-MÊMES sont à valider par Xavier (planche
+  `icones-controle.html`). Ce n'est pas la règle anti « parser contre
+  lui-même », qui ne porte que sur les mots : c'est simplement que le design
+  est sa planche. Les cas les plus discutables, parce qu'ils ne figurent PAS
+  sur `icones.png` et que je les ai inventés : les huit variantes de nuit
+  (croissant), `freezing_rain` (gouttes + un sol pris en glace),
+  `sleet` (une goutte et un flocon), `smoke` (panaches verticaux),
+  `dust` (ondes + grains) et `unknown` (nuage en pointillé).
 - VOCABULAIRE ANGLAIS À VALIDER par Xavier. C'est la seule vraie dette de
   cette session, et le 27/07/2026 Xavier a explicitement MAINTENU la règle qui
   la rend anormale : les formulations restent à sa main. Ce qui est dans

@@ -638,10 +638,28 @@ Fait et validé :
   charge une icône. Ce jeton-là parmi les 24 parce qu'il contient l'astre
   ET le nuage, donc dit « météo » sans annoncer un temps qu'il fera : une
   icône est peinte des mois avant le METAR.
-  ZONE DE SÉCURITÉ (`purpose: maskable`) : Android découpe l'icône en
-  cercle, en goutte ou en écusson et ne garantit que le disque central de
-  80 %. Le dessin tient donc dans les 60 % centraux. Mesuré et non estimé :
-  0 pixel peint hors du disque, sur les 512 x 512.
+  DEUX DESSINS ET NON UN, et c'est la correction la plus utile de la
+  session. Premier jet : un seul fichier déclaré `any maskable`. Erreur.
+  Android rogne l'icône en cercle, en goutte ou en écusson et ne garantit
+  que le disque central de 80 %, donc la version rognable doit tenir dans
+  les 60 % centraux. Mais la boîte d'installation de Chrome, la fiche du
+  Play Store, l'onglet et iOS ne rognent RIEN : leur servir cette
+  version-là aurait donné un petit dessin perdu dans un grand carré
+  marine, PARTOUT, à cause d'une contrainte qui ne vaut que pour un
+  lanceur Android. iOS ignore de surcroît `maskable`, donc
+  `apple-touch-icon` était le cas le plus mal servi.
+  D'où quatre fichiers : `icon.svg` / `icon-512.png` à 85 % (`any`),
+  `icon-maskable.svg` / `icon-maskable-512.png` à 60 % (`maskable`). Les
+  deux SVG sont gardés comme SOURCES : sans eux, régénérer un PNG
+  imposerait de redessiner. Mesuré et non estimé : 0 pixel peint hors du
+  disque de sécurité sur la version rognable, et le dessin occupe 73 % en
+  largeur sur 63 % en hauteur sur la version `any` (le symbole a ses
+  propres marges dans son repère de 64).
+  ÉPAISSEUR DE TRAIT : reprise telle quelle du sprite, base `--sw: 3`, ce
+  qui donne 13 px de trait sur 512, soit ~1,2 px sur une vignette de
+  48 px. Ce réglage-là n'a PAS été mesuré à l'œil comme le furent ceux du
+  28/07/2026 : il est repris, pas choisi. À revoir si Xavier trouve le
+  trait maigre sur son téléphone.
   LE PNG A ÉTÉ FABRIQUÉ SANS AUCUNE DÉPENDANCE, et la méthode vaut d'être
   notée : `<img>` + `canvas.drawImage` + `toDataURL` dans le volet
   navigateur, puis décodage du base64. Aucun `sharp`, aucun `resvg`, aucun
@@ -661,12 +679,23 @@ Fait et validé :
   vérifiable sans déployer, et un manifeste servi en `octet-stream` se
   télécharge au lieu de s'appliquer. Défaut invisible en local, donc le
   scénario que ce dépôt connaît trop bien.
+  TRANCHÉ SEUL, à signaler parce que ça n'allait pas de soi :
+  `orientation: portrait-primary` (la page est dessinée pour le portrait
+  depuis la maquette, mais ça FIGE l'orientation d'une installation sur
+  tablette) et `categories: weather, utilities` (sans effet visible, lu
+  par certains catalogues).
   VÉRIFIÉ sur le serveur de développement (vrai `handleNearest`) : lien
-  présent, 200, JSON valide, `application/manifest+json`, les deux icônes
-  en 200, aucune erreur de manifeste en console, page toujours
+  présent, 200, JSON valide, `application/manifest+json`, les QUATRE
+  icônes en 200 avec le bon type, `theme_color` égal au `<meta>` (casse
+  comprise), aucune erreur de manifeste en console, page toujours
   fonctionnelle (LFST, `clear_day`, ciel `cavok`). L'icône est prouvée
-  PEINTE par comptage de pixels (fond #0A1526, encre #EAF2FB, ambre
+  PEINTE par comptage de pixels (fond #0a1526, encre #EAF2FB, ambre
   #F5A623), même réflexe que le `getBBox` du 28/07/2026.
+  CE QUI N'A PAS PU ÊTRE PROUVÉ ICI : `beforeinstallprompt` n'a pas été
+  émis dans le volet navigateur. Ça ne prouve RIEN dans un navigateur
+  piloté, qui supprime couramment cet événement. Ce qui est vérifié tient
+  au fichier lui-même (il est lu, valide, complet) ; le déclenchement de
+  l'invite se constatera sur un vrai téléphone.
   PAS DE TEST : c'est un fichier de configuration statique, et la page
   reste non testée pour la raison déjà écrite plus haut.
 

@@ -17,23 +17,35 @@
   "display": "standalone",
   "orientation": "portrait-primary",
 
-  "_5_couleurs": "LES DEUX COULEURS SONT FIXES, ET C'EST LA SEULE CHOSE QUE CE FICHIER NE PEUT PAS BIEN FAIRE. Toute la page repose sur data-sky, qui traduit le METAR en dix ciels ; or l'écran de démarrage et la barre système sont peints AVANT le premier octet de réponse de l'API, donc avant qu'un ciel existe. On prend donc le ciel NEUTRE, celui du chargement (haut du dégradé --sky par défaut, #101827), et le même #0A1526 que le <meta name=theme-color> déjà présent dans index.html. Ces deux valeurs doivent rester ÉGALES à celles de la page : deux sources qui divergent feraient clignoter la barre système à l'ouverture.",
-  "theme_color": "#0A1526",
+  "_5_couleurs": "LES DEUX COULEURS SONT FIXES, ET C'EST LA SEULE CHOSE QUE CE FICHIER NE PEUT PAS BIEN FAIRE. Toute la page repose sur data-sky, qui traduit le METAR en dix ciels ; or l'écran de démarrage et la barre système sont peints AVANT le premier octet de réponse de l'API, donc avant qu'un ciel existe. On prend donc le ciel NEUTRE, celui du chargement (haut du dégradé --sky par défaut, #101827), et le même #0a1526 que le <meta name=theme-color> déjà présent dans index.html, à la casse près, qui est alignée exprès. Ces deux valeurs doivent rester ÉGALES à celles de la page : deux sources qui divergent feraient clignoter la barre système à l'ouverture.",
+  "theme_color": "#0a1526",
   "background_color": "#101827",
 
-  "_6_icones": "ICÔNES. Le SVG d'abord, net à toutes les tailles ; le PNG 512 ensuite, parce que tout ne lit pas le SVG et que Bubblewrap, qui empaquette un TWA, exige un PNG de 512. purpose « any maskable » sur les deux : Android découpe l'icône en cercle, en goutte ou en écusson selon le lanceur et ne garantit que le disque central de 80 %, or le dessin de public/icon.svg tient dans les 60 % centraux, donc il survit à n'importe quelle découpe. NE JAMAIS déclarer ici un fichier absent : une icône en 404 est PIRE que pas d'icône du tout, le navigateur refuse alors l'installation sans rien dire à l'utilisateur. Les deux fichiers vivent dans public/, donc servis en statique et non écartés par .vercelignore.",
+  "_6_icones": "ICÔNES, ET LE PIÈGE À NE PAS REFAIRE : « any » et « maskable » sont DEUX DESSINS, jamais un seul déclaré deux fois. Android rogne l'icône en cercle, en goutte ou en écusson selon le lanceur et ne garantit que le disque central de 80 % : la version maskable doit donc tenir dans les 60 % centraux. Or la boîte d'installation de Chrome, la fiche du Play Store, l'onglet et iOS ne rognent RIEN — leur servir la version rognable donnerait un petit dessin perdu dans un grand carré marine, et iOS ignore de toute façon « maskable ». D'où deux fichiers : icon.svg / icon-512.png occupent 85 % (usage « any »), icon-maskable.svg / icon-maskable-512.png occupent 60 % (usage « maskable »). Les PNG existent parce que tout ne lit pas le SVG, à commencer par Bubblewrap qui exige un PNG de 512 pour empaqueter un TWA. NE JAMAIS déclarer ici un fichier absent : une icône en 404 est PIRE que pas d'icône du tout, le navigateur refuse alors l'installation sans rien dire à l'utilisateur. Les quatre fichiers vivent dans public/, donc servis en statique et non écartés par .vercelignore.",
   "icons": [
     {
       "src": "/icon.svg",
       "sizes": "any",
       "type": "image/svg+xml",
-      "purpose": "any maskable"
+      "purpose": "any"
     },
     {
       "src": "/icon-512.png",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-maskable.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
     }
   ],
 

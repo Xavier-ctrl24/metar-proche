@@ -1,7 +1,16 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" role="img" aria-label="METAR Proche">
 <!-- ==================================================================
-     ICÔNE D'APPLICATION — la vignette de l'écran d'accueil, celle que
-     le manifeste déclare et que Bubblewrap reprendra pour un TWA.
+     ICÔNE D'APPLICATION, version « any » : celle qui s'affiche SANS
+     découpage. Onglet du navigateur, boîte d'installation, fiche du
+     Play Store, iOS. Sa jumelle rognable est icon-maskable-512.png.
+
+     DEUX FICHIERS ET NON UN, et c'est la correction la plus utile de la
+     session. Un seul fichier déclaré « any maskable » aurait imposé
+     PARTOUT la géométrie du rognage : Android ne garantit que le disque
+     central de 80 %, donc le dessin doit y tenir, donc il n'occupe que
+     60 % du carré. Or les contextes ci-dessus ne rognent RIEN — ils
+     auraient montré un petit dessin perdu au milieu d'un grand carré
+     marine. Ici le dessin occupe 85 % : c'est la version qu'on regarde.
 
      RIEN N'EST DESSINÉ ICI. La forme est le symbole #i-partly_cloudy_day
      du sprite de public/index.html, VALIDÉ par Xavier le 28/07/2026 :
@@ -25,16 +34,9 @@
      l'écran de démarrage sont d'une seule pièce. L'icône est fixe par
      nature : elle ne peut pas suivre `data-sky`, qui n'existe qu'une
      fois le METAR reçu.
-
-     ZONE DE SÉCURITÉ (`purpose: maskable`) : Android peut découper
-     l'icône en cercle, en goutte ou en écusson, et ne garantit que le
-     disque central de 80 %. Le dessin est donc contenu dans les 60 %
-     centraux (repère 64 remis à l'échelle 0,6 et recentré), quitte à
-     paraître petit dans un carré : mieux vaut de l'air perdu qu'un
-     rayon de soleil rogné.
      ================================================================== -->
 <rect width="512" height="512" fill="#0A1526"/>
-<g transform="translate(102.4,102.4) scale(4.8)"
+<g transform="translate(38.4,38.4) scale(6.8)"
    fill="none" stroke-linecap="round" stroke-linejoin="round">
   <!-- Le soleil : disque + huit rayons, repère natif 24 recentré. -->
   <g stroke="#F5A623" stroke-width="2.727" transform="translate(19,19) scale(1.1) translate(-12,-12)">

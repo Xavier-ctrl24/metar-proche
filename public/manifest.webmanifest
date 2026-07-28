@@ -1,0 +1,41 @@
+{
+  "_1_pourquoi_ce_fichier": "MANIFESTE D'APPLICATION WEB. C'est lui, et lui seul, qui rend la page INSTALLABLE : sans manifeste le navigateur ne propose jamais « ajouter à l'écran d'accueil », et sans installation il n'y a pas de TWA possible. Les commentaires passent par des clés bidon, faute de mieux : le JSON n'accepte pas de commentaires, et une clé inconnue d'un manifeste est simplement IGNORÉE par les navigateurs (elle ne provoque pas d'erreur). Le journal de conception de ce dépôt vit dans les commentaires du code, ce fichier ne fait pas exception.",
+
+  "_2_aucun_texte_nouveau": "AUCUNE PHRASE INÉDITE ICI, et c'est délibéré : name et short_name reprennent le <title> de public/index.html, description reprend son <meta name=description> au mot près. Rédiger un texte neuf aurait créé une formulation de plus à faire valider par Xavier (règle anti « parser contre lui-même ») et une de plus à traduire. Le manifeste ne parle qu'une langue, le français, comme le lang du document : il n'existe pas de mécanisme standard pour le négocier selon la langue choisie dans la page.",
+  "name": "METAR Proche",
+  "short_name": "METAR Proche",
+  "description": "La météo de la station d'observation la plus proche, en clair.",
+  "lang": "fr",
+  "dir": "ltr",
+
+  "_3_identite": "start_url à la RACINE et non « /index.html » : c'est l'URL que Vercel sert, et c'est aussi elle qui sert de clé d'identité à l'installation. scope dit ce que l'application considère comme sien ; une fois installée, un lien hors scope s'ouvre dans le navigateur au lieu de rester dans la fenêtre.",
+  "start_url": "/",
+  "scope": "/",
+  "id": "/",
+
+  "_4_affichage": "display standalone : plus de barre d'adresse, la page occupe l'écran comme une application. C'est la valeur qu'exige un TWA. La page était déjà prête pour ça depuis le 27/07/2026, son viewport portant viewport-fit=cover : le ciel passe sous les encoches et les barres système au lieu de s'arrêter avant.",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+
+  "_5_couleurs": "LES DEUX COULEURS SONT FIXES, ET C'EST LA SEULE CHOSE QUE CE FICHIER NE PEUT PAS BIEN FAIRE. Toute la page repose sur data-sky, qui traduit le METAR en dix ciels ; or l'écran de démarrage et la barre système sont peints AVANT le premier octet de réponse de l'API, donc avant qu'un ciel existe. On prend donc le ciel NEUTRE, celui du chargement (haut du dégradé --sky par défaut, #101827), et le même #0A1526 que le <meta name=theme-color> déjà présent dans index.html. Ces deux valeurs doivent rester ÉGALES à celles de la page : deux sources qui divergent feraient clignoter la barre système à l'ouverture.",
+  "theme_color": "#0A1526",
+  "background_color": "#101827",
+
+  "_6_icones": "ICÔNES. Le SVG d'abord, net à toutes les tailles ; le PNG 512 ensuite, parce que tout ne lit pas le SVG et que Bubblewrap, qui empaquette un TWA, exige un PNG de 512. purpose « any maskable » sur les deux : Android découpe l'icône en cercle, en goutte ou en écusson selon le lanceur et ne garantit que le disque central de 80 %, or le dessin de public/icon.svg tient dans les 60 % centraux, donc il survit à n'importe quelle découpe. NE JAMAIS déclarer ici un fichier absent : une icône en 404 est PIRE que pas d'icône du tout, le navigateur refuse alors l'installation sans rien dire à l'utilisateur. Les deux fichiers vivent dans public/, donc servis en statique et non écartés par .vercelignore.",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+
+  "categories": ["weather", "utilities"]
+}

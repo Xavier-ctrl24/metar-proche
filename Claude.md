@@ -611,7 +611,78 @@ Fait et validé :
   PAS DE TEST, comme la version précédente de cette page et pour la même
   raison (voir l'entrée du 28/07/2026 sur la traduction de la page).
 
+- 28/07/2026 — MANIFESTE D'APPLICATION, première pierre d'un TWA. Trois
+  fichiers ajoutés (`public/manifest.webmanifest`, `public/icon.svg`,
+  `public/icon-512.png`) et deux retouchés (`public/index.html`,
+  `vercel.json`). Sans manifeste, aucune installation possible ; sans
+  installation, aucun TWA.
+  CE QUI EST FACILE À RATER : un manifeste NON LIÉ ne fait rien. C'est le
+  `<link rel="manifest">` du `<head>`, pas le fichier, qui rend la page
+  installable. Deuxième piège du même genre : ne JAMAIS déclarer dans
+  `icons` un fichier absent — une icône en 404 est pire que pas d'icône,
+  le navigateur refuse alors l'installation sans rien dire.
+  AUCUNE PHRASE NOUVELLE. `name` reprend le `<title>`, `description`
+  reprend le `<meta name="description">` au mot près. C'était le point
+  délicat : rédiger un texte pour le manifeste aurait créé une formulation
+  de plus à faire valider (règle anti « parser contre lui-même ») et une de
+  plus à traduire. Le manifeste ne parle que français, comme le `lang` du
+  document : il n'existe pas de mécanisme standard pour le négocier selon
+  le `<select>` de la page. Signalé, pas décidé seul : c'est un choix qui
+  se rediscute si la page devient bilingue pour de bon.
+  L'ICÔNE N'EST PAS DESSINÉE, ELLE EST RECOPIÉE. `icon.svg` reprend trait
+  pour trait le symbole `#i-partly_cloudy_day` du sprite, validé le
+  28/07/2026 : mêmes primitives, mêmes translations, mêmes échelles, seul
+  le repère passe de 64 à 512. On recopie au lieu de référencer parce
+  qu'un `<use href="index.html#…">` ne franchit pas la frontière d'un
+  document chargé comme IMAGE, et c'est exactement ainsi qu'un lanceur
+  charge une icône. Ce jeton-là parmi les 24 parce qu'il contient l'astre
+  ET le nuage, donc dit « météo » sans annoncer un temps qu'il fera : une
+  icône est peinte des mois avant le METAR.
+  ZONE DE SÉCURITÉ (`purpose: maskable`) : Android découpe l'icône en
+  cercle, en goutte ou en écusson et ne garantit que le disque central de
+  80 %. Le dessin tient donc dans les 60 % centraux. Mesuré et non estimé :
+  0 pixel peint hors du disque, sur les 512 x 512.
+  LE PNG A ÉTÉ FABRIQUÉ SANS AUCUNE DÉPENDANCE, et la méthode vaut d'être
+  notée : `<img>` + `canvas.drawImage` + `toDataURL` dans le volet
+  navigateur, puis décodage du base64. Aucun `sharp`, aucun `resvg`, aucun
+  paquet ajouté pour un fichier qu'on ne régénérera presque jamais. Le PNG
+  512 existe parce que Bubblewrap l'exige pour empaqueter un TWA ; le SVG,
+  lui, reste net à toutes les tailles. PIÈGE RENCONTRÉ : dans un document
+  SVG, `document.createElement("canvas")` crée un élément en NAMESPACE SVG,
+  donc sans `getContext` — il faut `createElementNS` en XHTML.
+  COULEURS FIXES, et c'est la seule chose que ce fichier ne peut pas bien
+  faire : `theme_color` et `background_color` sont peints AVANT la réponse
+  de l'API, donc avant qu'un `data-sky` existe. On prend le ciel NEUTRE,
+  celui du chargement. Ils doivent rester ÉGAUX au `<meta name=theme-color>`
+  de la page, sans quoi la barre système clignoterait à l'ouverture.
+  `vercel.json` reçoit un en-tête `Content-Type` explicite pour le
+  manifeste. Assurance et non correctif : vite le sert déjà en
+  `application/manifest+json`, mais le comportement de Vercel n'est pas
+  vérifiable sans déployer, et un manifeste servi en `octet-stream` se
+  télécharge au lieu de s'appliquer. Défaut invisible en local, donc le
+  scénario que ce dépôt connaît trop bien.
+  VÉRIFIÉ sur le serveur de développement (vrai `handleNearest`) : lien
+  présent, 200, JSON valide, `application/manifest+json`, les deux icônes
+  en 200, aucune erreur de manifeste en console, page toujours
+  fonctionnelle (LFST, `clear_day`, ciel `cavok`). L'icône est prouvée
+  PEINTE par comptage de pixels (fond #0A1526, encre #EAF2FB, ambre
+  #F5A623), même réflexe que le `getBBox` du 28/07/2026.
+  PAS DE TEST : c'est un fichier de configuration statique, et la page
+  reste non testée pour la raison déjà écrite plus haut.
+
 Prochaine étape (à décider avec Xavier) :
+- SERVICE WORKER, si l'on veut la bannière d'installation AUTOMATIQUE.
+  Le manifeste suffit pour installer à la main (menu du navigateur) et
+  suffit à Bubblewrap pour empaqueter un TWA. Ce qu'il ne suffit PAS à
+  déclencher, c'est l'invite spontanée de Chrome sur Android, qui réclame
+  en plus un service worker gérant `fetch`. C'est un autre chantier (cache
+  hors ligne, stratégie de péremption, et une page météo qui affiche des
+  données périmées ment à son utilisateur) : décision séparée, rien
+  d'urgent.
+- L'icône installée est le ciel PARTIELLEMENT COUVERT, choisie parce
+  qu'elle n'affirme aucun temps. Le jugement visuel revient à Xavier, comme
+  pour la planche du 28/07/2026 : elle se regarde en ouvrant
+  `public/icon.svg`.
 - Pas de BUDGET GLOBAL de temps, seulement un plafond PAR TENTATIVE. Deux cas
   peuvent donc encore dépasser 10 s : panne PARTIELLE à l'antiméridien sur les
   deux tours (2 x 8 s), et un 5xx qui arrive juste avant l'expiration puis un

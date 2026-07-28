@@ -1,0 +1,52 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" role="img" aria-label="METAR Proche">
+<!-- ==================================================================
+     ICÔNE D'APPLICATION — la vignette de l'écran d'accueil, celle que
+     le manifeste déclare et que Bubblewrap reprendra pour un TWA.
+
+     RIEN N'EST DESSINÉ ICI. La forme est le symbole #i-partly_cloudy_day
+     du sprite de public/index.html, VALIDÉ par Xavier le 28/07/2026 :
+     mêmes primitives (#p-sun, #p-cloud), mêmes translations, mêmes
+     échelles, mêmes épaisseurs divisées (sc11, sc15, sc08). Seule la
+     mise à l'échelle du repère change, de 64 à 512.
+     On recopie plutôt que de référencer : un <use href="index.html#..."/>
+     ne franchit pas la frontière d'un document chargé comme IMAGE, et
+     c'est exactement ainsi qu'un lanceur d'application charge celle-ci.
+
+     POURQUOI CETTE ICÔNE-LÀ parmi les 24 : le contrat en distingue 24,
+     un lanceur n'en montre qu'une, et elle ne doit RIEN affirmer sur le
+     temps qu'il fait (l'icône est peinte des mois avant le METAR). Le
+     ciel partiellement couvert est le seul dessin qui contienne à la
+     fois l'astre et le nuage, donc qui dise « météo » sans annoncer une
+     condition. `unknown` (le nuage en pointillé) dirait « panne ».
+
+     COULEURS : l'ambre CLAIR de la planche sur le fond de nuit, la
+     paire déjà mesurée à 9,34:1 le 28/07/2026. Le fond est le
+     `theme_color` du manifeste, donc la vignette, la barre système et
+     l'écran de démarrage sont d'une seule pièce. L'icône est fixe par
+     nature : elle ne peut pas suivre `data-sky`, qui n'existe qu'une
+     fois le METAR reçu.
+
+     ZONE DE SÉCURITÉ (`purpose: maskable`) : Android peut découper
+     l'icône en cercle, en goutte ou en écusson, et ne garantit que le
+     disque central de 80 %. Le dessin est donc contenu dans les 60 %
+     centraux (repère 64 remis à l'échelle 0,6 et recentré), quitte à
+     paraître petit dans un carré : mieux vaut de l'air perdu qu'un
+     rayon de soleil rogné.
+     ================================================================== -->
+<rect width="512" height="512" fill="#0A1526"/>
+<g transform="translate(102.4,102.4) scale(4.8)"
+   fill="none" stroke-linecap="round" stroke-linejoin="round">
+  <!-- Le soleil : disque + huit rayons, repère natif 24 recentré. -->
+  <g stroke="#F5A623" stroke-width="2.727" transform="translate(19,19) scale(1.1) translate(-12,-12)">
+    <circle cx="12" cy="12" r="5"/>
+    <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
+  </g>
+  <!-- Le grand nuage, puis le petit. -->
+  <g stroke="#EAF2FB" stroke-width="2" transform="translate(31,36) scale(1.5) translate(-12,-11)">
+    <path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/>
+  </g>
+  <g stroke="#EAF2FB" stroke-width="3.75" transform="translate(50,44) scale(0.8) translate(-12,-11)">
+    <path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/>
+  </g>
+</g>
+</svg>

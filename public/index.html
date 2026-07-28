@@ -19,8 +19,13 @@
   --line: #c3d2e2;
   --accent: #0e7c86;      /* cyan profond, couleur des isobares */
   /* Les deux accents des icônes, repris de la planche de Xavier : l'ambre
-     de l'astre et de l'éclair, le bleu de tout ce qui est mouillé. */
-  --ico-sun: #f5a623;
+     de l'astre et de l'éclair, le bleu de tout ce qui est mouillé.
+     L'ambre est CUIVRÉ ici et non jaune : le #f5a623 de la planche ne fait
+     que 1,7:1 sur ce fond très pâle, sous le seuil de 3:1 des éléments
+     graphiques. Mesuré, pas estimé. Ce cuivre tient 3,3:1 en restant chaud ;
+     descendre plus bas virerait au brun. C'est exactement la correction
+     faite au bleu de nuit, mais dans l'autre sens. */
+  --ico-sun: #c96a00;
   --ico-wet: #2b6cb0;
 }
 :root[data-sky="night"] {

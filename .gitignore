@@ -28,6 +28,13 @@ coverage/
 # --- Corpus METAR brut (telecharge une seule fois, jamais commite) ---
 corpus-brut.txt
 
+# --- Planche de controle des icones ---
+# Fichier GENERE a partir de public/index.html (style + sprite extraits du
+# vrai fichier). Le commiter creerait une seconde copie du sprite, qui
+# divergerait au premier retouchage. La reference de design, elle, est
+# icones.png, et celle-la est suivie.
+icones-controle.html
+
 # --- Editeurs ---
 .vscode/*
 !.vscode/extensions.json

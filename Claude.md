@@ -455,13 +455,18 @@ Fait et validé :
   (b) les accents passent par des variables de THÈME (`--ico-sun`, `--ico-wet`)
   et jamais par un hex dans le SVG : le bleu de la planche (#2b6cb0) tombe à
   1,3:1 sur le fond de nuit. Éclairci en #7fb3e8 (8,4:1).
-  RÉSERVE ASSUMÉE, mesurée : l'ambre de la planche (#f5a623) ne fait que
-  1,7:1 sur le fond de jour, sous le seuil de 3:1 des éléments graphiques.
-  Non corrigé, pour deux raisons : c'est la couleur choisie par Xavier, et
-  l'icône est REDONDANTE avec le titre juste à côté (les deux sortent du même
-  sélecteur `dominantCondition`), donc elle est `aria-hidden` et aucune
-  information n'est portée par elle seule. Si on veut le seuil, il faut
-  descendre vers #a86f08, qui vire au brun.
+  CORRIGÉ le 28/07/2026 sur arbitrage de Xavier (« choisis la meilleure
+  option ») : l'ambre de la planche (#f5a623) ne faisait que 1,7:1 sur le fond
+  de jour, sous le seuil de 3:1 des éléments graphiques. Remplacé par un
+  cuivre #c96a00 (3,23:1), qui reste chaud là où un ambre conforme aurait viré
+  au brun. L'ambre CLAIR est conservé de nuit, où il tient déjà 9,34:1 : c'est
+  la même correction que pour le bleu, en sens inverse, et c'est pour ça que
+  les accents passent par des variables de thème. Argument écarté : « l'icône
+  est redondante avec le titre, donc hors du champ de 1.4.11 ». Vrai en droit,
+  faux en usage — une appli météo se consulte dehors, en plein soleil.
+  Mesures finales, calculées dans le navigateur sur les valeurs réellement
+  résolues (jour / nuit) : astre 3,23 / 9,34 ; humide 4,62 / 8,28 ;
+  encre 13,48 / 15,66.
   Pas de nom accessible sur l'icône de tête, et c'est délibéré : lui en
   écrire un créerait une formulation de plus à traduire et à faire valider,
   pour redire ce que `text.headline` dit déjà.
@@ -477,15 +482,17 @@ Fait et validé :
   un script qui EXTRAIT le style et le sprite du vrai `index.html`, donc elle
   ne peut pas diverger de la page). Le jugement visuel lui revient.
 
+  DESSINS VALIDÉS par Xavier le 28/07/2026, y compris les six qui ne figurent
+  pas sur la planche et qui ont donc été inventés : les huit variantes de nuit
+  (croissant), `freezing_rain` (gouttes + sol pris en glace), `sleet` (une
+  goutte et un flocon), `smoke` (panaches verticaux), `dust` (ondes + grains)
+  et `unknown` (nuage en pointillé).
+  `icones.png` est SUIVI par git (référence de design). La planche
+  `icones-controle.html` est ignorée : elle est générée, et en commiter une
+  copie ferait une seconde version du sprite qui divergerait au premier
+  retouchage.
+
 Prochaine étape (à décider avec Xavier) :
-- LES DESSINS EUX-MÊMES sont à valider par Xavier (planche
-  `icones-controle.html`). Ce n'est pas la règle anti « parser contre
-  lui-même », qui ne porte que sur les mots : c'est simplement que le design
-  est sa planche. Les cas les plus discutables, parce qu'ils ne figurent PAS
-  sur `icones.png` et que je les ai inventés : les huit variantes de nuit
-  (croissant), `freezing_rain` (gouttes + un sol pris en glace),
-  `sleet` (une goutte et un flocon), `smoke` (panaches verticaux),
-  `dust` (ondes + grains) et `unknown` (nuage en pointillé).
 - VOCABULAIRE ANGLAIS À VALIDER par Xavier. C'est la seule vraie dette de
   cette session, et le 27/07/2026 Xavier a explicitement MAINTENU la règle qui
   la rend anormale : les formulations restent à sa main. Ce qui est dans

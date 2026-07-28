@@ -1,0 +1,64 @@
+# .vercelignore — ce qui NE PART PAS chez Vercel.
+#
+# À ne pas confondre avec .gitignore, qui dit ce que le DÉPÔT ne suit pas.
+# Ici tout reste versionné : c'est seulement l'envoi vers la plateforme qui
+# est allégé. Les tests, le journal du projet et les références de design
+# continuent de vivre dans git, là où est la mémoire du projet.
+#
+# RÈGLE DE LECTURE, parce que se tromper ici casse le déploiement sans
+# casser aucun test (le pire scénario, déjà vécu trois fois le 27/07/2026) :
+# la production a besoin de TROIS choses et de rien d'autre.
+#   1. public/   la page et ses polices, servies en statique
+#   2. api/ + src/   la fonction et tout ce qu'elle importe
+#   3. package.json, package-lock.json, tsconfig.json, vercel.json
+#      (installation des dépendances, compilation de la fonction, routage)
+# Tout ce qui n'est pas dans cette liste peut partir. Rien de cette liste
+# ne doit jamais entrer dans ce fichier.
+
+# --- Tests ---
+# 298 tests qui ne s'exécutent jamais en production : Vercel ne lance pas
+# vitest. Ils restent le filet de sécurité en local et dans git.
+tests/
+
+# --- Outillage de DÉVELOPPEMENT ---
+# vite ne tourne QUE via `npm run dev`. En production, Vercel sert public/
+# en statique et api/ en fonction, sans rien construire.
+#
+# Retirer vite.config.ts de l'envoi a un effet secondaire utile : c'est sa
+# PRÉSENCE À LA RACINE qui faisait détecter à Vercel un « projet Vite »,
+# donc lancer un build et chercher le site dans un dist/ inexistant (échec
+# de déploiement du 27/07/2026). `"framework": null` dans vercel.json le
+# neutralisait déjà ; la cause disparaît maintenant en plus du symptôme.
+#
+# tsconfig.json, lui, RESTE : il porte `module: nodenext`, dont dépend la
+# compilation de la fonction. Son `include` mentionne les deux fichiers
+# ci-dessous, mais un motif d'`include` introuvable est simplement ignoré
+# par TypeScript (contrairement à `files`, qui lèverait une erreur).
+vite.config.ts
+vitest.config.ts
+
+# --- Documentation et mémoire du projet ---
+# Le journal de conception et le plan de construction. Précieux dans git,
+# sans aucun usage sur un serveur.
+Claude.md
+CLAUDE.md
+PROMPT.md
+
+# --- Références de design ---
+# Le zip du handoff Claude Design, la planche d'icônes et le brief. Ce sont
+# des sources de conception, jamais des ressources servies : les icônes
+# réellement affichées sont un sprite SVG EN LIGNE dans public/index.html.
+design/
+icones.png
+icones-controle.html
+
+# --- Outillage local ---
+.claude/
+.vscode/
+.idea/
+
+# --- Données de travail ---
+# Corpus METAR brut (déjà ignoré par git, rappelé ici par sécurité) et
+# rapports de couverture.
+corpus-brut.txt
+coverage/

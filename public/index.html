@@ -1394,6 +1394,48 @@ function afficher(r, lang) {
     (r.warnings.length ? ` · ${r.warnings.join(" · ")}` : "");
 }
 
+// ---------------------------------------------------------------
+// OÙ VIT L'API (29/07/2026, application Android)
+//
+// Sur le web, la page et la fonction sont sur le même domaine : une adresse
+// RELATIVE suffit, et c'est ce qui a toujours été écrit.
+// Dans l'APK, non. Capacitor sert la page depuis un serveur de fichiers
+// INTERNE au téléphone, à l'origine `https://localhost`, et cet APK ne
+// contient aucune fonction serveur : `/api/nearest` y tomberait dans le
+// vide. Il faut donc l'adresse absolue de Vercel.
+// ---------------------------------------------------------------
+
+// Origine du serveur de fichiers embarqué par Capacitor (défaut Android :
+// schéma `https`, hôte `localhost`). Si ces valeurs changent un jour dans
+// capacitor.config.ts, c'est CETTE constante qu'il faut suivre.
+const ORIGINE_APK = "https://localhost";
+
+// Adresse de production, vérifiée le 29/07/2026 (200, LFST). C'est la
+// SEULE URL en dur du code : la page web, elle, ne s'en sert jamais.
+const API_PROD = "https://metar-proche-three.vercel.app";
+
+function baseApi() {
+  // Lu à l'APPEL et non au chargement : le pont natif de Capacitor s'injecte
+  // dans la page, et rien ne garantit qu'il existe déjà quand ce script est
+  // évalué. Le lire au dernier moment supprime la question.
+  const natif = !!(window.Capacitor && window.Capacitor.isNativePlatform
+    && window.Capacitor.isNativePlatform());
+  if (!natif) return ""; // page web ordinaire : relatif, comme avant
+
+  // LE PIÈGE DU LIVE RELOAD, et la raison pour laquelle on ne teste pas
+  // seulement « suis-je dans une application ». Avec le rechargement à chaud,
+  // la WebView charge le serveur vite du poste de développement, où
+  // /api/nearest route vers le VRAI handleNearest. Renvoyer l'adresse de
+  // production dans ce cas ferait croire qu'on teste son code local pendant
+  // qu'on interroge la production : un modification d'api/ resterait sans
+  // effet visible, sans le moindre message d'erreur.
+  // La bonne question n'est donc pas « suis-je natif » mais « suis-je servi
+  // par le serveur de fichiers de l'APK ».
+  if (location.origin !== ORIGINE_APK) return "";
+
+  return API_PROD;
+}
+
 async function consulter(lat, lon) {
   // La langue est LUE UNE FOIS ici, puis transmise partout : la requête et
   // l'affichage parlent forcément la même, même si les pastilles changent
@@ -1404,7 +1446,7 @@ async function consulter(lat, lon) {
   afficherChargement(lang);
   $("lat").value = lat.toFixed(2);
   $("lon").value = lon.toFixed(2);
-  const url = `/api/nearest?lat=${lat}&lon=${lon}&lang=${lang}&units=metric`;
+  const url = `${baseApi()}/api/nearest?lat=${lat}&lon=${lon}&lang=${lang}&units=metric`;
   try {
     const res = await fetch(url);
     // On lit d'abord en TEXTE. Un serveur en panne renvoie une page HTML, et

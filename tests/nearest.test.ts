@@ -15,6 +15,7 @@ import {
   formatWallTime,
   localMiddayInstant,
   handleNearest,
+  responseHeaders,
   STALE_AFTER_MINUTES,
 } from "../api/nearest.js";
 import type { MetarResponse, ApiError } from "../src/types.js";
@@ -508,5 +509,42 @@ describe("handleNearest — cache", () => {
     // depuis le cache.
     expect(nbAppels()).toBe(4);
     expect(cache.size).toBe(0);
+  });
+});
+
+// ---------- En-têtes de réponse (29/07/2026, application Android) ----------
+// POURQUOI CETTE FONCTION EXISTE. Les en-têtes étaient posés à la main dans
+// `handler`, la seule partie IMPURE et donc la seule partie non testée du
+// fichier. Tant qu'il n'y avait qu'un Cache-Control, le risque était mince.
+// L'ajout du CORS change la donne : c'est lui qui décide si l'application
+// Android voit la météo ou un écran d'erreur, et une ligne que rien ne
+// vérifie est exactement ce qui a coûté trois déploiements le 27/07/2026.
+// D'où l'extraction d'une fonction PURE, conforme au découpage du fichier.
+describe("responseHeaders", () => {
+  it("autorise la lecture inter-domaines sur une réponse réussie", () => {
+    // Sans cet en-tête, la WebView (origine https://localhost) reçoit bien la
+    // réponse mais interdit au JavaScript de la LIRE. L'étoile ne concède
+    // rien : l'API est publique, en lecture seule et sans authentification.
+    expect(responseHeaders(200)["Access-Control-Allow-Origin"]).toBe("*");
+  });
+
+  it("autorise la lecture inter-domaines AUSSI sur un échec", () => {
+    // Le point le plus facile à rater. Un 400 « position invalide » sans CORS
+    // est illisible par le client, qui ne peut alors afficher qu'une panne
+    // réseau générique — donc mentir sur la cause. La page a des messages
+    // rédigés pour CHACUN de ces codes : ils doivent pouvoir l'atteindre.
+    for (const status of [400, 404, 502]) {
+      expect(responseHeaders(status)["Access-Control-Allow-Origin"]).toBe("*");
+    }
+  });
+
+  it("garde le cache CDN sur 200 et l'interdit sur les échecs", () => {
+    // Comportement existant, désormais verrouillé par un test : une panne de
+    // deux secondes ne doit pas être servie pendant cinq minutes.
+    expect(responseHeaders(200)["Cache-Control"]).toBe(
+      "public, s-maxage=300, stale-while-revalidate=60",
+    );
+    expect(responseHeaders(400)["Cache-Control"]).toBe("no-store");
+    expect(responseHeaders(502)["Cache-Control"]).toBe("no-store");
   });
 });

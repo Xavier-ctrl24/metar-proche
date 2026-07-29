@@ -38,4 +38,29 @@
     <!-- Permissions -->
 
     <uses-permission android:name="android.permission.INTERNET" />
+
+    <!--
+      Position approximative, ajoutee le 29/07/2026.
+
+      COARSE ET PAS FINE, et c'est un choix. La page appelle
+      getCurrentPosition sans enableHighAccuracy (public/index.html,
+      fonction `localiser`) : elle se contente donc deja d'une position
+      reseau. Or ce dont l'application a besoin, c'est de trouver la station
+      METAR la plus proche, typiquement a une vingtaine de kilometres. Une
+      precision au kilometre est amplement suffisante ; reclamer le GPS
+      serait demander plus que necessaire, et Google Play exige une
+      justification pour la position precise.
+
+      CE QUE CETTE LIGNE NE FAIT PAS, et c'est le piege : declarer une
+      permission ne la fait pas ACCORDER. Depuis Android 6, l'utilisateur
+      doit la donner a l'execution, et rien dans la page ne la demande
+      aujourd'hui. En cas de refus, `localiser` retombe silencieusement sur
+      Brumath (48.73, 7.71) : l'application aurait donc l'air de marcher
+      tout en ignorant ou se trouve l'utilisateur.
+
+      D'ou la maniere de le VERIFIER, a ne pas rater : il faut regler
+      l'emulateur sur une position LOIN de Brumath. Teste depuis Brumath,
+      le repli et le succes donnent le meme ecran, et on conclurait a tort.
+    -->
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
 </manifest>

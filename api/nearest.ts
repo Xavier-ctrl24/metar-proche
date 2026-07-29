@@ -392,7 +392,47 @@ export async function handleNearest(
   return { status: 200, body: buildResponse(hit, nowMs, query.lang), fromCache: false };
 }
 
-// ---------- 9. Entrée HTTP (Vercel) ----------
+// ---------- 9. En-têtes de réponse (PUR) ----------
+
+/**
+ * En-têtes à poser sur la réponse, en fonction du seul code HTTP.
+ *
+ * Fonction PURE, et volontairement : elle vit ici plutôt qu'en ligne dans
+ * `handler` parce que `handler` est la seule partie impure du fichier, donc
+ * la seule que les tests n'atteignent pas. Une ligne d'en-tête que rien ne
+ * vérifie est précisément la classe de défaut qui a coûté trois déploiements
+ * le 27/07/2026 : invisible en local, fatale en production.
+ */
+export function responseHeaders(status: number): Record<string, string> {
+  return {
+    // Cache côté CDN Vercel : 5 minutes, et pendant 1 minute de plus on tolère
+    // de servir la version périmée pendant qu'elle se rafraîchit en arrière-
+    // plan. Uniquement sur les réponses réussies : une panne de deux secondes
+    // ne doit pas condamner la position pendant cinq minutes.
+    "Cache-Control":
+      status === 200 ? "public, s-maxage=300, stale-while-revalidate=60" : "no-store",
+
+    // CORS, ajouté le 29/07/2026 pour l'application Android (Capacitor).
+    // Dans l'APK la page est servie depuis https://localhost, donc tout appel
+    // à cette API est INTER-DOMAINES. Sans cet en-tête, le navigateur reçoit
+    // la réponse mais interdit au JavaScript de la LIRE : l'application
+    // afficherait un écran d'erreur en permanence.
+    //
+    // L'étoile ne concède rien. Cette API est publique, en lecture seule,
+    // sans authentification et sans cookie : ce qu'un navigateur pourrait en
+    // tirer, n'importe qui l'obtient déjà avec un curl. Restreindre à une
+    // origine précise n'apporterait aucune sécurité et casserait l'app le
+    // jour où Capacitor change de schéma local.
+    //
+    // Posé sur TOUS les codes, échecs compris, et c'est le point facile à
+    // rater : un 400 « position invalide » illisible par le client le
+    // forcerait à afficher une panne réseau générique, donc à mentir sur la
+    // cause, alors que la page a un message rédigé pour chaque code.
+    "Access-Control-Allow-Origin": "*",
+  };
+}
+
+// ---------- 10. Entrée HTTP (Vercel) ----------
 
 // Cache en mémoire du processus. Il vit au niveau du module UNIQUEMENT ici,
 // dans la partie non testée : une instance Vercel « chaude » enchaîne
@@ -401,21 +441,24 @@ export async function handleNearest(
 const cacheProcessus: NearestCache = new Map();
 
 export default async function handler(req: VercelRequest, res: VercelResponse): Promise<void> {
+  // Pose les en-têtes décidés par `responseHeaders`. Une seule boucle, et
+  // AVANT tout `return` : le rejet immédiat d'une position invalide ci-dessous
+  // sortait autrefois sans aucun en-tête, ce qui rendait ce 400 illisible
+  // depuis une autre origine, donc depuis l'application.
+  const poser = (status: number): void => {
+    for (const [nom, valeur] of Object.entries(responseHeaders(status))) {
+      res.setHeader(nom, valeur);
+    }
+  };
+
   const q = parseQuery(req.query as Record<string, string | string[] | undefined>);
   if (!q.ok) {
+    poser(400);
     res.status(400).json({ error: q.error } satisfies ApiError);
     return;
   }
 
   const sortie = await handleNearest(q.value, { cache: cacheProcessus });
-
-  // Cache côté CDN Vercel : 5 minutes, et pendant 1 minute de plus on tolère de
-  // servir la version périmée pendant qu'elle se rafraîchit en arrière-plan.
-  // Uniquement sur les réponses réussies : on ne met pas une panne en cache.
-  if (sortie.status === 200) {
-    res.setHeader("Cache-Control", "public, s-maxage=300, stale-while-revalidate=60");
-  } else {
-    res.setHeader("Cache-Control", "no-store");
-  }
+  poser(sortie.status);
   res.status(sortie.status).json(sortie.body);
 }

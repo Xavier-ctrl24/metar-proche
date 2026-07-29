@@ -1211,6 +1211,30 @@ Fait et validé :
   mesurer), mais une capture reste le seul contrôle qui aurait attrapé
   celui-ci du premier coup.
 
+- 29/07/2026 — `design-system` FUSIONNÉ DANS `master` ET POUSSÉ (avance
+  rapide, 329 tests verts, type-check à 0). Contenu : recherche de ville,
+  les quatre retouches du héros, le correctif du signe « ° ». Déploiement
+  Vercel déclenché par ce push, sur `metar-proche-three.vercel.app`.
+
+- 29/07/2026 — PREMIER APK COMPILÉ DEPUIS CETTE SESSION, et où trouver le
+  JDK sur CE poste puisque ni Java ni Android Studio complet n'y étaient
+  installés au départ. Android Studio vit en réalité sur `H:\AndroidStudio`
+  (pas sous `Program Files` ni `AppData\Local`, contrairement à l'emplacement
+  par défaut) : son chemin est lisible dans
+  `%LOCALAPPDATA%\Google\AndroidStudio<version>\.home`. Le JBR qu'il embarque
+  est donc en `H:\AndroidStudio\jbr`. Compilation :
+  `npx cap sync android` (depuis la racine du dépôt, PAS depuis `android/` —
+  piège rencontré : `cap sync` échoue en silence avec « android platform has
+  not been added yet » si on est déjà dans `android/`) puis, depuis
+  `android/`, `JAVA_HOME="H:\AndroidStudio\jbr" ./gradlew assembleDebug`.
+  APK produit : `android/app/build/outputs/apk/debug/app-debug.apk`.
+  Installé et VÉRIFIÉ FONCTIONNEL par Xavier sur son téléphone (Redmi Note
+  11, méthode d'installation manuelle déjà documentée le 29/07 — pas
+  d'« Installer via USB »).
+  À RETENIR : ce chemin H:\AndroidStudio est propre à CE poste, comme
+  `sdk.dir` dans `android/local.properties`. Un autre poste peut avoir Java
+  sur le PATH directement, auquel cas cette recherche est inutile.
+
 Prochaine étape (à décider avec Xavier) :
 - ICÔNE ET ÉCRAN DE DÉMARRAGE DE L'APPLICATION : encore ceux de Capacitor (le
   X bleu du gabarit), dans `android/app/src/main/res/mipmap-*` et

@@ -19,7 +19,13 @@ android {
     buildTypes {
         release {
             minifyEnabled false
-            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            // AGP 9 (montee de version du 29/07/2026) REFUSE 'proguard-android.txt',
+            // qui contient -dontoptimize et bride R8. Le fichier ...-optimize.txt est
+            // le remplacant designe par le message d'erreur de l'outil lui-meme.
+            // Sans effet reel ici : minifyEnabled est a false, donc ces regles ne sont
+            // jamais appliquees. Mais la ligne est EVALUEE a la configuration, donc
+            // elle faisait echouer la compilation debug elle aussi.
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }
 }

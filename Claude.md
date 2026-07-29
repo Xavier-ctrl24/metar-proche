@@ -1030,7 +1030,33 @@ Fait et validé :
   non à « Show ». Piège voisin, évité : `openSheet` contient désormais une
   icône, donc un `textContent` sur le bouton l'effacerait à la première
   bascule de langue. Le texte va dans `#openSheetTxt`.
-  EN ATTENTE DE XAVIER — les 18 formulations nouvelles, marquées `[à valider]`
+  TROIS CORRECTIONS DE SECONDE PASSE, toutes trouvées en relisant ce qui
+  avait été vérifié sur un SEUL cas :
+  (a) le halo de l'icône de tête était ambré sur TOUS les jetons, parce que
+  seul `clear_day` avait été regardé. Un halo chaud derrière `#i-rain` ou
+  `#i-fog` peint une source de lumière que le METAR ne rapporte pas. Il
+  prend maintenant l'encre par défaut, et l'ambre seulement sur les neuf
+  jetons qui portent un astre ou un éclair (`JETONS_ASTRE`), ce qui est la
+  distinction de la planche d'icônes elle-même.
+  (b) `hail` était rangé dans `JETONS_NEIGE` et annonçait donc « neige en
+  cours ». La grêle n'est pas de la neige : elle partage son CIEL dans la
+  table CIELS, ce qui est un regroupement visuel et non une équivalence de
+  fait. C'est exactement la faute déjà évitée sur `mist`/`dust`/`smoke`.
+  Elle a désormais son jeton `grele` et sa phrase. `sleet` reste dans la
+  neige, à raison.
+  (c) l'échelle typographique était restée à faire (le point 12 demandait
+  d'uniformiser les tailles de police, pas seulement les rayons). Dix
+  jetons `--fs-*`, et une seule valeur RÉELLEMENT changée : 12,5 px sur la
+  ligne brute, seule taille hors gamme. L'intérêt n'est pas le rendu
+  d'aujourd'hui mais l'addition de demain, qui prendra une taille dans la
+  liste au lieu d'en inventer une. Les deux tailles fluides (titre, chiffre
+  géant) restent en `clamp()`, elles dépendent de la largeur d'écran.
+  À REVOIR, signalé plutôt que caché : `--sw: 2.6` sur l'icône de tête est
+  REPRIS du sprite, pas mesuré. Or ce fichier dit lui-même que l'épaisseur
+  de trait est un des deux réglages « qui se mesurent, pas qui se
+  raisonnent », et qu'une valeur unique ne tient pas à deux tailles. À
+  corriger si Xavier trouve le trait maigre à 5,4 rem.
+  EN ATTENTE DE XAVIER — les 19 formulations nouvelles, marquées `[à valider]`
   dans `TEXTES` (règle anti « parser contre lui-même » : proposées, jamais
   entérinées), et les SEUILS de `conseilToken`, qui sont d'une autre nature :
   ce sont des décisions et non des mesures. Ils sont nommés et groupés dans

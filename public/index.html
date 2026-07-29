@@ -103,6 +103,27 @@
   --sans: "Instrument Sans", "Segoe UI", system-ui, -apple-system, sans-serif;
   --mono: "JetBrains Mono", "Cascadia Mono", ui-monospace, Consolas, monospace;
 
+  /* ÉCHELLE TYPOGRAPHIQUE, figée le 29/07/2026. Elle ne CHANGE presque rien
+     au rendu, et c'est voulu : la page était déjà cohérente à une valeur
+     près (12,5 px sur la ligne brute, seule taille hors gamme, ramenée à
+     12). Son intérêt est ailleurs — la prochaine addition n'aura pas à
+     réinventer une taille, elle en prendra une dans la liste. Les deux
+     tailles fluides (titre, chiffre géant) restent en clamp() : elles
+     dépendent de la largeur d'écran, pas de l'échelle.
+     Les tailles sont en px et non en rem : elles doivent suivre le réglage
+     de police du navigateur sans que la mise en page ne se disloque, et
+     les cartes sont déjà dimensionnées par leur contenu. */
+  --fs-micro: 9px;    /* intitulés des trois mesures chiffrées */
+  --fs-label: 10px;   /* .label, badge */
+  --fs-mono: 11px;    /* commandes en chasse fixe */
+  --fs-petit: 12px;   /* capsule, bornes du soleil, ligne brute */
+  --fs-annexe: 14px;  /* fraîcheur */
+  --fs-corps: 15px;   /* conseil, boutons, saisies */
+  --fs-fort: 17px;    /* phrases des rubriques, nom de station */
+  --fs-majeur: 19px;  /* la seule rubrique majeure : le vent */
+  --fs-titre2: 22px;  /* titre de la feuille */
+  --fs-titre1: 24px;  /* titre des écrans de service */
+
   --radius-card: 24px;
   /* Rayon des CONTRÔLES, ajouté le 29/07/2026 en passant sur la cohérence
      visuelle : les boutons étaient à 20 px et les champs de saisie à 18,
@@ -391,7 +412,7 @@ main {
    ensemble passent SOUS le seuil AA. Ici 10 px et une couleur pleine
    (--ink-faint, mesurée), parce qu'une appli météo se lit dehors. */
 .label {
-  font: 500 10px/1 var(--mono);
+  font: 500 var(--fs-label)/1 var(--mono);
   letter-spacing: .22em;
   text-transform: uppercase;
   color: var(--ink-faint);
@@ -412,7 +433,7 @@ main {
 .langs button {
   padding: 8px 12px; border: none; border-radius: var(--radius-pill);
   background: transparent; color: var(--ink);
-  font: 500 11px/1 var(--mono); letter-spacing: .08em;
+  font: 500 var(--fs-mono)/1 var(--mono); letter-spacing: .08em;
   cursor: pointer; transition: background var(--dur-tap) ease, color var(--dur-tap) ease;
 }
 .langs button[aria-pressed="true"] { background: var(--btn-bg); color: var(--btn-ink); }
@@ -431,7 +452,7 @@ main {
   display: flex; align-items: center; justify-content: space-between;
   gap: .75rem; margin-top: .6rem;
 }
-.station-nom > span { font-size: 17px; font-weight: 500; letter-spacing: -.01em; }
+.station-nom > span { font-size: var(--fs-fort); font-weight: 500; letter-spacing: -.01em; }
 
 /* La capsule de distance. Elle remplace le « , à 21,4 km » collé au nom :
    une distance est une mesure, elle se lit mieux détachée et arrondie au
@@ -441,7 +462,7 @@ main {
   padding: .3rem .6rem;
   border: 1px solid var(--card-border); border-radius: var(--radius-pill);
   background: var(--card-bg-strong);
-  font: 500 12px/1 var(--mono); letter-spacing: .04em;
+  font: 500 var(--fs-petit)/1 var(--mono); letter-spacing: .04em;
   color: var(--ink-soft);
 }
 .capsule .ico { font-size: 13px; --sw: 5; }
@@ -451,7 +472,7 @@ main {
    jour il y a 6 min » se comprend sans réfléchir. L'heure locale de la
    station n'est pas perdue pour autant : elle continue de positionner le
    soleil sur son arc. */
-.obs { display: block; margin-top: .45rem; font-size: 14px; color: var(--ink-soft); }
+.obs { display: block; margin-top: .45rem; font-size: var(--fs-annexe); color: var(--ink-soft); }
 .stale { color: var(--ink); font-weight: 600; }
 
 /* Le dépliant du METAR. Bordure de CONTRÔLE et non de carte : c'est un
@@ -460,14 +481,14 @@ main {
   width: 100%; margin-top: .9rem; padding: .7rem;
   border: 1px solid var(--ctl-border); border-radius: var(--radius-ctl);
   background: transparent; color: var(--ink-soft);
-  font: 500 11px/1 var(--mono); letter-spacing: .14em; text-transform: uppercase;
+  font: 500 var(--fs-mono)/1 var(--mono); letter-spacing: .14em; text-transform: uppercase;
   cursor: pointer; transition: background var(--dur-tap) ease;
 }
 .raw-btn:hover { background: var(--card-bg-strong); }
 .raw {
   margin: .9rem 0 0; padding-top: .9rem;
   border-top: 1px solid var(--hair);
-  font: 500 12.5px/1.55 var(--mono);
+  font: 500 var(--fs-petit)/1.55 var(--mono);
   letter-spacing: .02em; word-spacing: .22em;
   word-break: break-word;
   color: var(--ink-soft);
@@ -493,10 +514,18 @@ main {
 .hero-ico::before {
   content: ""; position: absolute; inset: -18%;
   border-radius: 50%;
-  background: radial-gradient(circle, var(--ico-sun) 0%, transparent 68%);
+  background: radial-gradient(circle, var(--halo-ico) 0%, transparent 68%);
   opacity: .16;
   animation: mpBreathe2 7s ease-in-out infinite;
 }
+/* LE HALO N'EST AMBRÉ QUE S'IL Y A UN ASTRE, et ce n'est pas une coquetterie.
+   Un halo chaud derrière `#i-rain` ou `#i-fog` peindrait une source de
+   lumière que le METAR ne rapporte pas : c'est la même faute que donnerait
+   un beau ciel bleu sur le jeton `unknown`. Par défaut il prend donc
+   l'encre, qui n'affirme rien ; la classe `.astre` est posée par le script
+   sur les seuls jetons qui portent soleil, lune ou éclair. */
+.hero-ico { --halo-ico: var(--ink); }
+.hero-ico.astre { --halo-ico: var(--ico-sun); }
 
 .headline {
   margin: 0;
@@ -515,7 +544,7 @@ main {
    sans toucher à une seule condition. */
 .conseil {
   margin: .5rem 0 0;
-  font-size: 15px; line-height: 1.4;
+  font-size: var(--fs-corps); line-height: 1.4;
   color: var(--ink-soft); text-wrap: pretty;
 }
 
@@ -554,7 +583,7 @@ main {
   margin-top: .9rem; padding: .34rem .7rem;
   border: 1px solid var(--card-border); border-radius: var(--radius-pill);
   background: var(--card-bg-strong);
-  font: 500 10px/1 var(--mono); letter-spacing: .16em; text-transform: uppercase;
+  font: 500 var(--fs-label)/1 var(--mono); letter-spacing: .16em; text-transform: uppercase;
   color: var(--ink-soft);
 }
 /* La pastille pleine plutôt qu'une coche : elle ne dépend d'aucune police
@@ -574,7 +603,7 @@ main {
 .sun svg { display: block; width: 100%; height: auto; margin-top: .5rem; overflow: visible; }
 .sun-ends {
   display: flex; justify-content: space-between; margin-top: .15rem;
-  font: 500 12px/1 var(--mono); letter-spacing: .06em; color: var(--ink-soft);
+  font: 500 var(--fs-petit)/1 var(--mono); letter-spacing: .06em; color: var(--ink-soft);
 }
 
 /* ---- 5. Le relevé ---- */
@@ -582,7 +611,7 @@ main {
 .grid .card { grid-column: span 3; }
 
 .row-head { display: flex; align-items: center; gap: .5rem; }
-.row-txt { margin-top: .6rem; font-size: 17px; letter-spacing: -.01em; }
+.row-txt { margin-top: .6rem; font-size: var(--fs-fort); letter-spacing: -.01em; }
 
 /* CARTE MAJEURE (29/07/2026). Toutes les rubriques avaient exactement le
    même poids visuel, alors qu'elles n'ont pas la même importance : le
@@ -593,7 +622,7 @@ main {
    l'icône, et celle de la phrase. */
 .card.majeur { padding: 1.5rem 1.35rem; }
 .card.majeur .ico-dt { font-size: 1.5rem; --sw: 4; }
-.card.majeur .row-txt { margin-top: .85rem; font-size: 19px; }
+.card.majeur .row-txt { margin-top: .85rem; font-size: var(--fs-majeur); }
 .card.majeur .wind-row { margin-top: .95rem; }
 
 /* Le vent : la flèche pointe où le vent VA (le METAR donne d'où il
@@ -621,7 +650,7 @@ main {
 .mesure { flex: 1; min-width: 0; }
 .mesure + .mesure { border-left: 1px solid var(--hair); padding-left: .5rem; }
 .mesure b { display: block; font: 400 clamp(1.05rem, 5vw, 1.3rem)/1.1 var(--sans); letter-spacing: -.02em; }
-.mesure .label { display: block; margin-bottom: .45rem; font-size: 9px; letter-spacing: .16em; }
+.mesure .label { display: block; margin-bottom: .45rem; font-size: var(--fs-micro); letter-spacing: .16em; }
 
 /* ---- 6. Pied : action principale et détail technique ---- */
 .foot { margin-top: 1.4rem; }
@@ -630,7 +659,7 @@ main {
   border: 1px solid var(--ctl-border); border-radius: var(--radius-ctl);
   background: var(--card-bg-strong);
   backdrop-filter: blur(var(--card-blur)); -webkit-backdrop-filter: blur(var(--card-blur));
-  color: var(--ink); font: 500 15px/1 var(--sans); letter-spacing: -.01em;
+  color: var(--ink); font: 500 var(--fs-corps)/1 var(--sans); letter-spacing: -.01em;
   cursor: pointer; transition: background var(--dur-tap) ease;
 }
 /* Le bouton principal porte désormais une icône : « Changer de lieu »
@@ -644,19 +673,19 @@ main {
 
 .tech {
   margin: .9rem 0 0; text-align: center;
-  font: 400 11px/1.5 var(--mono); letter-spacing: .08em;
+  font: 400 var(--fs-mono)/1.5 var(--mono); letter-spacing: .08em;
   color: var(--ink-faint); text-transform: uppercase;
 }
 
 /* ---- 7. États de service ---- */
 .notice { padding: 25vh 0 2rem; text-align: center; }
-.notice b { display: block; font: 400 24px/1.25 var(--sans); letter-spacing: -.02em; margin-bottom: .6rem; }
+.notice b { display: block; font: 400 var(--fs-titre1)/1.25 var(--sans); letter-spacing: -.02em; margin-bottom: .6rem; }
 .notice span { display: block; color: var(--ink-soft); text-wrap: pretty; }
 .notice .cta { margin-top: 1.6rem; }
 .notice .mark {
   margin: 0 auto 1.4rem; width: 46px; height: 46px;
   border-radius: 50%; border: 1px solid var(--card-border);
-  display: grid; place-items: center; font: 400 22px/1 var(--sans);
+  display: grid; place-items: center; font: 400 var(--fs-titre2)/1 var(--sans);
 }
 .notice .mark.attente { border-style: dashed; }
 
@@ -712,14 +741,14 @@ main {
 }
 .grip { width: 38px; height: 4px; border-radius: 2px; background: rgba(255, 255, 255, .28); margin: 0 auto 1.1rem; }
 .sheet-head { display: flex; align-items: baseline; justify-content: space-between; gap: .75rem; }
-.sheet-head h2 { margin: 0; font: 400 22px/1.2 var(--sans); letter-spacing: -.02em; }
+.sheet-head h2 { margin: 0; font: 400 var(--fs-titre2)/1.2 var(--sans); letter-spacing: -.02em; }
 /* Le « fermer » est un mot, donc haut de 11 px : on l'entoure de marge
    NÉGATIVE pour lui donner une cible de 27 px sans le déplacer d'un
    pixel. Le dessin ne bouge pas, le doigt gagne 16 px. */
 .sheet-head button {
   border: none; background: none; color: var(--ink-soft); cursor: pointer;
   padding: 8px 6px; margin: -8px -6px;
-  font: 500 11px/1 var(--mono); letter-spacing: .14em; text-transform: uppercase;
+  font: 500 var(--fs-mono)/1 var(--mono); letter-spacing: .14em; text-transform: uppercase;
 }
 .champs { display: flex; gap: .5rem; margin-top: .75rem; }
 .champs input {
@@ -727,7 +756,7 @@ main {
   padding: .95rem 1rem;
   border: 1px solid var(--ctl-border); border-radius: var(--radius-ctl);
   background: var(--card-bg); color: var(--ink);
-  font: 400 15px/1 var(--sans); font-variant-numeric: tabular-nums;
+  font: 400 var(--fs-corps)/1 var(--sans); font-variant-numeric: tabular-nums;
 }
 .champs input::placeholder { color: var(--ink-faint); }
 .sheet .cta { margin-top: .75rem; }
@@ -1157,6 +1186,7 @@ const TEXTES = {
     c_orage: "Orage en cours. Évitez les espaces découverts.",
     c_verglas: "Pluie verglaçante. Sols très glissants.",
     c_neige: "Neige en cours. Chaussée et trottoirs glissants.",
+    c_grele: "Chute de grêle. Mettez-vous à l'abri.",
     c_brouillard: "Brouillard dense. Visibilité très réduite.",
     c_vent: "Vent sensible. Prudence à vélo.",
     c_pluie: "Il pleut. Prenez de quoi vous couvrir.",
@@ -1233,6 +1263,7 @@ const TEXTES = {
     c_orage: "Thunderstorm in progress. Stay away from open ground.",
     c_verglas: "Freezing rain. Surfaces are very slippery.",
     c_neige: "Snow is falling. Roads and pavements are slippery.",
+    c_grele: "Hail is falling. Take shelter.",
     c_brouillard: "Dense fog. Visibility is very poor.",
     c_vent: "Noticeable wind. Take care when cycling.",
     c_pluie: "It is raining. Take something to keep dry.",
@@ -1378,8 +1409,21 @@ const SEUILS = {
   idealMax: 27,
 };
 
+// Les jetons dont le DESSIN contient un astre ou un éclair, donc les seuls
+// où un halo chaud dit quelque chose de vrai. C'est la même distinction que
+// la planche d'icônes : « ambre pour l'astre et l'éclair ».
+const JETONS_ASTRE = new Set(["clear_day", "clear_night", "few_day", "few_night",
+  "partly_cloudy_day", "partly_cloudy_night", "showers_day", "showers_night",
+  "thunderstorm"]);
+
 // Les jetons d'icône qui disent qu'il TOMBE quelque chose, par famille.
-const JETONS_NEIGE = new Set(["snow", "sleet", "hail"]);
+// LA GRÊLE N'EST PAS DE LA NEIGE, même si elle partage son ciel dans la
+// table CIELS : ce regroupement-là est VISUEL, il ne fait pas de `hail` un
+// synonyme de `snow`. Lui faire dire « neige en cours » serait exactement
+// la faute évitée trois lignes plus bas sur `mist`/`dust`/`smoke`, qui
+// partagent le ciel du brouillard sans forcément boucher la vue. Elle a
+// donc son jeton et sa phrase.
+const JETONS_NEIGE = new Set(["snow", "sleet"]);
 const JETONS_PLUIE = new Set(["drizzle", "rain_light", "rain", "rain_heavy",
   "showers_day", "showers_night"]);
 const JETONS_CIEL_CLAIR = new Set(["clear_day", "clear_night", "few_day", "few_night"]);
@@ -1394,6 +1438,7 @@ function conseilToken(r) {
   const jeton = r.icon;
   if (jeton === "thunderstorm") return "orage";
   if (jeton === "freezing_rain") return "verglas";
+  if (jeton === "hail") return "grele";
   if (JETONS_NEIGE.has(jeton)) return "neige";
 
   // Brouillard : on exige la VALEUR de visibilité et pas seulement le
@@ -1668,6 +1713,9 @@ function afficher(r, lang) {
   // vide. Même réflexe que le repli `neutral` de la table CIELS.
   const jetonSur = r.icon && document.getElementById(`i-${r.icon}`) ? r.icon : "unknown";
   $("heroUse").setAttribute("href", `#i-${jetonSur}`);
+  // Le halo ne s'allume en ambre que si le dessin contient un astre ou un
+  // éclair. Ailleurs il reste neutre : voir .hero-ico.astre.
+  $("heroUse").closest(".hero-ico").classList.toggle("astre", JETONS_ASTRE.has(jetonSur));
 
   // 1 ter. La phrase de conseil. Jeton d'abord, mot ensuite : si le
   // sélecteur ne trouve rien de notable à dire, la ligne DISPARAÎT plutôt

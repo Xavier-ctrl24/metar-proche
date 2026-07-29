@@ -28,7 +28,25 @@ const config: CapacitorConfig = {
   // `fetch("/api/nearest")` de index.html (ligne ~1407) viserait donc le
   // serveur d'actifs LOCAL de la WebView, qui n'a pas d'/api. C'est le point
   // a regler avant toute installation sur un telephone, pas un detail.
-  webDir: 'public'
+  webDir: 'public',
+
+  server: {
+    // CES DEUX VALEURS SONT DEJA LES DEFAUTS DE CAPACITOR 8. On les ECRIT
+    // quand meme, parce qu'elles sont devenues porteuses : `baseApi()` de
+    // public/index.html compare `location.origin` a "https://localhost" pour
+    // savoir s'il est servi par l'APK (et doit donc viser Vercel en absolu)
+    // ou par le serveur de developpement (et doit rester en relatif).
+    // Un changement de defaut dans une version future ferait basculer cette
+    // comparaison sans qu'aucun test ne bronche : l'application se lancerait
+    // et n'afficherait plus jamais la meteo. Les figer ici transforme une
+    // hypothese silencieuse en decision.
+    //
+    // `localhost` en particulier ne se change pas a la legere : c'est lui qui
+    // fait de la page un CONTEXTE SECURISE, sans quoi navigator.geolocation
+    // ne fonctionne pas du tout (documente par Capacitor lui-meme).
+    androidScheme: 'https',
+    hostname: 'localhost',
+  },
 };
 
 export default config;

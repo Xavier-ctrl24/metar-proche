@@ -718,9 +718,21 @@ Fait et validé :
   `description` du manifeste, qui sont des phrases validées par Xavier et
   volontairement identiques entre les deux fichiers ; `theme_color` et
   `background_color`, qui sont accrochées au ciel NEUTRE de la page et non
-  au logo. RESTE DEHORS, parce que c'est tourné vers l'extérieur donc pas
-  notre décision : le dépôt GitHub, le projet Vercel et l'URL s'appellent
-  toujours `metar-proche`. Rien ne casse, mais ça se voit dans l'adresse.
+  au logo. RESTE DEHORS : le dépôt GitHub, le projet Vercel et l'URL
+  s'appellent toujours `metar-proche`. Rien ne casse, mais ça se voit
+  dans l'adresse. Xavier a demandé le renommage le 29/07/2026 ; il n'a
+  PAS pu être fait ici, et pour une raison à connaître plutôt qu'à
+  redécouvrir : ni `gh` ni la CLI Vercel ne sont installés, et il n'y a
+  aucun jeton dans l'environnement. Git passe par le gestionnaire
+  d'identifiants Windows, qui sert au TRANSPORT git et non à l'API : il
+  ne permet donc pas de renommer un dépôt. Ces deux gestes demandent la
+  session authentifiée de Xavier ; marche à suivre en « Prochaine étape ».
+  CE QUI NE DÉPEND PAS DU DOMAINE, vérifié et non supposé : `start_url`,
+  `scope` et `id` du manifeste valent `/`, donc relatifs, et les icônes
+  comme les polices sont référencées en chemins absolus de SITE
+  (`/icon-512.png`), jamais en URL complètes. La seule URL en dur de tout
+  le dépôt est celle de la ligne « EN LIGNE ET VÉRIFIÉ » du 27/07/2026.
+  Un changement de domaine ne casse donc rien dans le code.
   JAMAIS par `Get-Content | -replace | Set-Content` : « renommer partout »
   est exactement la tâche qui invite au massacre d'encodage du 27/07/2026.
   Six modifications ciblées.
@@ -845,8 +857,26 @@ Prochaine étape (à décider avec Xavier) :
   protégé (l'onglet ne charge que 9 Ko), donc rien d'urgent ; le jour où
   ça compte, c'est une quantification de palette qu'il faut, pas un
   redimensionnement.
-- LE DÉPÔT, LE PROJET VERCEL ET L'URL s'appellent encore `metar-proche`.
-  Renommer est tourné vers l'extérieur, donc c'est la décision de Xavier.
+- RENOMMER LE DÉPÔT ET LE PROJET VERCEL. Demandé par Xavier le
+  29/07/2026, impossible depuis la session (voir plus haut : aucune CLI
+  authentifiée). L'ORDRE COMPTE, et c'est tout l'intérêt de cette note.
+  1. GitHub d'abord : Settings → Repository name → `queltemps`. GitHub
+     laisse une redirection permanente depuis l'ancien nom, en web ET en
+     git, donc rien ne casse dans l'intervalle.
+  2. Puis en local : `git remote set-url origin` vers la nouvelle URL.
+     Pas indispensable grâce à la redirection, mais un remote qui ment
+     est une source de confusion pour rien.
+  3. Vérifier SEULEMENT ENSUITE que Vercel déploie toujours. L'intégration
+     GitHub suit normalement le renommage toute seule ; si le lien a
+     sauté, il se refait dans les réglages du projet.
+  4. Le projet Vercel en dernier, et c'est le seul geste qui a un COÛT :
+     le nom du projet fabrique le domaine `*.vercel.app`. Le renommer
+     déplace la production sur `queltemps.vercel.app` et LIBÈRE
+     `metar-proche.vercel.app`, que n'importe qui peut alors reprendre.
+     Tout lien déjà partagé cesse de fonctionner. Rien ne presse : les
+     étapes 1 à 3 peuvent se faire sans celle-ci.
+  À FAIRE LE JOUR OÙ CE SERA FAIT : mettre à jour la ligne « EN LIGNE ET
+  VÉRIFIÉ » du 27/07/2026, seule URL en dur du dépôt.
 - Pas de BUDGET GLOBAL de temps, seulement un plafond PAR TENTATIVE. Deux cas
   peuvent donc encore dépasser 10 s : panne PARTIELLE à l'antiméridien sur les
   deux tours (2 x 8 s), et un 5xx qui arrive juste avant l'expiration puis un

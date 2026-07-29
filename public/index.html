@@ -3,19 +3,26 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>METAR Proche</title>
+<title>QuelTemps</title>
 <meta name="description" content="La météo de la station d'observation la plus proche, en clair.">
 <meta name="theme-color" content="#0a1526">
 
-<!-- Le manifeste, et les deux icônes qu'il déclare. Un manifeste NON LIÉ
-     ne fait rien du tout : c'est cette ligne, et pas le fichier, qui rend
-     la page installable. La couleur ci-dessus et le theme_color du
-     manifeste doivent rester identiques (voir la clé _5_couleurs).
+<!-- Le manifeste, et les icônes qu'il déclare. Un manifeste NON LIÉ ne fait
+     rien du tout : c'est cette ligne, et pas le fichier, qui rend la page
+     installable. La couleur ci-dessus et le theme_color du manifeste
+     doivent rester identiques (voir la clé _5_couleurs).
      `rel="icon"` en plus, pour l'onglet du navigateur : le manifeste ne
-     sert qu'à l'installation, il ne fournit pas la favicon. -->
+     sert qu'à l'installation, il ne fournit pas la favicon.
+     TROIS TAILLES ET NON UNE, depuis que le logo de Xavier a remplacé le
+     dessin au trait du 28/07/2026. L'ancienne icône était un SVG de
+     quelques kilo-octets, qui pouvait servir partout ; le logo est une
+     image PHOTOGRAPHIQUE (dégradés, grain), donc un PNG de 378 Ko en 512.
+     Servir ça en favicon ferait payer 378 Ko à chaque ouverture d'onglet
+     pour un dessin affiché en 16 px. D'où 64 px (9 Ko) pour l'onglet,
+     192 px (63 Ko) pour iOS, et le 512 réservé à l'installation. -->
 <link rel="manifest" href="/manifest.webmanifest">
-<link rel="icon" type="image/svg+xml" href="/icon.svg">
-<link rel="apple-touch-icon" href="/icon-512.png">
+<link rel="icon" type="image/png" sizes="64x64" href="/favicon-64.png">
+<link rel="apple-touch-icon" href="/icon-192.png">
 <style>
 /* ==================================================================
    SYSTÈME DE DESIGN — d'après le handoff Claude Design du 28/07/2026

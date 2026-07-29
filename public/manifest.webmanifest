@@ -2,8 +2,8 @@
   "_1_pourquoi_ce_fichier": "MANIFESTE D'APPLICATION WEB. C'est lui, et lui seul, qui rend la page INSTALLABLE : sans manifeste le navigateur ne propose jamais « ajouter à l'écran d'accueil », et sans installation il n'y a pas de TWA possible. Les commentaires passent par des clés bidon, faute de mieux : le JSON n'accepte pas de commentaires, et une clé inconnue d'un manifeste est simplement IGNORÉE par les navigateurs (elle ne provoque pas d'erreur). Le journal de conception de ce dépôt vit dans les commentaires du code, ce fichier ne fait pas exception.",
 
   "_2_aucun_texte_nouveau": "AUCUNE PHRASE INÉDITE ICI, et c'est délibéré : name et short_name reprennent le <title> de public/index.html, description reprend son <meta name=description> au mot près. Rédiger un texte neuf aurait créé une formulation de plus à faire valider par Xavier (règle anti « parser contre lui-même ») et une de plus à traduire. Le manifeste ne parle qu'une langue, le français, comme le lang du document : il n'existe pas de mécanisme standard pour le négocier selon la langue choisie dans la page.",
-  "name": "METAR Proche",
-  "short_name": "METAR Proche",
+  "name": "QuelTemps",
+  "short_name": "QuelTemps",
   "description": "La météo de la station d'observation la plus proche, en clair.",
   "lang": "fr",
   "dir": "ltr",
@@ -21,12 +21,12 @@
   "theme_color": "#0a1526",
   "background_color": "#101827",
 
-  "_6_icones": "ICÔNES, ET LE PIÈGE À NE PAS REFAIRE : « any » et « maskable » sont DEUX DESSINS, jamais un seul déclaré deux fois. Android rogne l'icône en cercle, en goutte ou en écusson selon le lanceur et ne garantit que le disque central de 80 % : la version maskable doit donc tenir dans les 60 % centraux. Or la boîte d'installation de Chrome, la fiche du Play Store, l'onglet et iOS ne rognent RIEN — leur servir la version rognable donnerait un petit dessin perdu dans un grand carré marine, et iOS ignore de toute façon « maskable ». D'où deux fichiers : icon.svg / icon-512.png occupent 85 % (usage « any »), icon-maskable.svg / icon-maskable-512.png occupent 60 % (usage « maskable »). Les PNG existent parce que tout ne lit pas le SVG, à commencer par Bubblewrap qui exige un PNG de 512 pour empaqueter un TWA. NE JAMAIS déclarer ici un fichier absent : une icône en 404 est PIRE que pas d'icône du tout, le navigateur refuse alors l'installation sans rien dire à l'utilisateur. Les quatre fichiers vivent dans public/, donc servis en statique et non écartés par .vercelignore.",
+  "_6_icones": "ICÔNES, ET LE PIÈGE À NE PAS REFAIRE : « any » et « maskable » sont DEUX DESSINS, jamais un seul déclaré deux fois. Android rogne l'icône en cercle, en goutte ou en écusson selon le lanceur et ne garantit que le disque central de 80 % ; la boîte d'installation de Chrome, la fiche du Play Store, l'onglet et iOS ne rognent RIEN, et iOS ignore de surcroît « maskable ». Servir un seul fichier aux deux usages sacrifie forcément l'un des deux. DEPUIS LE 29/07/2026 LES DEUX DESSINS DÉRIVENT DU LOGO DE XAVIER (logo/logo.png, suivi par git comme référence de design), et non plus du sprite au trait du 28/07/2026. Le « any » est le carré arrondi ENTIER, mot « QuelTemps » compris, avec le blanc de marge rendu transparent par diffusion depuis le bord (seul le blanc CONNECTÉ au bord part, jamais le nuage blanc de l'intérieur). Le « maskable » est le CIEL SEUL, sans le mot : le mot vit dans la bande marine du bas, c'est-à-dire exactement là où un masque circulaire coupe, et à 48 px il ne se lit de toute façon pas. Son échelle (0,4769) n'est pas choisie, elle est MESURÉE : c'est celle qui place le pixel essentiel le plus éloigné (nuage principal + disque solaire) juste à l'intérieur du disque de sécurité de 80 %. Vérifié sur le fichier rendu : nuage et soleil entièrement dans le disque, aucun pixel transparent sur les quatre bords (le ciel saigne partout), coins du « any » transparents et non blancs. TROIS TAILLES parce que le logo est une image photographique et non un trait : le 512 pèse 378 Ko, ce qui convient à une installation mais pas à un onglet, d'où le 192 et le 64 (voir le <head> de index.html). NE JAMAIS déclarer ici un fichier absent : une icône en 404 est PIRE que pas d'icône du tout, le navigateur refuse alors l'installation sans rien dire à l'utilisateur. Les fichiers vivent dans public/, donc servis en statique et non écartés par .vercelignore. Plus aucun SVG ici : une photo ne se met pas en SVG, et laisser l'ancien icon.svg aurait montré le dessin au trait dans l'onglet pendant que tout le reste montrait le logo.",
   "icons": [
     {
-      "src": "/icon.svg",
-      "sizes": "any",
-      "type": "image/svg+xml",
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
       "purpose": "any"
     },
     {
@@ -34,12 +34,6 @@
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any"
-    },
-    {
-      "src": "/icon-maskable.svg",
-      "sizes": "any",
-      "type": "image/svg+xml",
-      "purpose": "maskable"
     },
     {
       "src": "/icon-maskable-512.png",

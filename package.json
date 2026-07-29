@@ -1,5 +1,5 @@
 {
-  "name": "metar-proche",
+  "name": "queltemps",
   "version": "0.1.0",
   "private": true,
   "description": "Backend TypeScript de decodage METAR, deploye sur Vercel",

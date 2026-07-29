@@ -1,4 +1,4 @@
-\# METAR Proche
+\# QuelTemps (anciennement METAR Proche)
 
 
 
@@ -699,6 +699,102 @@ Fait et validé :
   PAS DE TEST : c'est un fichier de configuration statique, et la page
   reste non testée pour la raison déjà écrite plus haut.
 
+- 29/07/2026 — L'APPLICATION S'APPELLE « QuelTemps ». Décision de Xavier.
+  Casse reprise du logo qu'il a fourni (« QuelTemps »), et non le
+  « quelTemps » de la demande. Renommé aux SIX endroits qui portaient le
+  nom : le `<title>` de `public/index.html`, `name` et `short_name` du
+  manifeste, `name` de `package.json`, les deux occurrences de
+  `package-lock.json` (racine et `packages[""]`, sinon `npm ci` proteste),
+  et le titre de ce fichier.
+  PAS TOUCHÉ, et c'est délibéré : le `<meta name="description">` et la
+  `description` du manifeste, qui sont des phrases validées par Xavier et
+  volontairement identiques entre les deux fichiers ; `theme_color` et
+  `background_color`, qui sont accrochées au ciel NEUTRE de la page et non
+  au logo. RESTE DEHORS, parce que c'est tourné vers l'extérieur donc pas
+  notre décision : le dépôt GitHub, le projet Vercel et l'URL s'appellent
+  toujours `metar-proche`. Rien ne casse, mais ça se voit dans l'adresse.
+  JAMAIS par `Get-Content | -replace | Set-Content` : « renommer partout »
+  est exactement la tâche qui invite au massacre d'encodage du 27/07/2026.
+  Six modifications ciblées.
+
+- 29/07/2026 — LES ICÔNES VIENNENT DU LOGO DE XAVIER. `logo/logo.png`
+  remplace le dessin au trait du 28/07/2026 pour tout ce qui est icône
+  d'APPLICATION. Le sprite des 5 icônes de rubrique et les 24 jetons du
+  contrat ne bougent pas : ils vivent dans `public/index.html` et n'ont
+  rien à voir avec ce chantier.
+  `logo/logo192-512.png` N'EST PAS UNE SOURCE : c'est une planche de
+  présentation (4 variantes légendées sur fond de halo), au même titre
+  qu'`icones.png`. En découper une vignette rapporterait le halo, la
+  légende et une source de 192 px pour un besoin de 512. Tout dérive de
+  `logo.png`.
+  LA DIFFICULTÉ N'ÉTAIT PAS LE DESSIN, C'ÉTAIT LE MOT. « QuelTemps » est
+  peint dans une bande marine en bas du carré, c'est-à-dire exactement là
+  où un masque circulaire de lanceur Android coupe — et à 48 px il ne se
+  lit de toute façon pas. Mettre le logo entier à 60 % sur un fond marine
+  refabriquerait le « petit dessin perdu dans un grand carré » que ce
+  dépôt a déjà rejeté le 28/07/2026. D'où DEUX DÉCOUPES et non deux
+  échelles : « any » = le carré arrondi ENTIER, mot compris ; « maskable »
+  = le CIEL SEUL, sans le mot.
+  TROIS MESURES, aucune estimation. (a) La géométrie du logo a été relevée
+  par sonde et non à l'œil : boîte du carré arrondi 82,60 → 1170,1190 ;
+  haut de la bande marine y=876, trouvé par MÉDIANE de ligne. Les deux
+  premières tentatives ont échoué pour la même raison, et elle vaut d'être
+  notée : un balayage de la colonne CENTRALE tombe sur les lettres
+  blanches du mot, et un balayage depuis le bord tombe sur la ligne
+  adoucie du contour. La médiane ignore l'un et l'autre.
+  (b) L'échelle de la version rognable, 0,4769, est CALCULÉE : c'est
+  204,8 / 429, où 429 est la distance du pixel essentiel le plus éloigné
+  du centre (plus grosse composante connexe du nuage + disque solaire) et
+  204,8 le rayon du disque de sécurité de 80 %. Vérifié sur le fichier
+  RENDU : sur 12 075 pixels essentiels, 17 sortent du disque, tous en
+  x=0..1, donc le nuage décoratif de bord et non le sujet.
+  (c) Le blanc de marge est retiré par DIFFUSION DEPUIS LE BORD, jamais
+  par un seuil global : seul le blanc CONNECTÉ au bord devient
+  transparent, sans quoi le nuage blanc du milieu partirait avec.
+  LE FOND DE LA VERSION ROGNABLE SE SYNTHÉTISE LIGNE PAR LIGNE, et c'est
+  le piège qui m'a coûté deux essais. Le ciel découpé ne remplit pas les
+  512 en hauteur, il faut donc le prolonger jusqu'aux quatre bords. Étirer
+  les lignes de bord de la boîte englobante NE MARCHE PAS : aux coins
+  arrondis, ces pixels-là sont le blanc de marge, pas du ciel — on obtient
+  des bandes claires en haut et en bas. Il faut, pour chaque ligne,
+  chercher la largeur RÉELLE du carré et échantillonner à 15 % / 85 % de
+  cette largeur, en gardant le plus bleu des deux (ce qui écarte les
+  petits nuages de bord). S'y ajoute une ÉROSION de 10 px du calque de
+  ciel : rendre le blanc transparent n'efface pas le liseré sombre du
+  contour, qui restait lisible en arc au milieu de l'icône.
+  TROIS TAILLES, ce qui est nouveau. L'ancienne icône était un SVG au
+  trait de quelques kilo-octets, utilisable partout ; le logo est une
+  image photographique, donc 378 Ko en 512. Servir ça en favicon ferait
+  payer 378 Ko par onglet pour un dessin affiché en 16 px. D'où
+  `favicon-64.png` (9 Ko) pour l'onglet, `icon-192.png` (63 Ko) pour iOS,
+  `icon-512.png` pour l'installation, plus `icon-maskable-512.png`.
+  `icon.svg` et `icon-maskable.svg` sont SUPPRIMÉS : une photo ne se met
+  pas en SVG, et les laisser aurait montré le dessin au trait dans
+  l'onglet pendant que tout le reste montrait le logo. Ils restent dans
+  l'historique git si besoin.
+  MÉTHODE DE FABRICATION, à réutiliser : `canvas` dans le volet
+  navigateur, aucune dépendance ajoutée, comme le 28/07/2026. Nouveauté :
+  les PNG font 378 Ko, donc ~500 000 caractères de base64 — infaisable à
+  rapatrier par le canal d'exécution. Un point d'entrée `POST /_depot`
+  TEMPORAIRE a été ajouté à `vite.config.ts` le temps de la génération,
+  puis retiré ; `git diff` confirme le fichier bit à bit identique au
+  commit précédent. (Un petit serveur Node séparé aurait été plus propre,
+  mais son lancement est refusé par la politique de permissions.)
+  VÉRIFIÉ SANS CAPTURE D'ÉCRAN, une fois de plus (le volet ne compose
+  toujours pas d'image), donc par sonde : les deux PNG font bien 512x512 ;
+  coins du « any » transparents et non blancs, et zéro blanc opaque sur
+  les bords ; zéro pixel transparent sur les quatre bords du « maskable »,
+  donc le ciel saigne partout ; nuage et soleil entièrement dans le disque
+  de 80 % ; les trois `src` du manifeste et les deux `<link>` du `<head>`
+  répondent 200 en `image/png` ; `theme_color` toujours égal au `<meta>` ;
+  le 64 et le 192 sont prouvés PEINTS par comptage (marine, encre blanche,
+  ambre présents dans les deux). PIÈGE À CONNAÎTRE : un fichier supprimé
+  répond quand même 200 sur le serveur de développement, car vite sert
+  `index.html` en repli — un chemin inventé donne exactement la même
+  réponse. Ne pas conclure de ce 200 que le fichier existe encore.
+  LE JUGEMENT VISUEL REVIENT À XAVIER, comme pour la planche du
+  28/07/2026 : les quatre fichiers se regardent dans `public/`.
+
 Prochaine étape (à décider avec Xavier) :
 - SERVICE WORKER, si l'on veut la bannière d'installation AUTOMATIQUE.
   Le manifeste suffit pour installer à la main (menu du navigateur) et
@@ -708,10 +804,19 @@ Prochaine étape (à décider avec Xavier) :
   hors ligne, stratégie de péremption, et une page météo qui affiche des
   données périmées ment à son utilisateur) : décision séparée, rien
   d'urgent.
-- L'icône installée est le ciel PARTIELLEMENT COUVERT, choisie parce
-  qu'elle n'affirme aucun temps. Le jugement visuel revient à Xavier, comme
-  pour la planche du 28/07/2026 : elle se regarde en ouvrant
-  `public/icon.svg`.
+- PÉRIMÉ le 29/07/2026 : l'icône installée n'est plus le jeton
+  `partly_cloudy_day` du sprite mais le logo fourni par Xavier. Le
+  raisonnement d'alors (« une icône est peinte des mois avant le METAR,
+  elle ne doit affirmer aucun temps ») tient toujours, et le logo le
+  respecte : soleil ET nuage.
+- POIDS DES ICÔNES, si ça devient gênant : 378 Ko pour le 512, contre
+  21 Ko pour l'ancien dessin au trait. C'est le prix d'une image
+  photographique, pas un défaut d'encodage. Le chemin chaud est déjà
+  protégé (l'onglet ne charge que 9 Ko), donc rien d'urgent ; le jour où
+  ça compte, c'est une quantification de palette qu'il faut, pas un
+  redimensionnement.
+- LE DÉPÔT, LE PROJET VERCEL ET L'URL s'appellent encore `metar-proche`.
+  Renommer est tourné vers l'extérieur, donc c'est la décision de Xavier.
 - Pas de BUDGET GLOBAL de temps, seulement un plafond PAR TENTATIVE. Deux cas
   peuvent donc encore dépasser 10 s : panne PARTIELLE à l'antiméridien sur les
   deux tours (2 x 8 s), et un 5xx qui arrive juste avant l'expiration puis un

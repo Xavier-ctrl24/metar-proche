@@ -104,6 +104,10 @@
   --mono: "JetBrains Mono", "Cascadia Mono", ui-monospace, Consolas, monospace;
 
   --radius-card: 24px;
+  /* Rayon des CONTRÔLES, ajouté le 29/07/2026 en passant sur la cohérence
+     visuelle : les boutons étaient à 20 px et les champs de saisie à 18,
+     sans raison. Un jeton, une valeur, plus de dérive possible. */
+  --radius-ctl: 20px;
   --radius-sheet: 32px;
   --radius-pill: 999px;
   --card-blur: 24px;
@@ -160,6 +164,16 @@
   --hair: rgba(255, 255, 255, .22);
   --btn-bg: #EAF2FB;
   --btn-ink: #0B1728;
+  /* Les DEUX ACCENTS des icônes (astre, humide). Ils étaient validés le
+     28/07/2026 puis PERDUS le jour même : le système de design a retiré
+     l'icône de tête, plus rien ne les consommait, et personne n'a vu que
+     `.c-sun`/`.c-wet` retombaient sur le repli `currentColor`. Le sprite
+     serait donc redevenu monochrome à la seconde où l'on repose une icône
+     météo. Ils reviennent ici, et attachés à la POLARITÉ et non à la
+     condition : c'est le même axe qui décide déjà de l'encre et du verre,
+     donc un seul endroit à corriger. Valeurs mesurées, voir CLAUDE.md. */
+  --ico-sun: #F5A623;   /* ambre clair, sur ciel sombre */
+  --ico-wet: #7FB3E8;   /* bleu éclairci, sur ciel sombre */
   /* Assombrissement de lecture. Les dégradés de la maquette finissent
      presque blancs en bas (#E2F0FB sur CAVOK) : sans ce voile, une carte
      en bas d'écran serait du blanc sur du blanc. C'est le trou que la
@@ -184,6 +198,11 @@
   --hair: rgba(20, 32, 46, .22);
   --btn-bg: #16212C;
   --btn-ink: #F2F7FC;
+  /* Sur ciel presque blanc, l'ambre de la planche (#f5a623) tombe à 1,7:1 :
+     c'est la correction du 28/07/2026, reprise telle quelle. Le cuivre
+     reste chaud là où un ambre conforme aurait viré au brun. */
+  --ico-sun: #C96A00;
+  --ico-wet: #2B6CB0;
   /* Ces ciels-là s'éclaircissent vers le bas : l'encre sombre y gagne du
      contraste au lieu d'en perdre. Le voile n'a donc à agir qu'en haut,
      là où le dégradé est le plus foncé (#8D989E sur le brouillard). */
@@ -313,6 +332,15 @@
 @keyframes mpSnow { from { background-position: 0 -200px, 0 -300px; } to { background-position: 40px 300px, -40px 400px; } }
 @keyframes mpTwinkle { 0%, 100% { opacity: .35; } 50% { opacity: .95; } }
 @keyframes mpFlash { 0%, 92%, 100% { opacity: 0; } 94% { opacity: .55; } 96% { opacity: .1; } 97% { opacity: .4; } }
+/* Respiration du halo de l'icône de tête et du disque solaire. Très lente
+   et de faible amplitude : le but est qu'on ne la REMARQUE pas, seulement
+   que l'écran ne paraisse pas mort. Opacité et échelle uniquement, donc
+   composé par le GPU — aucune repeinte, aucun coût de batterie mesurable. */
+@keyframes mpBreathe2 { 0%, 100% { opacity: .12; transform: scale(.96); } 50% { opacity: .24; transform: scale(1.04); } }
+/* Le halo du soleil de l'arc est positionné par cx/cy : une mise à
+   l'échelle le ferait glisser vers l'origine du SVG. On n'anime donc que
+   ce qui ne déplace rien — l'opacité, et le rayon là où il est animable. */
+@keyframes mpSunPulse { 0%, 100% { opacity: .20; r: 16px; } 50% { opacity: .36; r: 20px; } }
 @keyframes mpRise { from { opacity: 0; transform: translate3d(0, 18px, 0); } to { opacity: 1; transform: none; } }
 @keyframes mpSpin { from { transform: rotate(0); } to { transform: rotate(360deg); } }
 @keyframes mpShimmer { from { background-position: -260px 0; } to { background-position: 260px 0; } }
@@ -389,12 +417,56 @@ main {
 }
 .langs button[aria-pressed="true"] { background: var(--btn-bg); color: var(--btn-ink); }
 
-/* ---- 2. La ligne brute ----
-   Elle reste en tête, comme depuis le premier jour : c'est l'artefact du
-   sujet, la chaîne que personne ne sait lire. La maquette la traite
-   comme la signature du produit et la met dans une carte à part. */
+/* ---- 2. La carte de PROVENANCE, et la ligne brute derrière un bouton ----
+   RENVERSEMENT DU 29/07/2026, demandé par Xavier. Jusqu'ici la chaîne
+   METAR ouvrait la page : c'était l'artefact du sujet, la signature du
+   produit selon la maquette. Mais pour le grand public — la cible
+   déclarée du projet — c'est une suite de sigles illisible en première
+   position, donc deux secondes perdues avant la moindre information.
+   Ce qui la remplace dit la même chose en clair : QUELLE station,
+   à quelle distance, et de quand date la mesure. Le METAR ne disparaît
+   pas, il devient une fonction d'EXPERT, dépliée à la demande. */
+.station-card { margin-top: 1rem; }
+.station-nom {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: .75rem; margin-top: .6rem;
+}
+.station-nom > span { font-size: 17px; font-weight: 500; letter-spacing: -.01em; }
+
+/* La capsule de distance. Elle remplace le « , à 21,4 km » collé au nom :
+   une distance est une mesure, elle se lit mieux détachée et arrondie au
+   kilomètre (le dixième de km n'apporte rien à qui cherche sa météo). */
+.capsule {
+  display: inline-flex; align-items: center; gap: .3rem; flex: none;
+  padding: .3rem .6rem;
+  border: 1px solid var(--card-border); border-radius: var(--radius-pill);
+  background: var(--card-bg-strong);
+  font: 500 12px/1 var(--mono); letter-spacing: .04em;
+  color: var(--ink-soft);
+}
+.capsule .ico { font-size: 13px; --sw: 5; }
+
+/* La fraîcheur, en une phrase et non deux. « Observé à 15:00 heure locale
+   · il y a 6 min » demandait au lecteur de faire la soustraction ; « mis à
+   jour il y a 6 min » se comprend sans réfléchir. L'heure locale de la
+   station n'est pas perdue pour autant : elle continue de positionner le
+   soleil sur son arc. */
+.obs { display: block; margin-top: .45rem; font-size: 14px; color: var(--ink-soft); }
+.stale { color: var(--ink); font-weight: 600; }
+
+/* Le dépliant du METAR. Bordure de CONTRÔLE et non de carte : c'est un
+   bouton, il doit se voir comme tel (1.4.11). */
+.raw-btn {
+  width: 100%; margin-top: .9rem; padding: .7rem;
+  border: 1px solid var(--ctl-border); border-radius: var(--radius-ctl);
+  background: transparent; color: var(--ink-soft);
+  font: 500 11px/1 var(--mono); letter-spacing: .14em; text-transform: uppercase;
+  cursor: pointer; transition: background var(--dur-tap) ease;
+}
+.raw-btn:hover { background: var(--card-bg-strong); }
 .raw {
-  margin: 1rem 0 0;
+  margin: .9rem 0 0; padding-top: .9rem;
+  border-top: 1px solid var(--hair);
   font: 500 12.5px/1.55 var(--mono);
   letter-spacing: .02em; word-spacing: .22em;
   word-break: break-word;
@@ -403,13 +475,48 @@ main {
 .raw .label { display: block; margin-bottom: .6rem; }
 
 /* ---- 3. Le message en clair ---- */
-.hero { padding: 2.5rem 0 0; }
+.hero { padding: 1.75rem 0 0; }
+
+/* L'ICÔNE DE TÊTE REVIENT (29/07/2026, demande de Xavier). Elle avait été
+   retirée le 28/07 sur son arbitrage inverse — « le ciel dit déjà le temps
+   qu'il fait, la doubler serait deux signaux pour une information ».
+   L'argument qui l'emporte aujourd'hui : le ciel est un FOND, il se lit
+   par imprégnation ; un symbole se lit d'un coup d'œil. Les 24 icônes
+   étaient restées dans le sprite justement pour ce jour-là.
+   Toujours pas de nom accessible : `text.headline` juste dessous dit déjà
+   la même chose, et lui en écrire un créerait une formulation de plus à
+   traduire et à faire valider. */
+.hero-ico { position: relative; width: 5.4rem; height: 5.4rem; margin-bottom: .35rem; }
+.hero-ico .ico { width: 100%; height: 100%; --sw: 2.6; position: relative; z-index: 1; }
+/* Le halo, en pseudo-élément : une seule couche, animée en opacité et en
+   échelle, donc composée par le GPU sans repeindre quoi que ce soit. */
+.hero-ico::before {
+  content: ""; position: absolute; inset: -18%;
+  border-radius: 50%;
+  background: radial-gradient(circle, var(--ico-sun) 0%, transparent 68%);
+  opacity: .16;
+  animation: mpBreathe2 7s ease-in-out infinite;
+}
 
 .headline {
   margin: 0;
   font: 400 clamp(2rem, 9vw, 2.5rem)/1.05 var(--sans);
   letter-spacing: -.03em;
   text-wrap: pretty;
+}
+
+/* ---- 3 bis. LA PHRASE DE CONSEIL ----
+   Une ligne, sous le titre, qui traduit la mesure en conséquence
+   pratique. C'est la seule chose de cette page qui ne vienne ni du METAR
+   ni du bloc `text` de l'API : elle est DÉDUITE de valeurs numériques par
+   `conseilToken` (voir le script). Découpage volontairement identique à
+   celui de `icon.ts` / `headlineText` : un sélecteur NEUTRE rend un jeton,
+   le vocabulaire vit dans TEXTES. Xavier peut donc réécrire les phrases
+   sans toucher à une seule condition. */
+.conseil {
+  margin: .5rem 0 0;
+  font-size: 15px; line-height: 1.4;
+  color: var(--ink-soft); text-wrap: pretty;
 }
 
 /* Le chiffre géant. Instrument Sans s'arrête à la graisse 400 : la
@@ -424,15 +531,46 @@ main {
 }
 .temp .deg { font-size: .42em; opacity: .6; margin-top: .18em; letter-spacing: 0; }
 
-.place { margin: .9rem 0 0; font-size: 17px; letter-spacing: -.01em; font-weight: 500; }
-.obs { display: block; margin-top: .2rem; font-size: 15px; font-weight: 400; color: var(--ink-soft); }
-/* Fraîcheur : muette d'habitude, franche quand ça compte. */
-.stale { color: var(--ink); font-weight: 600; }
+/* ---- 3 ter. LE BADGE « observation réelle » ----
+   L'ADN du produit, en trois mots. Toutes les applications météo
+   affichent un chiffre ; presque toutes affichent une PRÉVISION calculée
+   par un modèle. Celle-ci affiche une MESURE, prise par un instrument, à
+   un endroit nommé. C'est la seule chose que les autres ne peuvent pas
+   dire, donc elle mérite sa ligne — discrète, juste sous le chiffre.
+   AUCUNE COULEUR NEUVE, et c'est une règle et non une facilité : badge et
+   capsule sont bâtis sur les jetons déjà mesurés (--card-bg-strong,
+   --card-border, --ink-soft). Inventer un rgba() ici aurait produit un
+   contraste non mesuré sur dix ciels x jour/nuit, qui passe tous les
+   contrôles qu'on peut faire à l'œil.
+   La sonde du 28/07 a quand même été repassée sur ces deux composants, et
+   elle a servi : la bordure --hair, essayée d'abord, tombait à 1,01:1 sur
+   le fond de la pastille — invisible, donc une pastille sans contour.
+   --card-border la remonte à 3,13 (seuil 3:1). Texte à 4,78, pire cas sur
+   `sct` de jour (seuil 4,5:1). Les deux pires cas sont en HAUT d'écran,
+   là où le voile de lecture agit le moins — et c'est justement là que
+   vivent le badge et la capsule. */
+.badge {
+  display: inline-flex; align-items: center; gap: .4rem;
+  margin-top: .9rem; padding: .34rem .7rem;
+  border: 1px solid var(--card-border); border-radius: var(--radius-pill);
+  background: var(--card-bg-strong);
+  font: 500 10px/1 var(--mono); letter-spacing: .16em; text-transform: uppercase;
+  color: var(--ink-soft);
+}
+/* La pastille pleine plutôt qu'une coche : elle ne dépend d'aucune police
+   ni d'aucun émoji, donc elle est la même partout. */
+.badge::before {
+  content: ""; width: 6px; height: 6px; border-radius: 50%;
+  background: currentColor; flex: none;
+}
 
 /* ---- 4. La course du soleil ----
    Fabriquée avec des champs que le backend calcule vraiment, à la
    position de la station : le point dit où en est la journée LÀ-BAS. */
-.sun { margin-top: 1.5rem; }
+.sun { margin-top: .75rem; }
+/* Le disque respire, très lentement. Il marque déjà une position vraie ;
+   ce battement dit seulement que la page est vivante. */
+#sunHalo { animation: mpSunPulse 5.5s ease-in-out infinite; }
 .sun svg { display: block; width: 100%; height: auto; margin-top: .5rem; overflow: visible; }
 .sun-ends {
   display: flex; justify-content: space-between; margin-top: .15rem;
@@ -446,13 +584,25 @@ main {
 .row-head { display: flex; align-items: center; gap: .5rem; }
 .row-txt { margin-top: .6rem; font-size: 17px; letter-spacing: -.01em; }
 
+/* CARTE MAJEURE (29/07/2026). Toutes les rubriques avaient exactement le
+   même poids visuel, alors qu'elles n'ont pas la même importance : le
+   vent décide si l'on sort en vélo, la visibilité presque jamais.
+   La hiérarchie ne passe PAS par la largeur — `.grid .card` occupe déjà
+   les trois colonnes, donc « plus large » n'existe pas ici. Elle passe
+   par ce qui reste : la hauteur (respiration interne), la taille de
+   l'icône, et celle de la phrase. */
+.card.majeur { padding: 1.5rem 1.35rem; }
+.card.majeur .ico-dt { font-size: 1.5rem; --sw: 4; }
+.card.majeur .row-txt { margin-top: .85rem; font-size: 19px; }
+.card.majeur .wind-row { margin-top: .95rem; }
+
 /* Le vent : la flèche pointe où le vent VA (le METAR donne d'où il
    vient, d'où le demi-tour), et ne tourne que s'il est variable. La
    maquette la fait tourner en permanence, mais son exemple est VRB04KT :
    c'est une propriété de la donnée, pas une décoration. */
 .wind-row { display: flex; align-items: center; gap: .9rem; margin-top: .6rem; }
 .dial {
-  width: 38px; height: 38px; flex: none;
+  width: 44px; height: 44px; flex: none;
   border-radius: 50%; border: 1px solid var(--card-border);
   display: grid; place-items: center;
 }
@@ -460,7 +610,7 @@ main {
 .arrow {
   width: 0; height: 0;
   border-left: 5px solid transparent; border-right: 5px solid transparent;
-  border-bottom: 13px solid currentColor;
+  border-bottom: 15px solid currentColor;
 }
 
 /* Les mesures chiffrées : trois colonnes dans une seule carte. La
@@ -477,12 +627,17 @@ main {
 .foot { margin-top: 1.4rem; }
 .cta {
   width: 100%; padding: 1.05rem;
-  border: 1px solid var(--ctl-border); border-radius: 20px;
+  border: 1px solid var(--ctl-border); border-radius: var(--radius-ctl);
   background: var(--card-bg-strong);
   backdrop-filter: blur(var(--card-blur)); -webkit-backdrop-filter: blur(var(--card-blur));
   color: var(--ink); font: 500 15px/1 var(--sans); letter-spacing: -.01em;
   cursor: pointer; transition: background var(--dur-tap) ease;
 }
+/* Le bouton principal porte désormais une icône : « Changer de lieu »
+   était juste, mais muet — on ne savait pas ce qui allait s'ouvrir. Le
+   repère de lieu le dit avant le mot. */
+.cta { display: flex; align-items: center; justify-content: center; gap: .55rem; }
+.cta .ico { font-size: 17px; --sw: 4.5; }
 .cta:hover { background: var(--card-border); }
 .cta.plein { background: var(--btn-bg); color: var(--btn-ink); border-color: transparent; }
 .cta.plein:hover { filter: brightness(1.08); }
@@ -570,7 +725,7 @@ main {
 .champs input {
   flex: 1; min-width: 0;
   padding: .95rem 1rem;
-  border: 1px solid var(--ctl-border); border-radius: 18px;
+  border: 1px solid var(--ctl-border); border-radius: var(--radius-ctl);
   background: var(--card-bg); color: var(--ink);
   font: 400 15px/1 var(--sans); font-variant-numeric: tabular-nums;
 }
@@ -584,8 +739,9 @@ main {
 
 /* ---- 9. Icônes de rubrique ----
    Le sprite en ligne survit à la refonte : aucune requête réseau, aucun
-   CDN. Les 24 icônes météo, elles, ne sont plus POSÉES (le ciel dit le
-   temps qu'il fait) mais restent dans le document, prêtes à resservir.
+   CDN. Les 24 icônes météo, retirées de l'affichage le 28/07/2026, sont
+   REPOSÉES depuis le 29/07 sur l'icône de tête : les avoir gardées dans
+   le document a économisé la session qu'aurait coûtée leur redessin.
    --sw est l'épaisseur du trait dans le repère du dessin (viewBox 64). */
 .ico {
   width: 1em; height: 1em; flex: none;
@@ -606,8 +762,11 @@ main {
 .dash { stroke-dasharray: 3 4; }
 .ico-dt { font-size: 1.15rem; --sw: 4.4; color: var(--ink-faint); }
 
-/* ---- 10. Entrées en scène. L'ordre EST la hiérarchie : la ligne
-   brute d'abord, puis sa traduction, puis le détail. ---- */
+/* ---- 10. Entrées en scène. L'ordre EST la hiérarchie, et il a été
+   RENVERSÉ le 29/07/2026 : le message en clair arrive maintenant en
+   premier (sans délai), la provenance de la mesure ensuite (d1), puis la
+   course du soleil (d2), le relevé (d3) et les commandes (d4). La ligne
+   brute n'a plus de rang propre, elle vit repliée dans la carte d1. ---- */
 .rise { animation: mpRise var(--dur-enter) var(--ease-sky) both; }
 .d1 { animation-delay: 80ms; }
 .d2 { animation-delay: 160ms; }
@@ -810,6 +969,13 @@ main {
 <symbol id="d-phenomenes" viewBox="0 0 64 64">
   <path d="M32,8c0,0 15,17 15,27a15,15 0 0 1 -30,0C17,25 32,8 32,8z"/>
 </symbol>
+<!-- Le repère de lieu, ajouté le 29/07/2026. Il sert DEUX fois et c'est
+     voulu : sur la capsule de distance et sur le bouton principal. Le même
+     symbole aux deux endroits dit que les deux parlent du même sujet. -->
+<symbol id="d-lieu" viewBox="0 0 64 64">
+  <path d="M32,58c0,0 18,-20 18,-32a18,18 0 0 0 -36,0C14,38 32,58 32,58z"/>
+  <circle cx="32" cy="25" r="7"/>
+</symbol>
 <symbol id="d-mesures" viewBox="0 0 64 64">
   <path d="M26,40V18a6,6 0 0 1 12,0V40"/>
   <circle cx="32" cy="46" r="9"/>
@@ -847,14 +1013,34 @@ main {
 
   <article id="card" hidden>
 
-    <div class="card raw rise">
-      <span class="label" id="rawLabel"></span><span id="raw"></span>
-    </div>
-
-    <section class="hero rise d1">
+    <!-- LE HÉROS D'ABORD. L'ordre de la page a été renversé le 29/07/2026
+         (voir le commentaire de .station-card) : icône, temps qu'il fait,
+         conseil, température, puis la provenance de la mesure. -->
+    <section class="hero rise">
+      <div class="hero-ico" aria-hidden="true">
+        <svg class="ico" viewBox="0 0 64 64" focusable="false"><use id="heroUse" href="#i-unknown"/></svg>
+      </div>
       <h1 class="headline" id="headline"></h1>
+      <p class="conseil" id="conseil" hidden></p>
       <div class="temp"><span id="tempV"></span><span class="deg" id="tempDeg" hidden>°</span></div>
-      <p class="place"><span id="lieu"></span><span class="obs" id="obs"></span></p>
+      <p><span class="badge" id="badge"></span></p>
+    </section>
+
+    <!-- La provenance, en clair. Le METAR brut est dedans, replié. -->
+    <section class="card station-card rise d1">
+      <span class="label" id="stationLabel"></span>
+      <div class="station-nom">
+        <span id="lieu"></span>
+        <span class="capsule" id="capsule" hidden>
+          <svg class="ico" viewBox="0 0 64 64" aria-hidden="true" focusable="false"><use href="#d-lieu"/></svg>
+          <span id="capsuleTxt"></span>
+        </span>
+      </div>
+      <span class="obs" id="obs"></span>
+      <button class="raw-btn" id="rawToggle" type="button" aria-expanded="false" aria-controls="rawWrap"></button>
+      <div class="raw" id="rawWrap" hidden>
+        <span class="label" id="rawLabel"></span><span id="raw"></span>
+      </div>
     </section>
 
     <section class="card sun rise d2" id="sun">
@@ -879,7 +1065,10 @@ main {
     <div class="grid rise d3" id="report"></div>
 
     <div class="foot rise d4">
-      <button class="cta" id="openSheet" type="button"></button>
+      <button class="cta" id="openSheet" type="button">
+        <svg class="ico" viewBox="0 0 64 64" aria-hidden="true" focusable="false"><use href="#d-lieu"/></svg>
+        <span id="openSheetTxt"></span>
+      </button>
       <p class="tech" id="tech"></p>
     </div>
   </article>
@@ -949,12 +1138,31 @@ const TEXTES = {
 
     headlineDefaut: "Relevé disponible",
     stationInconnue: "Station inconnue",
-    lieu: "{nom}, à {km} km",
-    lieuSansDistance: "{nom}",
-    observe: "Observé à {heure} heure locale",
-    observeSansHeure: "Observé",
-    age: "il y a {min} min",
-    agePerime: "relevé vieux de {min} minutes",
+    // La distance quitte la phrase pour la capsule : le nom seul reste ici.
+    lieu: "{nom}",
+    capsuleKm: "{km} km",              // [à valider]
+    stationLabel: "station utilisée",  // [à valider]
+    badge: "Observation réelle",       // [à valider]
+    // « Mis à jour il y a 6 min » plutôt que « Observé à 15:00 heure locale
+    // · il y a 6 min » : une seule idée, aucune soustraction à faire.
+    maj: "Mis à jour il y a {min} min",              // [à valider]
+    majPerime: "Relevé vieux de {min} minutes",      // [à valider]
+    majInconnue: "Date de relevé inconnue",          // [à valider]
+    voirMetar: "Afficher le METAR",                  // [à valider]
+    cacherMetar: "Masquer le METAR",                 // [à valider]
+
+    // LA PHRASE DE CONSEIL. Un jeton par situation, rendu par
+    // `conseilToken` (script). L'ordre des clés n'a aucune importance :
+    // c'est le sélecteur qui décide, jamais cette table.  [à valider]
+    c_orage: "Orage en cours. Évitez les espaces découverts.",
+    c_verglas: "Pluie verglaçante. Sols très glissants.",
+    c_neige: "Neige en cours. Chaussée et trottoirs glissants.",
+    c_brouillard: "Brouillard dense. Visibilité très réduite.",
+    c_vent: "Vent sensible. Prudence à vélo.",
+    c_pluie: "Il pleut. Prenez de quoi vous couvrir.",
+    c_froid: "Il fait très froid. Couvrez-vous bien.",
+    c_chaud: "Très chaud aujourd'hui. Hydratez-vous.",
+    c_ideal: "Temps idéal pour les activités extérieures.",
 
     // Intitulés courts des trois mesures chiffrées, séparés de leurs
     // valeurs : la maquette les met en tête de carte, pas dans la phrase.
@@ -970,7 +1178,12 @@ const TEXTES = {
     coucher: "coucher {heure}",
     fuseauInconnu: "fuseau inconnu",
 
-    changerLieu: "Changer de lieu",        // [design]
+    // « Choisir une AUTRE VILLE » a été écarté, et ce n'est pas un détail de
+    // formulation : la feuille ne sait pas chercher une ville (il n'y a pas
+    // de géocodeur dans le projet). Le bouton promettrait ce qui n'existe
+    // pas. « Lieu » couvre exactement ce qu'elle offre : se localiser, ou
+    // saisir une position.
+    changerLieu: "Choisir un autre lieu",  // [à valider]
     ouEtesVous: "Où êtes-vous ?",          // [design]
     fermer: "fermer",                      // [design]
     boutonConsulter: "Consulter",
@@ -1007,12 +1220,25 @@ const TEXTES = {
 
     headlineDefaut: "Observation available",
     stationInconnue: "Unknown station",
-    lieu: "{nom}, {km} km away",
-    lieuSansDistance: "{nom}",
-    observe: "Observed at {heure} local time",
-    observeSansHeure: "Observed",
-    age: "{min} min ago",
-    agePerime: "observation is {min} minutes old",
+    lieu: "{nom}",
+    capsuleKm: "{km} km",              // [à valider]
+    stationLabel: "station used",      // [à valider]
+    badge: "Real observation",         // [à valider]
+    maj: "Updated {min} min ago",              // [à valider]
+    majPerime: "Observation is {min} minutes old", // [à valider]
+    majInconnue: "Observation time unknown",   // [à valider]
+    voirMetar: "Show the METAR",               // [à valider]
+    cacherMetar: "Hide the METAR",             // [à valider]
+
+    c_orage: "Thunderstorm in progress. Stay away from open ground.",
+    c_verglas: "Freezing rain. Surfaces are very slippery.",
+    c_neige: "Snow is falling. Roads and pavements are slippery.",
+    c_brouillard: "Dense fog. Visibility is very poor.",
+    c_vent: "Noticeable wind. Take care when cycling.",
+    c_pluie: "It is raining. Take something to keep dry.",
+    c_froid: "Very cold out. Wrap up warm.",
+    c_chaud: "Very hot today. Keep hydrated.",
+    c_ideal: "Ideal weather for outdoor activities.",
 
     labelRessenti: "feels like",
     labelHumidite: "humidity",
@@ -1026,7 +1252,7 @@ const TEXTES = {
     coucher: "sunset {heure}",
     fuseauInconnu: "unknown time zone",
 
-    changerLieu: "Change location", // [design]
+    changerLieu: "Choose another place", // [à valider]
     ouEtesVous: "Where are you?",   // [design]
     fermer: "close",                // [design]
     boutonConsulter: "Show",
@@ -1124,6 +1350,92 @@ function poserCiel(jeton, isDay) {
   html.dataset.pol = !nuit && CIELS_CLAIRS.has(ciel) ? "light" : "dark";
 }
 
+// ---------------------------------------------------------------
+// LA PHRASE DE CONSEIL (29/07/2026)
+//
+// Sélecteur NEUTRE : il rend un JETON, jamais une phrase. Le vocabulaire
+// vit dans TEXTES, sous la clé `c_<jeton>`. C'est exactement le découpage
+// de `icon.ts` / `headlineText` côté serveur, et pour la même raison :
+// Xavier peut réécrire les neuf phrases sans lire une seule condition, et
+// les deux langues ne peuvent pas diverger sur QUAND la phrase apparaît.
+//
+// Pourquoi ici et non dans l'API : ce n'est pas une traduction du METAR
+// mais une INTERPRÉTATION de valeurs déjà rendues par le contrat. La
+// mettre côté serveur imposerait de toucher `types.ts`, donc au contrat.
+//
+// LES SEUILS SONT DES DÉCISIONS, PAS DES MESURES. Ils sont nommés et
+// groupés ici pour qu'ils se discutent d'un coup d'œil. Ils sont
+// délibérément PRUDENTS : une phrase qui s'affiche tout le temps ne veut
+// plus rien dire, donc en cas de doute on ne dit rien (retour `null`).
+// ---------------------------------------------------------------
+const SEUILS = {
+  ventKmh: 30,        // vitesse moyenne à partir de laquelle le vent gêne
+  rafaleKmh: 50,      // ou rafale, qui gêne plus tôt qu'une moyenne
+  brouillardM: 1000,  // visibilité sous laquelle on parle de brouillard dense
+  froidC: 0,          // ressenti (et non température) : c'est lui qu'on subit
+  chaudC: 30,
+  idealMin: 15,       // fenêtre de la phrase « temps idéal »
+  idealMax: 27,
+};
+
+// Les jetons d'icône qui disent qu'il TOMBE quelque chose, par famille.
+const JETONS_NEIGE = new Set(["snow", "sleet", "hail"]);
+const JETONS_PLUIE = new Set(["drizzle", "rain_light", "rain", "rain_heavy",
+  "showers_day", "showers_night"]);
+const JETONS_CIEL_CLAIR = new Set(["clear_day", "clear_night", "few_day", "few_night"]);
+
+function conseilToken(r) {
+  // L'ordre EST la règle : on ne dit qu'UNE chose, donc la plus grave
+  // d'abord. Il reprend la priorité d'icône du contrat (orage → verglas →
+  // grêle/neige → pluie → brouillard), pour que la phrase et le symbole
+  // ne puissent pas raconter deux histoires différentes. Le vent s'y
+  // glisse avant la pluie : sous la pluie, c'est le vent qui décide si le
+  // parapluie sert à quelque chose.
+  const jeton = r.icon;
+  if (jeton === "thunderstorm") return "orage";
+  if (jeton === "freezing_rain") return "verglas";
+  if (JETONS_NEIGE.has(jeton)) return "neige";
+
+  // Brouillard : on exige la VALEUR de visibilité et pas seulement le
+  // jeton. `mist`, `dust` et `smoke` partagent le ciel du brouillard sans
+  // forcément boucher la vue ; annoncer « visibilité très réduite » à
+  // 8 km serait faux. CAVOK écarte le cas d'office.
+  const vis = r.visibility;
+  if (vis && !vis.isCavok && vis.value !== null && vis.value < SEUILS.brouillardM) {
+    return "brouillard";
+  }
+
+  const v = r.wind;
+  if (v && (
+    (v.speed !== null && v.speed >= SEUILS.ventKmh) ||
+    (v.gust !== null && v.gust >= SEUILS.rafaleKmh)
+  )) return "vent";
+
+  if (JETONS_PLUIE.has(jeton)) return "pluie";
+
+  // Le RESSENTI et non la température : c'est lui qui dit s'il faut se
+  // couvrir. Absent (le contrat l'autorise), on se tait plutôt que de
+  // retomber sur la température sèche, qui ment par grand vent.
+  const t = r.temperature;
+  const ressenti = t ? t.feelsLike : null;
+  if (ressenti !== null && ressenti !== undefined) {
+    if (ressenti <= SEUILS.froidC) return "froid";
+    if (ressenti >= SEUILS.chaudC) return "chaud";
+  }
+
+  // « Temps idéal » : le cas le plus exigeant, parce que c'est le seul qui
+  // INVITE à sortir. Il faut donc un ciel dégagé, du jour, et une
+  // température franchement agréable. De nuit la phrase n'a pas de sens.
+  const isDay = r.sun ? r.sun.isDay : null;
+  if (isDay === true && JETONS_CIEL_CLAIR.has(jeton) &&
+      ressenti !== null && ressenti !== undefined &&
+      ressenti >= SEUILS.idealMin && ressenti <= SEUILS.idealMax) {
+    return "ideal";
+  }
+
+  return null; // rien de notable à dire : on se tait, et la ligne disparaît
+}
+
 // Ciel de service : neutre pendant la recherche, chaud sur une panne.
 // Les deux sont SOMBRES, donc polarité d'encre claire dans les deux cas.
 function poserCielService(etat) {
@@ -1139,9 +1451,11 @@ function poserCielService(etat) {
 
 // Une carte de rubrique : icône, intitulé, phrase déjà rédigée par l'API.
 // L'icône est décorative (aria-hidden) : l'intitulé à côté dit la même chose.
-function carteTexte(intitule, phrase, icone) {
+// `majeur` donne à la carte le poids visuel supérieur (voir .card.majeur) :
+// une seule rubrique le porte aujourd'hui, le vent.
+function carteTexte(intitule, phrase, icone, majeur) {
   const div = document.createElement("div");
-  div.className = "card";
+  div.className = majeur ? "card majeur" : "card";
   div.innerHTML =
     `<div class="row-head">` +
     `<svg class="ico ico-dt" viewBox="0 0 64 64" aria-hidden="true" focusable="false">` +
@@ -1154,7 +1468,10 @@ function carteTexte(intitule, phrase, icone) {
 
 // La carte du vent : même en-tête, mais une rose des vents en plus.
 function carteVent(intitule, phrase, vent) {
-  const div = carteTexte(intitule, "", "d-vent");
+  // LA SEULE carte majeure de la page (29/07/2026, demande de Xavier). Le
+  // vent conditionne ce qu'on fait de sa journée bien plus que la
+  // visibilité ; les traiter à poids égal était une hiérarchie plate.
+  const div = carteTexte(intitule, "", "d-vent", true);
   const txt = div.querySelector(".row-txt");
   txt.remove();
 
@@ -1253,6 +1570,16 @@ function afficherChargement(lang) {
   $("skelTxt").textContent = T(lang).chargement;
 }
 
+// LE METAR, FONCTION D'EXPERT (29/07/2026). Il n'ouvre plus la page : il
+// se déplie. `aria-expanded` porte l'état pour les technologies
+// d'assistance, `hidden` pour tout le monde ; les deux sont réglés au même
+// endroit pour qu'ils ne puissent pas se contredire.
+function majRawToggle(lang) {
+  const ouvert = !$("rawWrap").hidden;
+  $("rawToggle").textContent = ouvert ? T(lang).cacherMetar : T(lang).voirMetar;
+  $("rawToggle").setAttribute("aria-expanded", String(ouvert));
+}
+
 // Applique la langue à tout ce qui ne dépend PAS d'une réponse de l'API :
 // commandes, intitulés, et l'écran de service en cours.
 function appliquerChrome(lang) {
@@ -1263,7 +1590,16 @@ function appliquerChrome(lang) {
   }
   $("rawLabel").textContent = t.rawLabel;
   $("sunLabel").textContent = t.sunLabel;
-  $("openSheet").textContent = t.changerLieu;
+  $("stationLabel").textContent = t.stationLabel;
+  $("badge").textContent = t.badge;
+  // Le libellé du dépliant dépend de son ÉTAT, pas seulement de la langue :
+  // basculer en anglais alors que le METAR est ouvert doit donner « Hide »
+  // et non « Show ». C'est la régression du 28/07/2026 (la page à moitié
+  // française) sous une autre forme : tout libellé statique se règle ICI.
+  majRawToggle(lang);
+  // TEXTCONTENT INTERDIT sur ce bouton : il contient une icône, et la lui
+  // écraser la ferait disparaître à la première bascule de langue.
+  $("openSheetTxt").textContent = t.changerLieu;
   $("sheetTitre").textContent = t.ouEtesVous;
   $("closeSheet").textContent = t.fermer;
   $("hereTxt").textContent = t.boutonIci;
@@ -1327,31 +1663,49 @@ function afficher(r, lang) {
   $("tempV").textContent = aTemp ? String(r.temperature.value) : "";
   $("tempDeg").hidden = !aTemp;
 
-  // 2. Provenance : quelle station, à quelle distance, et à quelle heure
-  // LOCALE de la station. L'âge n'est signalé que s'il devient gênant.
-  // Chaque morceau est une phrase entière du dictionnaire : « à 21,4 km »
-  // devient « 21.4 km away », ce qu'une concaténation ne saurait pas faire.
-  const s = r.station;
-  const nom = s.name ?? s.icao ?? t.stationInconnue;
-  const lieu = s.distanceKm !== null
-    ? remplir(t.lieu, { nom, km: nombre(s.distanceKm, lang) })
-    : remplir(t.lieuSansDistance, { nom });
-  const heure = r.observedLocal
-    ? remplir(t.observe, { heure: r.observedLocal })
-    : t.observeSansHeure;
-  const age = r.isStale
-    ? remplir(t.agePerime, { min: r.ageMinutes })
-    : remplir(t.age, { min: r.ageMinutes });
+  // 1 bis. L'icône de tête. Repli sur #i-unknown pour un jeton inconnu ou
+  // nul : c'est un nuage en pointillé, donc un dessin et jamais un carré
+  // vide. Même réflexe que le repli `neutral` de la table CIELS.
+  const jetonSur = r.icon && document.getElementById(`i-${r.icon}`) ? r.icon : "unknown";
+  $("heroUse").setAttribute("href", `#i-${jetonSur}`);
 
-  $("lieu").textContent = lieu;
-  $("obs").textContent = "";
-  const spanObs = document.createElement("span");
-  spanObs.textContent = heure;
-  const sep = document.createTextNode(" · ");
-  const spanAge = document.createElement("span");
-  spanAge.textContent = age;
-  if (r.isStale) spanAge.className = "stale";
-  $("obs").append(spanObs, sep, spanAge);
+  // 1 ter. La phrase de conseil. Jeton d'abord, mot ensuite : si le
+  // sélecteur ne trouve rien de notable à dire, la ligne DISPARAÎT plutôt
+  // que d'occuper la place avec une banalité.
+  const conseil = conseilToken(r);
+  const phraseConseil = conseil ? t[`c_${conseil}`] : null;
+  $("conseil").textContent = phraseConseil ?? "";
+  $("conseil").hidden = !phraseConseil;
+
+  // 1 quater. Le badge : ce que cette application est seule à pouvoir dire.
+  $("badge").textContent = t.badge;
+
+  // 2. Provenance : quelle station, à quelle distance, et de quand date la
+  // mesure. Chaque morceau est une phrase entière du dictionnaire.
+  // L'HEURE LOCALE N'EST PLUS AFFICHÉE (elle demandait une soustraction au
+  // lecteur) mais elle reste LUE : c'est elle qui place le soleil sur son
+  // arc, plus bas. Ne pas la croire inutilisée.
+  const s = r.station;
+  $("lieu").textContent = remplir(t.lieu, { nom: s.name ?? s.icao ?? t.stationInconnue });
+
+  // La distance passe en capsule, arrondie au kilomètre. `nombre` reste
+  // nécessaire malgré l'arrondi : il vaut aussi pour les distances à trois
+  // chiffres et garde la règle du séparateur décimal en un seul endroit.
+  const aDistance = s.distanceKm !== null;
+  $("capsule").hidden = !aDistance;
+  if (aDistance) {
+    $("capsuleTxt").textContent =
+      remplir(t.capsuleKm, { km: nombre(Math.round(s.distanceKm), lang) });
+  }
+
+  // Fraîcheur, en une seule phrase. `ageMinutes` peut manquer sur un METAR
+  // dont l'horodatage est illisible : on le dit plutôt que d'écrire
+  // « il y a null min ».
+  const aAge = r.ageMinutes !== null && r.ageMinutes !== undefined;
+  $("obs").textContent = !aAge
+    ? t.majInconnue
+    : remplir(r.isStale ? t.majPerime : t.maj, { min: r.ageMinutes });
+  $("obs").className = r.isStale ? "obs stale" : "obs";
 
   // 3. Le relevé. Une carte n'apparaît que si le backend a quelque chose à
   // en dire : un METAR muet sur les nuages ne produit pas de carte vide.
@@ -1503,6 +1857,11 @@ function fermerFeuille() {
   $("veil").classList.remove("on");
   fermetureEnCours = setTimeout(() => { $("sheet").hidden = true; }, 700);
 }
+
+$("rawToggle").addEventListener("click", () => {
+  $("rawWrap").hidden = !$("rawWrap").hidden;
+  majRawToggle(langue);
+});
 
 $("openSheet").addEventListener("click", ouvrirFeuille);
 $("closeSheet").addEventListener("click", fermerFeuille);

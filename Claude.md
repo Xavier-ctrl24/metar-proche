@@ -239,7 +239,7 @@ npx tsc --noEmit  vérification des types
 Construction par étapes selon `PROMPT.md`. L'arrêt-validation après chaque étape
 a été LEVÉ le 27/07/2026 (voir « Mode de travail ») : les étapes s'enchaînent
 désormais sans attendre. Les tests précèdent toujours le code.
-À ce jour : 298 tests passent, `npm run type-check` exit 0.
+À ce jour : 301 tests passent, `npm run type-check` exit 0.
 
 Les dix étapes du plan sont FAITES et validées, et la V1 est en ligne. Le
 projet n'est donc plus en construction mais en amélioration : il n'y a plus
@@ -934,6 +934,107 @@ Fait et validé :
   PAS DE TEST sur `capacitor.config.ts` ni sur le projet `android/` : ce sont
   des fichiers de configuration, et la page reste non testée pour la raison
   déjà écrite le 28/07.
+
+- 29/07/2026 — FINITION « PLAY STORE ». Demande de Xavier : passer d'un design
+  déjà bon à une impression de qualité premium, SANS refonte, sans casser une
+  fonctionnalité et sans toucher à l'API. `public/index.html` seul. Les 301
+  tests et le type-check sont restés verts de bout en bout, ce qui était
+  attendu : la page n'est pas testée (raison inchangée depuis le 28/07).
+  LE RENVERSEMENT PRINCIPAL : la chaîne METAR n'ouvre plus la page. Elle
+  l'ouvrait depuis le premier jour, et la maquette en faisait la signature du
+  produit — mais pour le grand public, qui EST la cible déclarée, c'est une
+  suite de sigles illisible en première position. La page commence désormais
+  par l'icône, le temps qu'il fait, le conseil, la température et le badge ;
+  la provenance vient ensuite ; le METAR se déplie à la demande depuis la
+  carte de provenance. Il devient une fonction d'EXPERT, il ne disparaît pas.
+  DEUX DÉCISIONS DU 28/07 SONT RENVERSÉES, sur demande explicite de Xavier, et
+  il faut le savoir avant de « corriger » ce qui ressemble à une régression :
+  (a) l'icône météo de tête REVIENT. Elle avait été retirée sur son arbitrage
+  inverse (« le ciel dit déjà le temps qu'il fait »). L'argument qui l'emporte
+  aujourd'hui : le ciel est un FOND, il se lit par imprégnation ; un symbole
+  se lit d'un coup d'œil. Les 24 icônes gardées « inutilisées mais prêtes »
+  dans le sprite ont servi exactement à ça, et ont économisé la session
+  qu'aurait coûtée leur redessin.
+  (b) l'heure locale d'observation n'est plus AFFICHÉE (« Mis à jour il y a
+  6 min » remplace « Observé à 15:00 heure locale · il y a 6 min »). Elle est
+  toujours LUE : c'est elle qui place le soleil sur son arc. Ne pas croire
+  `observedLocal` inutilisé.
+  LE DÉFAUT LE PLUS INSTRUCTIF, et il dormait depuis le 28/07 : `--ico-sun` et
+  `--ico-wet` n'étaient DÉFINIS NULLE PART. Les accents avaient été mesurés et
+  validés le 28/07 au matin, puis le système de design a retiré l'icône de
+  tête l'après-midi ; plus rien ne les consommait, et `.c-sun`/`.c-wet`
+  retombaient silencieusement sur leur repli `currentColor`. Le sprite serait
+  donc redevenu MONOCHROME à la seconde où l'on repose une icône. Restaurés,
+  et attachés à la POLARITÉ et non à la condition : c'est l'axe qui décide
+  déjà de l'encre et du verre. Leçon générale : un jeton dont plus personne ne
+  se sert ne meurt pas, il attend, et son repli est ce qu'on verra.
+  LA PHRASE DE CONSEIL, et son découpage. C'est la SEULE chose de la page qui
+  ne vienne ni du METAR ni du bloc `text`. Elle est déduite de valeurs déjà
+  rendues par le contrat, donc elle vit côté page : la mettre côté serveur
+  imposerait de toucher `types.ts`. Découpage volontairement identique à
+  `icon.ts` / `headlineText` : `conseilToken(r)` est NEUTRE et rend un jeton,
+  le vocabulaire vit dans `TEXTES` sous `c_<jeton>`. Xavier réécrit les neuf
+  phrases sans lire une seule condition, et les deux langues ne peuvent pas
+  diverger sur QUAND la phrase apparaît. L'ordre des tests reprend la priorité
+  d'icône du contrat, pour que le symbole et la phrase ne racontent pas deux
+  histoires ; le vent s'y glisse avant la pluie (sous la pluie, c'est lui qui
+  décide si le parapluie sert). Quand rien n'est notable, la ligne DISPARAÎT :
+  une phrase affichée en permanence ne veut plus rien dire.
+  DEUX PIÈGES ÉVITÉS DANS `conseilToken` : le brouillard exige la VALEUR de
+  visibilité et pas seulement le jeton (`mist`, `dust`, `smoke` partagent le
+  ciel `fg` sans forcément boucher la vue — annoncer « visibilité très
+  réduite » à 8 km serait faux) ; et le froid/chaud se juge sur le RESSENTI,
+  absent duquel on se tait plutôt que de retomber sur la température sèche,
+  qui ment par grand vent.
+  HIÉRARCHIE DES CARTES : elle ne pouvait PAS passer par la largeur, car
+  `.grid .card` occupe déjà les trois colonnes — « plus large » n'existe pas
+  ici. Elle passe donc par la respiration interne, la taille de l'icône et
+  celle de la phrase (`.card.majeur`). Une seule rubrique la porte : le vent.
+  CONTRASTE, sonde du 28/07 REPASSÉE et non supposée. Elle a d'abord été
+  VALIDÉE contre une valeur connue : son témoin « texte sur ciel » ressort à
+  6,64, exactement la valeur consignée le 28/07. Elle a ensuite servi : la
+  bordure `--hair` du badge et de la capsule tombait à 1,01:1 sur le fond de
+  la pastille, donc une pastille sans contour visible. `--card-border` la
+  remonte à 3,13. Texte du badge et de la capsule à 4,78 (pire cas `sct` de
+  jour), conseil sur ciel à 5,80. Les pires cas sont tous en HAUT d'écran, là
+  où le voile de lecture agit le moins, et c'est justement là que vivent ces
+  éléments. RÈGLE QUI EN DÉCOULE et qui vaut pour la suite : tout composant
+  neuf se bâtit sur les jetons DÉJÀ mesurés. Un `rgba()` inventé passe tous
+  les contrôles qu'on peut faire à l'œil et aucun de ceux qui comptent.
+  ANIMATIONS : rien n'a été AJOUTÉ au ciel, qui animait déjà pluie, neige,
+  étoiles, éclair, brouillard et dérive des nuages via `--fx`/`--fx-anim`.
+  Une seconde couche aurait coûté du GPU pour redire la même chose. Deux
+  respirations seulement, en opacité et en échelle donc composées sans
+  repeinte : le halo de l'icône de tête, et celui du disque solaire. Sur ce
+  dernier, l'échelle était EXCLUE d'avance : le disque est positionné par
+  `cx`/`cy`, une mise à l'échelle l'aurait fait glisser vers l'origine du SVG.
+  On n'anime donc que l'opacité et le rayon.
+  ÉCARTÉ, et c'est un refus de promettre ce qui n'existe pas : « Choisir une
+  autre ville » / « Rechercher une ville ». La feuille ne sait pas chercher
+  une ville, il n'y a pas de géocodeur dans le projet. Le bouton dit donc
+  « Choisir un autre lieu », ce qu'elle offre réellement.
+  VÉRIFIÉ PAR SONDE, toujours sans capture d'écran : les dix jetons de conseil
+  forcés un à un (y compris le cas « rien à dire »), repli `#i-unknown` sur
+  jeton inconnu ET nul, `isStale`, `distanceKm` nulle, station sans nom,
+  `sun` nul, `ageMinutes` absent, chargement, panne FR et EN, accueil
+  réaffiché après panne (ciel bien revenu au neutre), parité fr/en des 18
+  clés nouvelles, aucune clé orpheline, cibles tactiles toutes ≥ 24 px,
+  débordement horizontal nul à 375 px et en pleine largeur, feuille
+  atteignable par pointage réel sur chaque contrôle, rayons unifiés
+  (24 px cartes, 20 px contrôles via `--radius-ctl`), accents résolus dans
+  les DEUX polarités. Console sans erreur.
+  LA RÉGRESSION GUETTÉE, celle du 28/07 (la page à moitié française) : tout
+  libellé statique neuf est câblé dans `appliquerChrome` et non dans
+  `afficher`. Vérifié dans le cas qui la déclencherait — bascule en anglais
+  alors que le METAR est DÉPLIÉ : le bouton passe bien à « Hide the METAR » et
+  non à « Show ». Piège voisin, évité : `openSheet` contient désormais une
+  icône, donc un `textContent` sur le bouton l'effacerait à la première
+  bascule de langue. Le texte va dans `#openSheetTxt`.
+  EN ATTENTE DE XAVIER — les 18 formulations nouvelles, marquées `[à valider]`
+  dans `TEXTES` (règle anti « parser contre lui-même » : proposées, jamais
+  entérinées), et les SEUILS de `conseilToken`, qui sont d'une autre nature :
+  ce sont des décisions et non des mesures. Ils sont nommés et groupés dans
+  la constante `SEUILS` pour se discuter d'un coup d'œil.
 
 Prochaine étape (à décider avec Xavier) :
 - ICÔNE ET ÉCRAN DE DÉMARRAGE DE L'APPLICATION : encore ceux de Capacitor (le

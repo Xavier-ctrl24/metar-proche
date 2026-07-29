@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">QuelTemps</string>
+    <string name="title_activity_main">QuelTemps</string>
+    <string name="package_name">fr.queltemps.app</string>
+    <string name="custom_url_scheme">fr.queltemps.app</string>
+</resources>

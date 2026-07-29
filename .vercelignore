@@ -57,6 +57,16 @@ icones-controle.html
 # seules partent en production.
 logo/
 
+# --- Application Android (Capacitor, 29/07/2026) ---
+# Le projet Gradle genere par `npx cap add android`. Il EMBARQUE une copie de
+# public/ pour la fabriquer en APK ; il n'a donc rien a servir en ligne, et
+# c'est plusieurs milliers de fichiers.
+# Explicite plutot qu'implicite : `"framework": null` de vercel.json fige deja
+# la detection, mais ce depot a ete casse trois fois le 27/07/2026 par ce que
+# Vercel CROYAIT deviner de sa racine. On ne lui laisse pas l'occasion.
+android/
+capacitor.config.ts
+
 # --- Outillage local ---
 .claude/
 .vscode/

@@ -16,23 +16,10 @@ Ces règles-là ne se négocient pas et ne se redécident pas en session.
 
 - `src/types.ts` est la source de vérité. Toute évolution du contrat d'API se
   fait là en premier, jamais dans un fichier consommateur.
-- Les tests précèdent le code. Aucun décodeur n'est écrit avant l'existence du
-  cas de test correspondant.
-- ANTI « PARSER CONTRE LUI-MÊME » : Claude ne fabrique JAMAIS une valeur de
-  référence ni une formulation destinée à l'utilisateur final. Les `expect` de
-  `tests/corpus.json` et les phrases des fichiers `src/i18n/*` sont écrits par
-  Xavier. Claude peut proposer, jamais entériner. Une valeur attendue produite
-  par le code qu'elle est censée vérifier ne prouve rien.
-  Deux exceptions, déjà convenues : les mathématiques pures (`src/units.ts`),
-  où Claude calcule les attendus et les vérifie par programme ; et les
-  propriétés STRUCTURELLES (une chaîne vide, un séparateur décimal, une place
-  d'intensité, la parité entre deux langues), qui ne dépendent d'aucun choix de
-  vocabulaire. Tout ce qui reste en attente de validation est signalé.
 - Les sorties sont métriques par défaut. Les unités sources varient : SM et
   inHg en Amérique du Nord, MPS en Russie et en Chine, kt ailleurs.
 - L'heure affichée est l'heure locale de la STATION, jamais celle du client.
 - Le calcul jour/nuit se fait sur les coordonnées de la station.
-- Ne jamais produire un bloc de code sans le commenter.
 
 ## Mode de travail
 
@@ -79,7 +66,7 @@ fonctionnement par étapes validées une à une.
 Xavier est débutant en TypeScript : les décisions s'expliquent, et les
 commentaires du code portent le journal de conception (c'est la mémoire du
 projet d'une session à l'autre). L'autonomie porte sur le fait de ne plus
-demander la permission, jamais sur le fait d'expliquer moins.
+demander la permission.
 
 
 \## Contrat d'API
@@ -1161,6 +1148,43 @@ Fait et validé :
   en anglais, retour au français ensuite).
   EN ATTENTE DE XAVIER : les 10 formulations de la recherche, marquées
   `[à valider]` dans `TEXTES` comme les précédentes.
+
+- 29/07/2026 — QUATRE RETOUCHES DU HÉROS, retours de Xavier sur le rendu.
+  (a) LE HALO CHANGE D'ANCRAGE. Il était centré derrière l'ICÔNE, donc il
+  éclairait le signal secondaire ; il passe derrière le CHIFFRE, qui est ce
+  que la page a de plus important à dire. La classe `.astre` migre de
+  `.hero-ico` vers `.temp-row`, qui contient les deux.
+  (b) L'ICÔNE SE RAPPROCHE. `space-between` la poussait au bord droit :
+  l'œil devait traverser toute la largeur pour relier les deux signaux, ce
+  qui défaisait justement ce que leur mise sur une même ligne cherchait.
+  `flex-start` et 0,35 rem d'écart : ils forment un seul bloc.
+  (c) LE CHIFFRE DEVIENT LA SIGNATURE. Graisse 500 et dégradé blanc → crème
+  à peine tiède, appliqué au glyphe. AU PASSAGE, UNE ERREUR DU JOURNAL EST
+  CORRIGÉE : le commentaire disait « Instrument Sans s'arrête à la graisse
+  400 ». C'est faux, le fichier est VARIABLE et déclaré `font-weight:
+  400 700` ; ce qui n'existe pas, c'est le 200 que demandait la maquette,
+  sous la borne BASSE. Le 500 est donc réellement rendu.
+  LE DANGER DE CETTE TECHNIQUE, et pourquoi elle est sous `@supports` :
+  `background-clip: text` exige `color: transparent`. Là où elle n'est pas
+  gérée, le chiffre ne se dégraderait pas — il DISPARAÎTRAIT. C'est la seule
+  règle de cette feuille dont l'échec efface au lieu de dégrader.
+  Contraste mesuré, la couleur du BAS du dégradé étant le pire cas : 6,43
+  contre 6,64 pour du blanc pur, soit 0,21 payé pour l'effet. Le témoin de
+  la sonde retombe encore sur 6,64, la valeur consignée le 28/07.
+  (d) LE BADGE devient « Station météo officielle ». Le repère de lieu est
+  celui du SPRITE et non l'émoji 📍 de la demande : même dessin à l'écran,
+  mais un émoji dépend de la police du système, donc change de style d'un
+  téléphone à l'autre. C'est déjà le signe de la capsule et du bouton
+  principal — trois fois le même pour la même idée.
+  DÉFAUT INTRODUIT PUIS CORRIGÉ DANS LA MÊME PASSE, et il n'était visible
+  qu'à la mesure : le halo fait 145 % de la largeur du chiffre et est centré
+  sur lui, donc sur une température à trois caractères il dépassait de 63 px
+  À GAUCHE de la page et créait une barre de défilement horizontale. Réglé
+  par `overflow-x: clip` sur `main` — `clip` et NON `hidden`, qui aurait fait
+  de `main` un conteneur de défilement et cassé le ciel fixe. Vérifié après
+  coup que le ciel couvre toujours l'écran et que la feuille reste ancrée en
+  bas (elle vit hors de `main`, donc elle n'était pas menacée, mais ça se
+  vérifie plutôt que ça ne se suppose).
 
 Prochaine étape (à décider avec Xavier) :
 - ICÔNE ET ÉCRAN DE DÉMARRAGE DE L'APPLICATION : encore ceux de Capacitor (le

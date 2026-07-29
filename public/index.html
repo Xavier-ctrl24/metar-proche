@@ -195,6 +195,12 @@
      donc un seul endroit à corriger. Valeurs mesurées, voir CLAUDE.md. */
   --ico-sun: #F5A623;   /* ambre clair, sur ciel sombre */
   --ico-wet: #7FB3E8;   /* bleu éclairci, sur ciel sombre */
+  /* Dégradé du chiffre géant. Blanc pur en haut, crème à peine tiède en
+     bas : l'écart est volontairement minuscule (255,255,255 -> 255,247,232),
+     parce qu'un dégradé qu'on REMARQUE sur un chiffre de cette taille
+     ressemble à un défaut d'affichage. Le pire cas de contraste est donc la
+     couleur du BAS, mesurée comme le reste. */
+  --temp-grad: linear-gradient(178deg, #FFFFFF 34%, #FFF7E8 100%);
   /* Assombrissement de lecture. Les dégradés de la maquette finissent
      presque blancs en bas (#E2F0FB sur CAVOK) : sans ce voile, une carte
      en bas d'écran serait du blanc sur du blanc. C'est le trou que la
@@ -224,6 +230,10 @@
      reste chaud là où un ambre conforme aurait viré au brun. */
   --ico-sun: #C96A00;
   --ico-wet: #2B6CB0;
+  /* Sur ciel presque blanc, le dégradé va vers le SOMBRE et non vers le
+     crème : s'éclaircir ici ferait perdre du contraste à chaque pixel
+     gagné en style. Même inversion que les deux accents ci-dessus. */
+  --temp-grad: linear-gradient(178deg, #16212C 34%, #2B2114 100%);
   /* Ces ciels-là s'éclaircissent vers le bas : l'encre sombre y gagne du
      contraste au lieu d'en perdre. Le voile n'a donc à agir qu'en haut,
      là où le dégradé est le plus foncé (#8D989E sur le brouillard). */
@@ -390,6 +400,14 @@ body {
 main {
   position: relative;
   z-index: 1;
+  /* Le halo du chiffre est plus LARGE que le chiffre (145 %) et centré sur
+     lui : posé sur une température à trois caractères, il dépassait de 63 px
+     à gauche de la page et créait une barre de défilement horizontale.
+     `clip` et non `hidden` : `hidden` ferait de `main` un conteneur de
+     défilement, ce qui casserait le collage du ciel et l'ancrage de la
+     feuille ; `clip` coupe sans rien rendre défilable. Sur l'axe Y tout
+     reste visible, donc rien d'autre n'est rogné. */
+  overflow-x: clip;
   max-width: 27rem;
   margin: 0 auto;
   padding: max(1rem, env(safe-area-inset-top)) 1.5rem
@@ -512,9 +530,14 @@ main {
    l'écran ; c'est l'icône qui doit venir à lui, calée à droite, et non
    l'inverse. `align-items: center` aligne les deux CENTRES OPTIQUES —
    caler sur la ligne de base ferait flotter l'icône, qui n'en a pas. */
+/* L'ICÔNE EST COLLÉE AU CHIFFRE (29/07/2026, retour de Xavier). Elle était
+   poussée au bord droit par `space-between` : l'œil devait traverser toute
+   la largeur pour relier les deux signaux, ce qui défait justement ce que
+   leur mise sur une même ligne cherchait. Ils forment maintenant un seul
+   bloc, calé à gauche. */
 .temp-row {
-  display: flex; align-items: center; justify-content: space-between;
-  gap: 1rem; margin-top: .35rem;
+  display: flex; align-items: center; justify-content: flex-start;
+  gap: .35rem; margin-top: .35rem;
 }
 
 /* Taille fluide comme le chiffre, mais d'amplitude plus faible : à 33vw
@@ -526,23 +549,32 @@ main {
   width: clamp(4rem, 19vw, 5.2rem); height: clamp(4rem, 19vw, 5.2rem);
 }
 .hero-ico .ico { width: 100%; height: 100%; --sw: 2.6; position: relative; z-index: 1; }
-/* Le halo, en pseudo-élément : une seule couche, animée en opacité et en
-   échelle, donc composée par le GPU sans repeindre quoi que ce soit. */
-.hero-ico::before {
-  content: ""; position: absolute; inset: -18%;
+/* LE HALO A CHANGÉ D'ANCRAGE (29/07/2026, retour de Xavier). Il était
+   centré derrière l'ICÔNE, donc il éclairait le signal secondaire ; posé
+   derrière le CHIFFRE, il attire l'œil sur ce que la page a de plus
+   important à dire. Il reste un pseudo-élément unique, animé en opacité et
+   en échelle seulement, donc composé par le GPU sans aucune repeinte.
+   `position: absolute` le sort du flux, donc il n'est PAS un élément de
+   la flexbox `.temp` et ne décale rien. `z-index: -1` le range derrière le
+   chiffre sans sortir de `main`, qui a déjà son propre plan (z-index 1). */
+.temp::before {
+  content: ""; position: absolute; z-index: -1;
+  left: 50%; top: 50%; transform: translate(-50%, -50%);
+  width: 145%; height: 125%;
   border-radius: 50%;
-  background: radial-gradient(circle, var(--halo-ico) 0%, transparent 68%);
+  background: radial-gradient(closest-side, var(--halo-ico) 0%, transparent 72%);
   opacity: .16;
   animation: mpBreathe2 7s ease-in-out infinite;
 }
 /* LE HALO N'EST AMBRÉ QUE S'IL Y A UN ASTRE, et ce n'est pas une coquetterie.
-   Un halo chaud derrière `#i-rain` ou `#i-fog` peindrait une source de
-   lumière que le METAR ne rapporte pas : c'est la même faute que donnerait
+   Un halo chaud sous un temps de pluie ou de brouillard peindrait une source
+   de lumière que le METAR ne rapporte pas : c'est la même faute que donnerait
    un beau ciel bleu sur le jeton `unknown`. Par défaut il prend donc
    l'encre, qui n'affirme rien ; la classe `.astre` est posée par le script
-   sur les seuls jetons qui portent soleil, lune ou éclair. */
-.hero-ico { --halo-ico: var(--ink); }
-.hero-ico.astre { --halo-ico: var(--ico-sun); }
+   sur les seuls jetons qui portent soleil, lune ou éclair. Elle vit
+   désormais sur `.temp-row`, qui contient à la fois le chiffre et l'icône. */
+.temp-row { --halo-ico: var(--ink); }
+.temp-row.astre { --halo-ico: var(--ico-sun); }
 
 .headline {
   margin: 0;
@@ -570,12 +602,41 @@ main {
    que le fichier dise ce qui se passe vraiment. */
 .temp {
   display: flex; align-items: flex-start; gap: 2px;
+  position: relative; /* ancre le halo, qui est en absolu */
   /* La marge est passée sur .temp-row : posée ici, elle décalerait le
      chiffre vers le bas À L'INTÉRIEUR de la ligne, donc le désalignerait
      de l'icône que ce centrage vient justement d'accorder. */
-  font: 400 clamp(5rem, 33vw, 8.1rem)/.86 var(--sans);
+  /* GRAISSE 500 (29/07/2026). Le commentaire précédent disait « Instrument
+     Sans s'arrête à 400 » : c'est FAUX et ça méritait d'être corrigé plutôt
+     que recopié. Le fichier est VARIABLE et déclaré `font-weight: 400 700`
+     plus haut — ce qui n'existe pas, c'est le 200 que demandait la maquette,
+     sous la borne basse. 500 est donc réellement rendu, et c'est ce que
+     « un peu plus épais » veut dire ici : la différence se sent sans se voir. */
+  font: 500 clamp(5rem, 33vw, 8.1rem)/.86 var(--sans);
   letter-spacing: -.06em;
   font-variant-numeric: tabular-nums;
+}
+
+/* LE CHIFFRE COMME SIGNATURE (29/07/2026, demande de Xavier : « une
+   sensation de volume, pas d'effet visible »). Un dégradé très court, du
+   blanc pur vers un crème à peine tiède, appliqué au GLYPHE lui-même. Sur
+   ciel clair (polarité light) il descend vers un brun sombre plutôt que
+   vers le crème : un dégradé qui s'éclaircit y perdrait du contraste au
+   lieu d'en donner.
+   SOUS @supports, ET CE N'EST PAS UNE PRÉCAUTION DE STYLE : la technique
+   exige `color: transparent`, donc là où `background-clip: text` n'est pas
+   gérée, le chiffre deviendrait purement INVISIBLE. C'est la seule règle de
+   cette feuille dont l'échec ne dégrade pas l'affichage mais l'efface. */
+@supports ((-webkit-background-clip: text) or (background-clip: text)) {
+  .temp {
+    background-image: var(--temp-grad);
+    -webkit-background-clip: text; background-clip: text;
+    color: transparent;
+    /* Le dégradé est peint sur la BOÎTE : sans cette ligne, il s'étirerait
+       sur toute la hauteur de ligne et le crème n'atteindrait jamais le bas
+       du glyphe. */
+    -webkit-text-fill-color: transparent;
+  }
 }
 .temp .deg { font-size: .42em; opacity: .6; margin-top: .18em; letter-spacing: 0; }
 
@@ -605,12 +666,13 @@ main {
   font: 500 var(--fs-label)/1 var(--mono); letter-spacing: .16em; text-transform: uppercase;
   color: var(--ink-soft);
 }
-/* La pastille pleine plutôt qu'une coche : elle ne dépend d'aucune police
-   ni d'aucun émoji, donc elle est la même partout. */
-.badge::before {
-  content: ""; width: 6px; height: 6px; border-radius: 50%;
-  background: currentColor; flex: none;
-}
+/* Le repère de lieu, et non l'émoji 📍 que demandait la formulation : c'est
+   le MÊME dessin à l'écran, mais tiré de notre sprite. Un émoji dépend de
+   la police du système, donc il change de style d'un téléphone à l'autre et
+   sort du trait de l'application. Celui-ci est déjà celui de la capsule de
+   distance et du bouton principal : trois fois le même signe pour la même
+   idée. */
+.badge .ico { font-size: 12px; --sw: 5; }
 
 /* ---- 4. La course du soleil ----
    Fabriquée avec des champs que le backend calcule vraiment, à la
@@ -1112,7 +1174,10 @@ main {
           <svg class="ico" viewBox="0 0 64 64" focusable="false"><use id="heroUse" href="#i-unknown"/></svg>
         </div>
       </div>
-      <p><span class="badge" id="badge"></span></p>
+      <p><span class="badge">
+        <svg class="ico" viewBox="0 0 64 64" aria-hidden="true" focusable="false"><use href="#d-lieu"/></svg>
+        <span id="badge"></span>
+      </span></p>
     </section>
 
     <!-- La provenance, en clair. Le METAR brut est dedans, replié. -->
@@ -1261,7 +1326,7 @@ const TEXTES = {
     lieu: "{nom}",
     capsuleKm: "{km} km",              // [à valider]
     stationLabel: "station utilisée",  // [à valider]
-    badge: "Observation réelle",       // [à valider]
+    badge: "Station météo officielle",  // [à valider]
     // « Mis à jour il y a 6 min » plutôt que « Observé à 15:00 heure locale
     // · il y a 6 min » : une seule idée, aucune soustraction à faire.
     maj: "Mis à jour il y a {min} min",              // [à valider]
@@ -1356,7 +1421,7 @@ const TEXTES = {
     lieu: "{nom}",
     capsuleKm: "{km} km",              // [à valider]
     stationLabel: "station used",      // [à valider]
-    badge: "Real observation",         // [à valider]
+    badge: "Official weather station", // [à valider]
     maj: "Updated {min} min ago",              // [à valider]
     majPerime: "Observation is {min} minutes old", // [à valider]
     majInconnue: "Observation time unknown",   // [à valider]
@@ -1848,7 +1913,7 @@ function afficher(r, lang) {
   $("heroUse").setAttribute("href", `#i-${jetonSur}`);
   // Le halo ne s'allume en ambre que si le dessin contient un astre ou un
   // éclair. Ailleurs il reste neutre : voir .hero-ico.astre.
-  $("heroUse").closest(".hero-ico").classList.toggle("astre", JETONS_ASTRE.has(jetonSur));
+  document.querySelector(".temp-row").classList.toggle("astre", JETONS_ASTRE.has(jetonSur));
 
   // 1 ter. La phrase de conseil. Jeton d'abord, mot ensuite : si le
   // sélecteur ne trouve rien de notable à dire, la ligne DISPARAÎT plutôt

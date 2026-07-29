@@ -382,6 +382,15 @@ Fait et validé :
   corrects. Il aura fallu trois échecs de déploiement pour y arriver
   (TypeScript 7, détection de framework Vite, imports sans extension), aucun
   détectable en local.
+  URL DE PRODUCTION : https://metar-proche-three.vercel.app
+  Ajoutée le 29/07/2026, et c'est une correction du carnet de bord plutôt
+  qu'un ajout. Cette ligne consignait jusque-là l'adresse GITHUB comme preuve
+  de mise en ligne, donc l'adresse réelle du service n'était écrite NULLE
+  PART. Le jour où il a fallu la coder en dur pour l'application Android, la
+  déduire du nom du dépôt a donné `metar-proche.vercel.app`, qui n'existe pas
+  (`DEPLOYMENT_NOT_FOUND`) : Vercel avait suffixé `-three`. Quatre variantes
+  essayées, aucune ne répondait. Une preuve de déploiement doit citer ce qui
+  a été appelé, pas ce dont il a été construit.
 - Diagnostiquer une panne qui n'existe qu'en production : ne pas deviner, mais
   déployer une SONDE (`api/diag.ts`, temporaire, SUPPRIMÉE depuis) qui
   contourne les modules et rend ce qu'ils masquent. À recréer sur le même
@@ -733,6 +742,12 @@ Fait et validé :
   (`/icon-512.png`), jamais en URL complètes. La seule URL en dur de tout
   le dépôt est celle de la ligne « EN LIGNE ET VÉRIFIÉ » du 27/07/2026.
   Un changement de domaine ne casse donc rien dans le code.
+  PÉRIMÉ DEPUIS LE 29/07/2026, et c'est important : `public/index.html`
+  porte désormais `API_PROD`, l'adresse absolue de production, parce que
+  l'application Android n'a aucun serveur à joindre en relatif. Un
+  changement de domaine casse donc maintenant l'APPLICATION INSTALLÉE, que
+  l'on ne peut pas corriger à distance : il faut republier. Renommer le
+  projet Vercel n'est plus un geste sans conséquence.
   JAMAIS par `Get-Content | -replace | Set-Content` : « renommer partout »
   est exactement la tâche qui invite au massacre d'encodage du 27/07/2026.
   Six modifications ciblées.

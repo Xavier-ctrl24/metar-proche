@@ -701,11 +701,19 @@ Fait et validé :
 
 - 29/07/2026 — L'APPLICATION S'APPELLE « QuelTemps ». Décision de Xavier.
   Casse reprise du logo qu'il a fourni (« QuelTemps »), et non le
-  « quelTemps » de la demande. Renommé aux SIX endroits qui portaient le
+  « quelTemps » de la demande. Renommé aux SEPT endroits qui portaient le
   nom : le `<title>` de `public/index.html`, `name` et `short_name` du
   manifeste, `name` de `package.json`, les deux occurrences de
   `package-lock.json` (racine et `packages[""]`, sinon `npm ci` proteste),
-  et le titre de ce fichier.
+  le titre de ce fichier, et `public/fonts/LICENCE.txt`.
+  CE DERNIER A FAILLI PASSER À TRAVERS, et la leçon est générale : il
+  n'était dans aucune de mes listes mentales (« la page », « le
+  manifeste », « le paquet »), il ne se voit dans aucun rendu, mais il
+  vit sous `public/` et n'est pas dans `.vercelignore`, donc il PART EN
+  PRODUCTION. Un renommage se termine par un `grep` de l'ancien nom sur
+  tout le dépôt, pas par la liste des fichiers auxquels on a pensé.
+  `icones-controle.html` porte encore l'ancien nom et c'est SANS OBJET :
+  il est généré, ignoré par git et par `.vercelignore`.
   PAS TOUCHÉ, et c'est délibéré : le `<meta name="description">` et la
   `description` du manifeste, qui sont des phrases validées par Xavier et
   volontairement identiques entre les deux fichiers ; `theme_color` et
@@ -766,8 +774,30 @@ Fait et validé :
   trait de quelques kilo-octets, utilisable partout ; le logo est une
   image photographique, donc 378 Ko en 512. Servir ça en favicon ferait
   payer 378 Ko par onglet pour un dessin affiché en 16 px. D'où
-  `favicon-64.png` (9 Ko) pour l'onglet, `icon-192.png` (63 Ko) pour iOS,
+  `favicon-64.png` (9 Ko) pour l'onglet, `icon-192.png` (57 Ko) pour iOS,
   `icon-512.png` pour l'installation, plus `icon-maskable-512.png`.
+  LA TRANSPARENCE N'EST PAS UNIFORME, ET C'EST VOULU. `icon-192.png` est
+  le seul des quatre à être TOTALEMENT OPAQUE. Motif : iOS n'honore pas
+  la transparence d'un `apple-touch-icon`, il aplatit sur du NOIR avant
+  d'appliquer son propre masque. Or le cadrage « contain » laisse 11 %
+  de pixels translucides (coins arrondis + deux barres latérales, le
+  logo n'étant pas tout à fait carré : 1089 x 1131). Servi tel quel, ça
+  donnait des échardes noires sur l'écran d'accueil — une régression
+  introduite le jour même, l'icône remplacée étant un SVG opaque, et sur
+  la plateforme que ce fichier signalait déjà comme « le cas le plus mal
+  servi ». Corrigé en ÉTENDANT les pixels opaques du bord vers
+  l'extérieur (le même principe que la saignée de la version rognable),
+  jusqu'à zéro pixel translucide : le remplissage est invisible puisque
+  iOS découpe justement ces zones. Les trois autres GARDENT leur alpha,
+  parce qu'ils sont posés sur un fond que le logiciel maîtrise (onglet,
+  boîte d'installation), où des coins arrondis nets valent mieux qu'un
+  carré plein. Non tranché faute de pouvoir le vérifier ici : ce que
+  Bubblewrap et la fiche Play Store font de l'alpha du 512.
+  LE PIÈGE DE MÉTHODE, à retenir : ma sonde comptait les pixels PEINTS
+  (marine, encre, ambre) et concluait « l'icône est bien dessinée ».
+  Vrai, et à côté de la question. Elle ne regardait pas le canal alpha,
+  donc elle ne pouvait pas voir le défaut. Compter ce qui est là ne dit
+  rien de ce qui manque.
   `icon.svg` et `icon-maskable.svg` sont SUPPRIMÉS : une photo ne se met
   pas en SVG, et les laisser aurait montré le dessin au trait dans
   l'onglet pendant que tout le reste montrait le logo. Ils restent dans

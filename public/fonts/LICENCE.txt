@@ -2,7 +2,7 @@ Polices embarquées dans public/fonts/
 =====================================
 
 Elles sont ici, et non chargées depuis Google Fonts, parce que la page
-METAR Proche ne fait AUCUNE requête vers un tiers : c'est la même règle
+QuelTemps ne fait AUCUNE requête vers un tiers : c'est la même règle
 que le sprite d'icônes en ligne et l'absence de CDN. Une page météo doit
 s'afficher entière même derrière un réseau qui filtre fonts.gstatic.com.
 

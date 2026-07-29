@@ -19,7 +19,13 @@
      image PHOTOGRAPHIQUE (dégradés, grain), donc un PNG de 378 Ko en 512.
      Servir ça en favicon ferait payer 378 Ko à chaque ouverture d'onglet
      pour un dessin affiché en 16 px. D'où 64 px (9 Ko) pour l'onglet,
-     192 px (63 Ko) pour iOS, et le 512 réservé à l'installation. -->
+     192 px (57 Ko) pour iOS, et le 512 réservé à l'installation.
+     L'icône iOS est la SEULE des quatre à être totalement opaque, et ce
+     n'est pas un détail d'export : iOS n'honore pas la transparence d'un
+     apple-touch-icon, il aplatit sur du NOIR avant d'appliquer son
+     masque. Ses coins arrondis et ses barres latérales deviendraient
+     donc des échardes noires sur l'écran d'accueil. Voir CLAUDE.md,
+     entrée du 29/07/2026. -->
 <link rel="manifest" href="/manifest.webmanifest">
 <link rel="icon" type="image/png" sizes="64x64" href="/favicon-64.png">
 <link rel="apple-touch-icon" href="/icon-192.png">

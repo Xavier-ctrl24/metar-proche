@@ -1051,6 +1051,20 @@ Fait et validé :
   d'aujourd'hui mais l'addition de demain, qui prendra une taille dans la
   liste au lieu d'en inventer une. Les deux tailles fluides (titre, chiffre
   géant) restent en `clamp()`, elles dépendent de la largeur d'écran.
+  L'ICÔNE PASSE À DROITE DU CHIFFRE (29/07/2026, second retour de Xavier).
+  Elle ouvrait la page, au-dessus du titre, où elle ne se rattachait à
+  rien ; appariée à la température, les deux signaux qui répondent à
+  « quel temps fait-il » tiennent la même ligne du regard. Trois points
+  qui se mesurent plutôt qu'ils ne se raisonnent : `space-between` et non
+  un `gap` (le chiffre est fluide en 33vw, c'est donc l'icône qui vient à
+  lui et non l'inverse) ; `align-items: center`, qui aligne les centres
+  OPTIQUES — une icône n'a pas de ligne de base, un alignement sur celle
+  du chiffre la ferait flotter ; et une amplitude fluide plus faible que
+  celle du chiffre (19vw contre 33), sans quoi l'icône finirait par lui
+  disputer la vedette. Mesuré : écart des centres 0 px à toutes les
+  largeurs, rapport de hauteur 0,67, et au PIRE CAS de largeur que le
+  contrat autorise (-38°, trois caractères plus le degré) il reste 28 px
+  libres à 320 px d'écran, sans troncature ni débordement.
   À REVOIR, signalé plutôt que caché : `--sw: 2.6` sur l'icône de tête est
   REPRIS du sprite, pas mesuré. Or ce fichier dit lui-même que l'épaisseur
   de trait est un des deux réglages « qui se mesurent, pas qui se

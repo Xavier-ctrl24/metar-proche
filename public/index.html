@@ -507,7 +507,24 @@ main {
    Toujours pas de nom accessible : `text.headline` juste dessous dit déjà
    la même chose, et lui en écrire un créerait une formulation de plus à
    traduire et à faire valider. */
-.hero-ico { position: relative; width: 5.4rem; height: 5.4rem; margin-bottom: .35rem; }
+/* La ligne « chiffre + icône ». `space-between` et non un `gap` : le
+   chiffre est fluide (clamp sur 33vw), donc sa largeur change avec
+   l'écran ; c'est l'icône qui doit venir à lui, calée à droite, et non
+   l'inverse. `align-items: center` aligne les deux CENTRES OPTIQUES —
+   caler sur la ligne de base ferait flotter l'icône, qui n'en a pas. */
+.temp-row {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 1rem; margin-top: .35rem;
+}
+
+/* Taille fluide comme le chiffre, mais d'amplitude plus faible : à 33vw
+   le nombre grandit vite, et une icône qui suivrait le même rythme
+   finirait par lui disputer la vedette. Le rapport visé est d'environ
+   deux tiers de la hauteur du chiffre, mesuré plus bas. */
+.hero-ico {
+  position: relative; flex: none;
+  width: clamp(4rem, 19vw, 5.2rem); height: clamp(4rem, 19vw, 5.2rem);
+}
 .hero-ico .ico { width: 100%; height: 100%; --sw: 2.6; position: relative; z-index: 1; }
 /* Le halo, en pseudo-élément : une seule couche, animée en opacité et en
    échelle, donc composée par le GPU sans repeindre quoi que ce soit. */
@@ -553,7 +570,9 @@ main {
    que le fichier dise ce qui se passe vraiment. */
 .temp {
   display: flex; align-items: flex-start; gap: 2px;
-  margin-top: .35rem;
+  /* La marge est passée sur .temp-row : posée ici, elle décalerait le
+     chiffre vers le bas À L'INTÉRIEUR de la ligne, donc le désalignerait
+     de l'icône que ce centrage vient justement d'accorder. */
   font: 400 clamp(5rem, 33vw, 8.1rem)/.86 var(--sans);
   letter-spacing: -.06em;
   font-variant-numeric: tabular-nums;
@@ -1046,12 +1065,19 @@ main {
          (voir le commentaire de .station-card) : icône, temps qu'il fait,
          conseil, température, puis la provenance de la mesure. -->
     <section class="hero rise">
-      <div class="hero-ico" aria-hidden="true">
-        <svg class="ico" viewBox="0 0 64 64" focusable="false"><use id="heroUse" href="#i-unknown"/></svg>
-      </div>
       <h1 class="headline" id="headline"></h1>
       <p class="conseil" id="conseil" hidden></p>
-      <div class="temp"><span id="tempV"></span><span class="deg" id="tempDeg" hidden>°</span></div>
+      <!-- L'icône est APPARIÉE au chiffre, sur la même ligne (29/07/2026,
+           demande de Xavier). Elle était au-dessus du titre : elle y
+           ouvrait la page mais ne se rattachait à rien. À droite de la
+           température, les deux signaux qui répondent à « quel temps
+           fait-il » occupent la même ligne du regard. -->
+      <div class="temp-row">
+        <div class="temp"><span id="tempV"></span><span class="deg" id="tempDeg" hidden>°</span></div>
+        <div class="hero-ico" aria-hidden="true">
+          <svg class="ico" viewBox="0 0 64 64" focusable="false"><use id="heroUse" href="#i-unknown"/></svg>
+        </div>
+      </div>
       <p><span class="badge" id="badge"></span></p>
     </section>
 

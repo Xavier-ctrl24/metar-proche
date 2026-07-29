@@ -1186,6 +1186,31 @@ Fait et validé :
   bas (elle vit hors de `main`, donc elle n'était pas menacée, mais ça se
   vérifie plutôt que ça ne se suppose).
 
+- 29/07/2026 — LE SIGNE « ° » AVAIT DISPARU, et le défaut mérite d'être
+  consigné parce qu'il est d'une classe qu'on ne trouve pas en relisant.
+  Il a été introduit par le dégradé du chiffre, quelques minutes plus tôt,
+  et c'est Xavier qui l'a vu à l'écran. Mécanique : le dégradé impose
+  `-webkit-text-fill-color: transparent` sur `.temp`, et le remplissage
+  s'HÉRITE ; or `.deg` porte `opacity: .6`, qui l'isole dans son propre
+  groupe de composition, hors d'atteinte du dégradé clippé du parent. Le
+  caractère restait donc dans le document, gardait sa place (20 x 45 px
+  mesurés), répondait au pointage — et n'était peint avec aucune couleur.
+  CE QUE ÇA ENSEIGNE SUR MES PROPRES SONDES : toutes celles de la session
+  vérifiaient la PRÉSENCE (getBBox non vide, elementFromPoint qui atteint,
+  textContent juste). Les trois passaient ici. C'est la même leçon que le
+  29/07 sur l'icône iOS : « compter ce qui est là ne dit rien de ce qui
+  manque », et il faut y ajouter « ni de ce qui est là sans être peint ».
+  Une propriété héritée qui rend invisible ne se voit qu'en interrogeant la
+  COULEUR RÉSOLUE, ou en regardant l'écran.
+  Corrigé en redonnant à `.deg` un remplissage explicite, pris sur `--ink`,
+  donc suivant les deux polarités.
+  À NOTER POUR LES PROCHAINES SESSIONS : le volet navigateur COMPOSE
+  désormais des images. Les entrées des 28 et 29/07 répètent « vérifié sans
+  capture d'écran » parce qu'il ne le faisait pas ; ce n'est plus vrai. Les
+  sondes gardent tout leur intérêt (elles mesurent ce que l'œil ne sait pas
+  mesurer), mais une capture reste le seul contrôle qui aurait attrapé
+  celui-ci du premier coup.
+
 Prochaine étape (à décider avec Xavier) :
 - ICÔNE ET ÉCRAN DE DÉMARRAGE DE L'APPLICATION : encore ceux de Capacitor (le
   X bleu du gabarit), dans `android/app/src/main/res/mipmap-*` et

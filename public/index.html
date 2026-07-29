@@ -638,7 +638,22 @@ main {
     -webkit-text-fill-color: transparent;
   }
 }
-.temp .deg { font-size: .42em; opacity: .6; margin-top: .18em; letter-spacing: 0; }
+/* LE DEGRÉ SE PEINT LUI-MÊME, et c'est une réparation (29/07/2026).
+   Le dégradé du chiffre impose `-webkit-text-fill-color: transparent` sur
+   `.temp`, et le remplissage s'HÉRITE. Or `.deg` porte `opacity: .6`, qui
+   l'isole dans son propre groupe de composition : le dégradé du parent,
+   clippé sur le texte, ne l'atteint donc plus. Résultat, le « ° » restait
+   dans le document, occupait sa place (20 x 45 px mesurés) et se laissait
+   même atteindre au pointage — mais n'était peint avec aucune couleur.
+   Un caractère parfaitement présent et parfaitement invisible : le pire cas
+   à diagnostiquer, parce que rien dans le DOM ne signale l'anomalie.
+   On lui redonne donc un remplissage EXPLICITE, qui reprend l'encre du
+   thème et suit donc les deux polarités. */
+.temp .deg {
+  font-size: .42em; opacity: .6; margin-top: .18em; letter-spacing: 0;
+  color: var(--ink);
+  -webkit-text-fill-color: var(--ink);
+}
 
 /* ---- 3 ter. LE BADGE « observation réelle » ----
    L'ADN du produit, en trois mots. Toutes les applications météo

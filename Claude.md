@@ -852,7 +852,105 @@ Fait et validé :
   LE JUGEMENT VISUEL REVIENT À XAVIER, comme pour la planche du
   28/07/2026 : les quatre fichiers se regardent dans `public/`.
 
+- 29/07/2026 — APPLICATION ANDROID (Capacitor 8.4.2). La page devient une vraie
+  application installée. `appId: fr.queltemps.app` (choix de Xavier, DÉFINITIF
+  une fois publié sur le Play Store), `webDir: public` puisqu'il n'y a aucune
+  compilation côté client. Installée et VÉRIFIÉE sur un Redmi Note 11 réel
+  (Android 13, arm64).
+  LE POINT CENTRAL, ET IL EST STRUCTUREL : l'APK ne contient AUCUN serveur.
+  Capacitor sert la page depuis `https://localhost`, donc le
+  `fetch("/api/nearest")` relatif y tombait dans le vide. D'où `baseApi()` dans
+  `public/index.html`, et TROIS cas et non deux. Le troisième est celui qu'on
+  rate : sous LIVE RELOAD, la WebView charge le serveur vite du poste, où
+  `/api/nearest` route vers le vrai `handleNearest`. Tester « suis-je natif »
+  ferait interroger la PRODUCTION en croyant tester son code local, sans le
+  moindre message. La bonne question est « suis-je servi par le serveur de
+  fichiers de l'APK », d'où la comparaison de `location.origin`.
+  Corollaire : `androidScheme` et `hostname` sont désormais ÉCRITS dans
+  `capacitor.config.ts` alors qu'ils sont déjà les défauts. Ils portent le
+  fonctionnement de `baseApi()` : un changement de défaut ferait basculer la
+  comparaison sans qu'aucun test ne bronche, et l'application se lancerait sans
+  plus jamais afficher la météo.
+  CORS, et la leçon de conception : les en-têtes ont quitté `handler` pour une
+  fonction PURE `responseHeaders`, parce que `handler` est la seule partie que
+  les tests n'atteignent pas. Posé sur TOUS les codes, échecs compris — un 400
+  illisible depuis une autre origine forcerait le client à afficher une panne
+  réseau, donc à mentir sur la cause. Vérifié par MUTATION (restreindre aux 200
+  fait tomber un test, et lui seul) PUIS sur le téléphone : position invalide →
+  ciel `err` + « Position inutilisable », donc le corps du 400 a bien été LU.
+  Corrigé au passage un défaut réel : le rejet immédiat d'une position invalide
+  sortait avant toute pose d'en-tête.
+  PERMISSION : `ACCESS_COARSE_LOCATION` seule, pas FINE. La page n'active pas
+  `enableHighAccuracy`, et trouver une station à 20 km n'exige pas le GPS.
+  Vérifié sur le manifeste FUSIONNÉ (celui de l'APK, pas le nôtre) : FINE n'est
+  pas réapparue par une bibliothèque. Question laissée ouverte à l'étape 4 et
+  désormais TRANCHÉE PAR L'OBSERVATION : la WebView de Capacitor demande la
+  permission d'elle-même (passage de `granted=false` à `granted=true` avec le
+  drapeau `USER_SET`). `@capacitor/geolocation` est donc INUTILE, une
+  dépendance évitée.
+  COMMENT PROUVER LA GÉOLOCALISATION DEPUIS BRUMATH, et c'est le piège de tout
+  ce projet : le repli d'échec EST Brumath (48.73, 7.71). Succès et échec
+  donnent le même écran. La discrimination ne peut donc pas être visuelle. Elle
+  s'est faite sur `dernierePosition`, lu dans la page en fonctionnement :
+  [48.72072072072072, 7.729070390781587], c'est-à-dire une coordonnée MESURÉE
+  et non la constante. Sur émulateur, la parade équivalente est de le placer
+  loin de Brumath.
+  MÉTHODE À RÉUTILISER, la plus précieuse de la session. MIUI refuse à adb la
+  capture d'écran ET l'injection de touches (elles exigent « Débogage USB
+  (paramètres de sécurité) »). On a donc lu la page AUTREMENT : la WebView d'un
+  build debug expose un socket `webview_devtools_remote_<pid>`, qu'on relie par
+  `adb forward tcp:9222` puis qu'on interroge en `Runtime.evaluate` via le
+  protocole DevTools (script `eval.ps1`, WebSocket en PowerShell). C'est ce qui
+  a permis de tout constater sans voir l'écran : origine, `baseApi()`, position
+  réelle, texte affiché, polices chargées, débordement horizontal, chemin
+  d'échec, bascule anglaise. Même esprit que les sondes `getBBox` du 28/07.
+  PIÈGE D'ENCODAGE, une variante de plus : `adb exec-out screencap -p > f.png`
+  CORROMPT le PNG sous PowerShell, qui y insère un BOM UTF-8. Passer par
+  `adb shell screencap` puis `adb pull`, qui est binaire.
+  XIAOMI : `adb install` échoue en `INSTALL_FAILED_USER_RESTRICTED` tant que
+  « Installer via USB » n'est pas activé (compte Mi requis). Ni `/data/local/tmp`
+  ni `pm install` ne contournent : la restriction porte sur QUI installe, pas
+  sur l'emplacement. Repli qui marche : `adb push` vers /sdcard/Download puis
+  installation à la main. À savoir aussi, sinon on cherche longtemps : un
+  fichier déposé par adb n'est pas indexé, il n'apparaît donc pas dans la vue
+  « Téléchargements » du gestionnaire de fichiers.
+  ÉMULATEUR NON UTILISABLE ici : l'image x86_64 exige « Windows Hypervisor
+  Platform », désactivé sur le poste. C'est un réglage système, laissé à
+  Xavier. Le test sur matériel réel est de toute façon plus probant.
+  MIS EN LIGNE le 29/07/2026 : `design-system` fusionné dans `master` en avance
+  rapide et poussé, ce qui a publié D'UN COUP le système de design, les icônes,
+  le logo, le renommage QuelTemps, le manifeste installable et le CORS.
+  Production vérifiée : CORS `*` sur 200 ET sur 400, titre QuelTemps,
+  `data-lum`, lien du manifeste, quatre icônes et polices en 200. Le
+  `Content-Type` du manifeste, que l'entrée du 28/07 disait « non vérifiable
+  sans déployer », est confirmé `application/manifest+json`.
+  PIÈGE DE DIAGNOSTIC à ne pas répéter : j'ai d'abord cru la production
+  corrompue en constatant que la page en ligne contenait `data-sky` alors que
+  `master` était censé être antérieur au système de design. FAUX : `data-sky`
+  existait DÉJÀ, avec les valeurs `day`/`night`. Le système de design n'a pas
+  introduit cet attribut, il en a changé le SENS et ajouté `data-lum`. Le bon
+  marqueur était `data-lum`. Un discriminant mal choisi fabrique une panne
+  imaginaire.
+  PAS DE TEST sur `capacitor.config.ts` ni sur le projet `android/` : ce sont
+  des fichiers de configuration, et la page reste non testée pour la raison
+  déjà écrite le 28/07.
+
 Prochaine étape (à décider avec Xavier) :
+- ICÔNE ET ÉCRAN DE DÉMARRAGE DE L'APPLICATION : encore ceux de Capacitor (le
+  X bleu du gabarit), dans `android/app/src/main/res/mipmap-*` et
+  `drawable-*/splash.png`. Les icônes du 29/07 (logo de Xavier) sont celles du
+  MANIFESTE WEB, qu'une application native n'utilise pas : ce sont deux jeux
+  d'icônes distincts, et c'est exactement le genre de doublon qu'on croit
+  résolu. À refaire depuis `logo/logo.png`, avec la même distinction
+  « any » / rognable qu'au 29/07 — Android compose ici un `adaptive-icon` en
+  deux couches (fond + avant-plan), donc le mot « QuelTemps » de la bande
+  marine sera coupé comme il l'était pour le maskable.
+- « INSTALLER VIA USB » côté MIUI, si Xavier veut un cycle de développement
+  fluide : sans lui, chaque version se réinstalle à la main. Alternative sans
+  compte Mi : le Live Reload, où l'APK installé charge la page depuis le poste.
+- WINDOWS HYPERVISOR PLATFORM, si l'émulateur devient nécessaire. Réglage
+  système, avec un effet possible sur d'autres logiciels de virtualisation.
+
 - SERVICE WORKER, si l'on veut la bannière d'installation AUTOMATIQUE.
   Le manifeste suffit pour installer à la main (menu du navigateur) et
   suffit à Bubblewrap pour empaqueter un TWA. Ce qu'il ne suffit PAS à

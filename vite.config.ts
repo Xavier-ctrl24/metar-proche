@@ -48,10 +48,53 @@ function apiNearest(): Plugin {
   };
 }
 
+// Même service pour /api/geocode (recherche de ville, 29/07/2026). Il faut le
+// router ici AUSSI, sinon la recherche de ville ne marcherait qu'en production
+// — c'est-à-dire au seul endroit où l'on ne peut pas la mettre au point.
+function apiGeocode(): Plugin {
+  return {
+    name: "metar-api-geocode",
+    configureServer(server) {
+      server.middlewares.use(async (req, res, next) => {
+        if (!req.url || !req.url.startsWith("/api/geocode")) return next();
+
+        const chemin = fileURLToPath(new URL("./api/geocode.ts", import.meta.url));
+        const mod = await server.ssrLoadModule(chemin);
+        const geo = await server.ssrLoadModule(
+          fileURLToPath(new URL("./src/geocode.ts", import.meta.url)),
+        );
+
+        const params = new URL(req.url, "http://localhost").searchParams;
+        const brut: Record<string, string> = {};
+        for (const [cle, valeur] of params) brut[cle] = valeur;
+
+        const q = mod.parseGeocodeQuery(brut);
+        res.setHeader("content-type", "application/json; charset=utf-8");
+        if (!q.ok) {
+          res.statusCode = 400;
+          res.end(JSON.stringify({ error: q.error }));
+          return;
+        }
+
+        // On appelle le VRAI fetchGeocode, donc la vraie source : c'est le
+        // seul moyen de voir en local ce que la production verra.
+        const r = await geo.fetchGeocode(q.value.q, q.value.lang);
+        if (!r.found) {
+          res.statusCode = mod.statusForGeocodeReason(r.reason);
+          res.end(JSON.stringify({ error: r.reason }));
+          return;
+        }
+        res.statusCode = 200;
+        res.end(JSON.stringify({ results: r.places }));
+      });
+    },
+  };
+}
+
 export default defineConfig({
   // La page vit dans `public/`, à l'endroit exact où Vercel ira la chercher.
   root: "public",
   publicDir: false,
   server: { port: 5173, open: false },
-  plugins: [apiNearest()],
+  plugins: [apiNearest(), apiGeocode()],
 });

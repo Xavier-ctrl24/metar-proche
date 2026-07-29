@@ -239,7 +239,7 @@ npx tsc --noEmit  vérification des types
 Construction par étapes selon `PROMPT.md`. L'arrêt-validation après chaque étape
 a été LEVÉ le 27/07/2026 (voir « Mode de travail ») : les étapes s'enchaînent
 désormais sans attendre. Les tests précèdent toujours le code.
-À ce jour : 301 tests passent, `npm run type-check` exit 0.
+À ce jour : 329 tests passent, `npm run type-check` exit 0.
 
 Les dix étapes du plan sont FAITES et validées, et la V1 est en ligne. Le
 projet n'est donc plus en construction mais en amélioration : il n'y a plus
@@ -1075,6 +1075,92 @@ Fait et validé :
   entérinées), et les SEUILS de `conseilToken`, qui sont d'une autre nature :
   ce sont des décisions et non des mesures. Ils sont nommés et groupés dans
   la constante `SEUILS` pour se discuter d'un coup d'œil.
+
+- 29/07/2026 — RECHERCHE DE VILLE. La feuille « Où êtes-vous ? » n'offrait que
+  latitude et longitude depuis le premier jour : utilisable par qui sait lire
+  une carte, par personne d'autre, alors que le projet vise le grand public.
+  Demande de Xavier, qui a TRANCHÉ les deux points que je ne pouvais pas
+  trancher seul : la source (Open-Meteo) et le sort des coordonnées (repliées
+  en mode expert, pas supprimées).
+  CINQ FICHIERS, dans l'ordre imposé par les règles absolues : `src/types.ts`
+  (contrat d'abord), `tests/geocode.test.ts` (test avant code, 28 tests),
+  `src/geocode.ts`, `api/geocode.ts`, puis `vite.config.ts` et la page.
+  329 tests, type-check 0.
+  POURQUOI UN POINT D'ENTRÉE SÉPARÉ et non un mode de plus sur /api/nearest :
+  le service rendu n'est pas le même (traduire un nom, pas décoder un METAR),
+  et les mêler aurait donné une union d'erreurs dont la moitié des codes
+  n'aurait aucun sens selon l'appel. Corollaire à NE PAS « corriger » :
+  `GeocodeErrorCode` ne réutilise pas `ApiErrorCode`. Y ajouter « ville
+  introuvable » aurait cassé la garantie du `switch` exhaustif de
+  `statusForReason`, où un motif nouveau doit rester une erreur de
+  COMPILATION et non un 500.
+  OPEN-METEO CONTRE NOMINATIM, et c'est un choix d'exploitation : Nominatim
+  impose une requête par seconde, un en-tête d'identification et une
+  attribution visible, et se réserve de bloquer. Open-Meteo ne demande ni clé
+  ni compte, comme aviationweather.gov.
+  LE CLIENT N'APPELLE PAS LA SOURCE DIRECTEMENT, alors qu'il le pourrait (CORS
+  ouvert) et que ce serait plus simple. C'est l'engagement pris devant Xavier
+  au moment du choix : passer par /api/geocode évite d'envoyer sa saisie et
+  son adresse IP au tiers. `responseHeaders` est réutilisé tel quel depuis
+  api/nearest.ts, l'APK étant inter-origine comme pour l'autre point d'entrée.
+  LE PIÈGE DE LA SOURCE, et il vaut le détour parce que c'est LE MÊME que le
+  204 d'AWC du 26/07/2026 sous un autre déguisement : une recherche sans
+  résultat rend HTTP 200 avec la clé `results` PUREMENT ABSENTE, et non un
+  tableau vide. Un `payload.results.map(...)` écrit de mémoire lève, et
+  l'exception se serait comptée en panne réseau : une faute de frappe aurait
+  affiché « source injoignable ». Vérifié par MUTATION dans les deux sens :
+  supprimer la garde fait tomber 4 tests nommés, rendre le sans-résultat
+  réessayable en fait tomber 1.
+  ON NE CHOISIT PAS À LA PLACE DE L'UTILISATEUR. « Paris » rend cinq
+  correspondances (France, Texas, Tennessee, Kentucky, Illinois) et la source
+  ne documente aucun ordre de pertinence : prendre `results[0]` en silence
+  l'aurait envoyé à 7000 km sans un mot. Une correspondance unique passe donc
+  directement — c'est le cas courant, et faire choisir entre un seul élément
+  serait une étape pour rien —, plusieurs affichent une liste avec région et
+  pays, qui sont là pour LEVER l'homonymie et non pour décorer.
+  LA LANGUE EST OBLIGATOIRE dans `buildGeocodeUrl`, pas un défaut, et pour une
+  raison vérifiée et non supposée : la source traduit ses régions
+  (« Île-de-France » / « Île-de-France Region », « États-Unis » / « United
+  States »). Un défaut implicite aurait produit une liste de choix à moitié
+  traduite. Même règle que le 3e paramètre de `buildResponse`.
+  PAS D'AUTOCOMPLÉTION À LA FRAPPE : ce serait une requête par caractère
+  contre un service gratuit, pour un gain nul quand on tape un nom qu'on
+  connaît. Un `<form>` donne la validation par Entrée sans qu'on ait à
+  l'écouter (avec `preventDefault`, sans quoi la page se rechargerait).
+  DÉLAI D'ATTENTE 5 s, CHOISI ET NON MESURÉ, et il faut le dire : les 12 s
+  d'awc.ts viennent d'une mesure sur un balayage de bbox en plein océan, lent
+  par nature. Un géocodage est une recherche indexée (0,6 ms annoncés par la
+  source). À remonter si des `network_error` inexpliqués apparaissent.
+  DÉFAUT TROUVÉ PAR LA VÉRIFICATION, et invisible à la lecture : la feuille
+  ne portait que trois contrôles, elle en porte maintenant jusqu'à onze
+  (recherche, cinq propositions, coordonnées dépliées), soit 685 px mesurés.
+  Sur un écran de 667 px elle sortait par le HAUT, et comme elle est `fixed`
+  en bas, la partie perdue était INATTEIGNABLE : le bouton « Consulter »
+  disparaissait sans que rien ne l'indique. Corrigé par `max-height: 88vh` +
+  `overflow-y: auto` (+ `overscroll-behavior: contain`), vérifié à 375x667 :
+  le bouton redevient atteignable au pointage après défilement.
+  MESSAGES : on mémorise la CLÉ affichée, jamais le texte (`derniereCleVille`),
+  ce qui permet de rejouer le message dans l'autre langue à la bascule. Même
+  réflexe que `dernierEchec` pour l'écran de panne ; retenir la phrase aurait
+  laissé un message français au milieu d'une page anglaise, c'est-à-dire la
+  régression du 28/07 en miniature. « Ville introuvable » et « recherche
+  indisponible » restent DISTINCTS : le premier est une faute de frappe, le
+  second n'a rien à voir avec la saisie.
+  VÉRIFIÉ de bout en bout sur la vraie source : Brumath (1 résultat → consulte
+  directement), Paris (5 → liste), Reykjavik (2, la ville ET son aéroport →
+  liste, puis choix → station de Reykjavik à 2 km, ciel `ovc`), Saint-Étienne
+  (accents encodés), zzzzqqqq → 404 `city_not_found`, saisie vide → 400
+  `invalid_query`, bascule fr/en sur un message affiché ET sur une liste
+  ouverte, cibles tactiles toutes ≥ 24 px, aucun débordement horizontal,
+  console sans erreur.
+  LE POINT QU'ON POUVAIT RATER EN SILENCE : la bascule de langue relit
+  `#lat`/`#lon` pour reconsulter. Une recherche par ville devait donc les
+  renseigner, sinon changer de langue après une recherche n'aurait plus rien
+  reconsulté, sans le moindre message. C'est `consulter` qui les écrit, donc
+  ça marche — mais ça se VÉRIFIE, et ça l'a été (Reykjavik → « Mostly cloudy »
+  en anglais, retour au français ensuite).
+  EN ATTENTE DE XAVIER : les 10 formulations de la recherche, marquées
+  `[à valider]` dans `TEXTES` comme les précédentes.
 
 Prochaine étape (à décider avec Xavier) :
 - ICÔNE ET ÉCRAN DE DÉMARRAGE DE L'APPLICATION : encore ceux de Capacitor (le

@@ -121,6 +121,51 @@ export interface ApiError {
   error: ApiErrorCode;
 }
 
+// ---------- 5 bis. RECHERCHE DE VILLE (29/07/2026) ----------
+//
+// Point d'entrée SÉPARÉ de /api/nearest, et c'est délibéré. Le service rendu
+// n'est pas le même : celui-ci traduit un NOM en coordonnées, il ne décode
+// aucun METAR. Les mêler aurait donné un point d'entrée à deux modes et une
+// union d'erreurs où la moitié des codes n'aurait aucun sens selon l'appel.
+//
+// Conséquence directe et à ne PAS « corriger » : `GeocodeErrorCode` ne
+// réutilise pas `ApiErrorCode`. Ce dernier est le contrat public de
+// /api/nearest, et son `switch` exhaustif dans `statusForReason` garantit
+// qu'un motif nouveau devient une erreur de COMPILATION plutôt qu'un 500.
+// Y ajouter « ville introuvable » casserait cette garantie pour un code que
+// /api/nearest ne peut jamais produire.
+//
+// La position rendue est celle de la VILLE, pas d'une station : le client la
+// repasse ensuite à /api/nearest, qui cherchera la station la plus proche.
+// Les deux appels restent donc indépendants.
+export interface GeocodePlace {
+  name: string; // « Brumath »
+  // Région et pays servent à LEVER L'HOMONYMIE, pas à décorer : « Paris »
+  // rend la France, le Texas et le Tennessee. Tous deux peuvent manquer sur
+  // les petites entrées de la source, d'où le null.
+  admin1: string | null; // « Grand Est », « Texas »
+  country: string | null; // « France »
+  countryCode: string | null; // « FR », pour un éventuel drapeau côté client
+  latitude: number;
+  longitude: number;
+}
+
+export interface GeocodeResponse {
+  // Jamais null : une recherche sans résultat est un ÉCHEC `city_not_found`
+  // et non une réussite à zéro élément. Le client n'a donc pas à distinguer
+  // « rien trouvé » d'une liste vide.
+  results: GeocodePlace[];
+}
+
+export type GeocodeErrorCode =
+  | "invalid_query" // nom absent, vide ou déraisonnablement long -> HTTP 400
+  | "city_not_found" // la source a répondu, sans aucune correspondance -> HTTP 404
+  | "network_error"; // source injoignable ou illisible -> HTTP 502
+
+export interface GeocodeError {
+  error: GeocodeErrorCode;
+}
+
 // ---------- 6. Réponse racine ----------
 export interface MetarResponse {
   station: Station | null;

@@ -91,10 +91,53 @@ function apiGeocode(): Plugin {
   };
 }
 
+// Même service pour /api/uv (indice UV, 30/07/2026). Troisième et dernier
+// routage, pour la même raison que le précédent : sans lui, la carte UV ne
+// s'afficherait qu'en production.
+function apiUv(): Plugin {
+  return {
+    name: "metar-api-uv",
+    configureServer(server) {
+      server.middlewares.use(async (req, res, next) => {
+        if (!req.url || !req.url.startsWith("/api/uv")) return next();
+
+        const chemin = fileURLToPath(new URL("./api/uv.ts", import.meta.url));
+        const mod = await server.ssrLoadModule(chemin);
+        const uv = await server.ssrLoadModule(
+          fileURLToPath(new URL("./src/uv.ts", import.meta.url)),
+        );
+
+        const params = new URL(req.url, "http://localhost").searchParams;
+        const brut: Record<string, string> = {};
+        for (const [cle, valeur] of params) brut[cle] = valeur;
+
+        const q = mod.parseUvQuery(brut);
+        res.setHeader("content-type", "application/json; charset=utf-8");
+        if (!q.ok) {
+          res.statusCode = 400;
+          res.end(JSON.stringify({ error: q.error }));
+          return;
+        }
+
+        // Le VRAI fetchUv, donc la vraie source : c'est le seul moyen de voir
+        // en local ce que la production verra.
+        const r = await uv.fetchUv(q.value.lat, q.value.lon);
+        if (!r.found) {
+          res.statusCode = mod.statusForUvReason(r.reason);
+          res.end(JSON.stringify({ error: r.reason }));
+          return;
+        }
+        res.statusCode = 200;
+        res.end(JSON.stringify(r.uv));
+      });
+    },
+  };
+}
+
 export default defineConfig({
   // La page vit dans `public/`, à l'endroit exact où Vercel ira la chercher.
   root: "public",
   publicDir: false,
   server: { port: 5173, open: false },
-  plugins: [apiNearest(), apiGeocode()],
+  plugins: [apiNearest(), apiGeocode(), apiUv()],
 });

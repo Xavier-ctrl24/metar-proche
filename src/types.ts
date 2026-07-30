@@ -166,6 +166,59 @@ export interface GeocodeError {
   error: GeocodeErrorCode;
 }
 
+// ---------- 5 ter. INDICE UV (30/07/2026) ----------
+//
+// POURQUOI CE BLOC N'EST PAS DANS `MetarResponse`, et c'est le point à ne pas
+// redécouvrir : L'INDICE UV N'EXISTE PAS DANS UN METAR. Ni lui, ni rien qui
+// permette de le calculer — un METAR donne une couverture nuageuse, pas un
+// éclairement. Il vient donc d'une SECONDE source amont (Open-Meteo, celle qui
+// sert déjà au géocodage), et Xavier a tranché le 30/07/2026 : appel SÉPARÉ et
+// NON BLOQUANT, sur son propre point d'entrée.
+//
+// La conséquence est une propriété de robustesse et pas seulement un choix de
+// découpage : la météo s'affiche même si l'UV échoue, tarde, ou si la source
+// tombe. Fondre l'UV dans /api/nearest aurait mis une seconde source sur le
+// chemin critique de CHAQUE consultation, dans un projet dont le journal est
+// déjà rempli de leçons sur les délais d'attente.
+//
+// `level` est un JETON NEUTRE et non une phrase, exactement comme
+// `WeatherCondition` face à `headlineText` : la classification vit ici, le
+// vocabulaire (« Protection solaire recommandée ») vit côté page dans `TEXTES`.
+// Xavier réécrit les cinq phrases sans toucher à un seuil.
+export type UvLevel =
+  | "low" // 0-2   : aucune protection nécessaire
+  | "moderate" // 3-5
+  | "high" // 6-7
+  | "very_high" // 8-10
+  | "extreme"; // 11 et plus
+
+export interface UvResponse {
+  // ARRONDI À L'ENTIER, comme partout ailleurs dans ce contrat, et pour une
+  // raison de plus ici : l'échelle UV est publiée en entiers par l'OMS, donc
+  // « UV 6,1 » afficherait une précision que l'échelle elle-même n'a pas.
+  value: number;
+  // Calculé sur la valeur ARRONDIE et jamais sur la valeur brute : sinon un
+  // 2,6 s'afficherait « UV 3 » (moderate) tout en portant le jeton `low`, et
+  // le chiffre contredirait la phrase. Même garantie que le sélecteur partagé
+  // entre `pickIcon` et `headlineText`.
+  level: UvLevel;
+  // Instant de la mesure amont, en ISO UTC. Peut manquer : la source le donne
+  // aujourd'hui, mais rien du contrat ne dépend de lui.
+  observedAt: string | null;
+}
+
+// Deux codes seulement, et l'absence de « pas de donnée » est volontaire : la
+// source couvre le globe entier par modèle, elle n'a pas de trou géographique
+// comparable au `no_station` d'AWC. Ce qui peut arriver, c'est une position
+// illisible ou une source injoignable.
+export type UvErrorCode =
+  | "invalid_position" // lat/lon absents, non numériques ou hors bornes -> HTTP 400
+  | "network_error"; // source injoignable ou illisible -> HTTP 502
+
+export interface UvError {
+  error: UvErrorCode;
+}
+
 // ---------- 6. Réponse racine ----------
 export interface MetarResponse {
   station: Station | null;

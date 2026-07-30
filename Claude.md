@@ -1235,6 +1235,154 @@ Fait et validé :
   `sdk.dir` dans `android/local.properties`. Un autre poste peut avoir Java
   sur le PATH directement, auquel cas cette recherche est inutile.
 
+- 30/07/2026 — NEUF DEMANDES DE XAVIER, et pour la première fois du projet la
+  session a commencé par SEPT QUESTIONS avant d'écrire une ligne. C'est lui qui
+  l'a demandé, et ça valait mieux qu'un devinage : trois des sept réponses
+  changeaient l'architecture, pas la présentation.
+  L'INDICE UV N'EST PAS DANS UN METAR, et rien dedans ne permet de le calculer
+  (couverture nuageuse, pas éclairement). C'était donc une SECONDE SOURCE amont
+  et une évolution de `types.ts`, c'est-à-dire exactement l'un des trois cas où
+  ce fichier impose d'interrompre Xavier. Vérifié fonctionnel avant de le
+  proposer : `api.open-meteo.com/v1/forecast?current=uv_index` rend 6,10 à
+  Brumath, sans clé, rafraîchi toutes les 15 minutes, même fournisseur que le
+  géocodage.
+  ARBITRAGE : appel SÉPARÉ et NON BLOQUANT (`/api/uv`, `src/uv.ts`,
+  `tests/uv.test.ts`, 28 tests). La page lance les deux requêtes ensemble et
+  n'attend JAMAIS l'UV. C'est la propriété qui compte : une source ajoutée ne
+  peut pas dégrader le service qui existait avant elle. Un échec UV est
+  SILENCIEUX — l'utilisateur venu voir la météo l'a déjà sous les yeux.
+  LA GARDE DE GÉNÉRATION est la partie qu'on aurait pu oublier : deux
+  consultations rapprochées (bascule de langue, choix de ville) lancent deux
+  appels, et si le premier revient après le second il écrit l'UV de Brumath sur
+  la page de Reykjavik. Un compteur suffit ; sans lui, le défaut n'apparaît
+  qu'en réseau lent.
+  `UvErrorCode` ne réutilise PAS `ApiErrorCode`, même raison que
+  `GeocodeErrorCode` le 29/07 : le `switch` exhaustif de `statusForReason` doit
+  rester une garantie de compilation.
+  Quatre mutations vérifiées : classer sur la valeur brute, lire `uv_index` à
+  la racine, réessayer un 4xx, rendre UV 0 sur charge inattendue.
+  L'ARRONDI PRÉCÈDE LA CLASSIFICATION, sinon 2,6 s'affiche « UV 3 » en portant
+  le jeton `low` : le chiffre contredirait la phrase. Même garantie que le
+  sélecteur partagé entre `pickIcon` et `headlineText`.
+
+  L'ACCENT NE POUVAIT PAS ÊTRE L'AMBRE DES ICÔNES, et il l'a été une heure.
+  Xavier avait choisi de réutiliser l'ambre existant plutôt qu'une troisième
+  teinte, ce qui était le bon choix — mais un accent se pose PARTOUT, alors
+  qu'une icône est mesurée là où elle est posée. Repassé sur les 20 ciels x 21
+  hauteurs SUR FOND DE CARTE, l'ambre validé du 28/07 tombe à 2,25:1 en
+  polarité sombre (sct de jour, verre renforcé) et 2,16 en claire (sn de jour),
+  sous le seuil de 3:1 des éléments graphiques. D'où DEUX jetons de la même
+  famille : `--ico-sun` intact (validé, on n'y touche pas) et `--accent`
+  mesuré à 3,12 / 3,28. Les valeurs plus chaudes ont été essayées et rejetées
+  PAR LA MESURE (#FFC466 donne 2,89, écart que l'œil ne voit pas).
+  RÈGLE D'EMPLOI À TENIR : `--accent` ne porte que du GRAPHIQUE, jamais du
+  texte. En polarité claire il fait 3,28 — au-dessus du 3:1 graphique, en
+  dessous du 4,5:1 du texte. Un mot écrit en accent serait une régression
+  invisible à l'œil.
+
+  LE FOND DU BOUTON METAR NE POUVAIT PAS ÊTRE « LÉGÈREMENT PLUS CLAIR », et
+  c'est le défaut le plus contre-intuitif de la session. Posé en
+  `--card-bg-strong` comme la demande le suggérait, il empilait un second verre
+  clair sur le verre de la carte : son libellé passait de 5,00 à 3,23:1, donc
+  SOUS le seuil, alors qu'il le tenait avant la retouche. Un fond « plus
+  visible » qui efface son propre texte. Le remplissage va donc dans le sens
+  qui SÉPARE, et ce sens dépend de la polarité (`--raw-fill` : plus sombre sous
+  encre claire, plus clair sous encre sombre). Mesuré : texte 6,58, bordure
+  3,70, chevron 3,97.
+  CE QUE CE FOND NE FAIT PAS : sur les ciels presque noirs (ts, night),
+  assombrir de 18 % ne se voit pas. Ce sont la bordure de contrôle, l'icône et
+  le chevron qui portent le « c'est un bouton » là — trois signaux qui ne
+  dépendent d'aucun écart de luminosité.
+
+  LA CARTE DU SOLEIL GRANDISSAIT AU LIEU DE MAIGRIR : 211 -> 295 px. Cause,
+  invisible à la lecture : `.sun svg` est un sélecteur DESCENDANT, et il
+  attrapait les deux nouvelles icônes de borne en leur donnant `width: 100%`.
+  Corrigé en `.sun > svg`. Une icône démesurée ressemble à un choix graphique
+  tant qu'on ne compare pas les hauteurs — seule la mesure l'a vu.
+
+  LE BARÈME DE CONFORT SE CORRIGE PAR SES SORTIES, jamais par la plausibilité
+  de ses coefficients. Premier jeu de pénalités : 38 °C ressentis ressortaient
+  « correct, sans plus » (dangereux à dire), un orage à 48 % « peu agréable ».
+  Recalibré en regardant les treize situations rendues, pas les nombres.
+  ARBITRAGE DE XAVIER, et c'est une question d'honnêteté et non de prudence :
+  la carte DISPARAÎT dès qu'une seule des cinq entrées annoncées manque.
+  « 94 % » calculé sur trois entrées sur cinq affirme une précision que la
+  donnée n'a pas, et le libellé qui énumère les entrées rend le mensonge
+  explicite. Les sept cas de retrait sont vérifiés un par un.
+
+  FAUSSE PISTE CONSIGNÉE, parce qu'elle est la plus instructive : j'ai cru la
+  rotation du chevron CASSÉE (transform calculé = identité alors que la règle
+  existait, que son sélecteur correspondait, qu'aucune autre ne la
+  concurrençait), j'en ai conclu que le moteur refusait un `transform` sur un
+  `<svg>` racine, et j'ai ajouté une enveloppe `<span>` pour le contourner.
+  C'était FAUX. Le volet ne composant pas d'image, les TRANSITIONS ne
+  s'exécutaient pas et `getComputedStyle` rendait l'état de DÉPART, quel que
+  soit le temps d'attente. Ce fichier le documente depuis le 28/07 et je ne
+  l'ai pas appliqué. Mesuré correctement (`transition: none !important`) : le
+  `<svg>` racine et un `<span>` rendent tous deux la même matrice. Enveloppe
+  retirée. LEÇON : avant de conclure qu'une propriété CSS ne s'applique pas,
+  vérifier que l'instrument peut la voir.
+  Deuxième mesure invalide du même genre, corrigée aussi : lire
+  `getComputedStyle` sur les formes d'un `<symbol>` dans `<defs>` rend du noir
+  par défaut, puisqu'elles ne sont pas rendues. La preuve de peinture reste le
+  POINTAGE (96 points sur 384 atteignent la mascotte, ce qui est la signature
+  d'un dessin au trait et non d'un rectangle plein).
+
+  LA SONDE DE CONTRASTE A ÉTÉ CALIBRÉE AVANT D'ÊTRE CRUE, et c'est la méthode
+  à reprendre : première version, témoin « texte sur ciel » à 6,19 contre 6,64
+  consigné le 28/07 — donc sonde fausse, conclusions jetées. Deux causes : le
+  voile de nuit était approximé au lieu d'être lu dans la feuille, et la
+  polarité était héritée du dernier rendu au lieu d'être posée par
+  (ciel, lumière). Corrigée, elle retrouve les QUATRE témoins au centième
+  (6,64 / 5,56 / 5,00 / 4,73), ce qui prouve au passage que la compaction n'a
+  déplacé aucun contraste — la question qu'elle posait.
+
+  COMPACTION, chiffres réels (arbitrage -25 %) : visibilité 92 -> 70 (-24 %),
+  mesures 108 -> 85 (-21 %), soleil 211 -> 121 (-43 %, le point 3 demandait
+  plus), provenance 179 -> 158 (-12 %), vent 133 -> 119 (-11 %).
+  LE VENT EST EN DESSOUS DE LA CIBLE, et c'est un arbitrage assumé plutôt
+  qu'un échec : le point 2 remplace un cadran de 44 px par une rose de 56 qui
+  porte quatre points cardinaux, huit graduations et la vitesse. La demande 1
+  et la demande 2 tirent en sens inverse sur cette carte ; la densité a été
+  préférée à la hauteur. Signalé, pas caché.
+
+  LA ROSE DES VENTS : le défaut de l'ancien cadran n'était pas le dessin mais
+  le REPÈRE. Une flèche seule dans un cercle montre une direction sans dire par
+  rapport à quoi. Les quatre lettres sont l'ajout utile ; le reste les rend
+  lisibles. Les points cardinaux vivent dans `TEXTES` et non dans le SVG parce
+  que l'ouest est « O » en français et « W » en anglais — une lettre, et la
+  boussole devient fausse pour la moitié des lecteurs. Les deux règles de
+  l'ancien cadran sont conservées : l'aiguille montre où le vent VA, et il n'y
+  a aucune aiguille sans direction connue.
+
+  LA MASCOTTE : petit nuage, choisi par Xavier parmi ses cinq pistes. Motif à
+  connaître, parce qu'il exclut les autres : c'est le seul qui reste JUSTE par
+  tous les temps. Un soleil ou une goutte SONT chacun un temps particulier,
+  donc contrediraient la moitié des conseils qu'ils portent ; une girouette ne
+  parle que du vent. Trois expressions pour dix jetons, via une table
+  `EXPRESSIONS` avec repli obligatoire sur `m-neutre`. Elle ne calcule RIEN :
+  elle se branche sur le jeton de conseil déjà rendu, donc elle ne peut pas
+  sourire pendant que la phrase annonce un orage. La LIGNE ENTIÈRE se masque
+  quand il n'y a rien à conseiller — un personnage sans réplique ressemble à un
+  texte qui n'a pas chargé.
+
+  VÉRIFIÉ : 357 tests, type-check 0, parité fr/en des 86 clés (aucune
+  manquante, aucune vide, aucune orpheline), les 10 jetons de conseil et leurs
+  expressions, les 5 niveaux UV et leur jauge, les 7 cas de retrait du confort,
+  13 situations de barème, bascule de langue avec le METAR DÉPLIÉ (« Hide the
+  METAR » et non « Show », icône et chevron survivants), rose N/E/S/O -> N/E/S/W
+  et retour, chevron pivoté à 180° et rendu au repos, six symboles neufs prouvés
+  peints, mouvement réduit couvrant les huit nouvelles animations, cibles
+  tactiles toutes >= 24 px, débordement horizontal nul à 375 px et en pleine
+  largeur, console sans erreur.
+  EN ATTENTE DE XAVIER : les 20 formulations nouvelles marquées `[à valider]`
+  (4 points cardinaux, 6 pour l'UV, 8 pour le confort, 2 unités) et les SEUILS,
+  qui sont d'une autre nature — `SEUILS_CONFORT` et `SEUILS_UV` sont des
+  DÉCISIONS, groupés et nommés pour se discuter d'un coup d'œil. Un cas à lui
+  soumettre en particulier : 38 °C ressentis donnent 39 % « peu agréable
+  dehors », ce que je trouve encore trop généreux.
+  PAS DE TEST sur la page, raison inchangée depuis le 28/07.
+
 Prochaine étape (à décider avec Xavier) :
 - ICÔNE ET ÉCRAN DE DÉMARRAGE DE L'APPLICATION : encore ceux de Capacitor (le
   X bleu du gabarit), dans `android/app/src/main/res/mipmap-*` et

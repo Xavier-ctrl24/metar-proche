@@ -1381,6 +1381,49 @@ Fait et validé :
   DÉCISIONS, groupés et nommés pour se discuter d'un coup d'œil. Un cas à lui
   soumettre en particulier : 38 °C ressentis donnent 39 % « peu agréable
   dehors », ce que je trouve encore trop généreux.
+  QUATRE DÉFAUTS DE SECONDE PASSE, tous trouvés en relisant la session plutôt
+  qu'en la vérifiant :
+  (a) ATTRIBUTION CC-BY MANQUANTE, et elle était due depuis le 29/07 et non
+  depuis l'UV. Open-Meteo distribue son offre gratuite sous CC-BY 4.0, dont le
+  crédit EST la condition — or la recherche de ville l'utilisait déjà. Le
+  manquement est donc antérieur à cette session. Réparé pour les deux points
+  d'entrée, ligne `sources` sous le détail technique. aviationweather.gov
+  (NOAA) est du domaine public et n'exige rien ; il est cité quand même, parce
+  que dire d'où vient la mesure est le sujet de l'application.
+  (b) `color-mix` RETIRÉ, et la leçon est utile pour la suite : sur une
+  propriété PERSONNALISÉE, une valeur non comprise n'échoue pas à l'ANALYSE
+  (les propriétés personnalisées acceptent presque tout flux de jetons) mais AU
+  CALCUL — donc `background: var(--x)` retombe sur `initial`, c'est-à-dire
+  transparent. Le chemin des jauges aurait disparu sur les deux cartes neuves.
+  Et LA PARADE HABITUELLE NE MARCHE PAS : écrire un `rgba` avant le
+  `color-mix` dans la même règle ne laisse aucun repli, puisque le `color-mix`
+  est valide à l'analyse et l'écrase purement (vérifié dans le CSSOM, où il ne
+  restait qu'une déclaration sur deux). L'accent étant un hex fixe, `color-mix`
+  ne calculait rien qu'on ne puisse écrire soi-même : deux `rgba` en dur, et la
+  dépendance disparaît avec le risque.
+  (c) POUSSIÈRE ET FUMÉE ne coûtaient RIEN au barème de confort : elles
+  tombaient à travers toutes les branches, donc une tempête de sable notait
+  comme une journée dégagée. C'est la troisième fois que ce piège se présente
+  dans ce projet (après `hail` dans la neige et `mist` dans le brouillard) et
+  c'est toujours le même : une parenté de CIEL dans la table CIELS n'est pas
+  une parenté de fait.
+  (d) LE BROUILLARD SE JUGE SUR LA VALEUR de visibilité et non sur le jeton,
+  ce que `conseilToken` prenait déjà soin de faire juste à côté. Facturer 20
+  points à `mist` sur le seul jeton pénalisait une brume à 8 km. Et 20 ne
+  suffisait pas : un vrai brouillard à 400 m ressortait « agréable dehors ».
+  `vercel.json` VÉRIFIÉ et non supposé : le bloc `functions` utilise le glob
+  `api/*.ts`, donc `/api/uv` hérite de `maxDuration: 30` sans rien ajouter.
+  `mpSpin` retiré, orphelin depuis que le cadran a cédé la place à la rose.
+  À SOUMETTRE À XAVIER, question de fond et non de mise au point : la carte UV
+  porte un nombre MODÉLISÉ, calculé par un tiers, à la position de
+  l'UTILISATEUR et à l'instant présent — alors que tout le reste de la page est
+  une MESURE prise par un instrument, à la position de la STATION, à l'heure de
+  l'observation, et que le badge dit « Station météo officielle ». La carte UV
+  a aujourd'hui exactement le même costume visuel que les cartes issues du
+  METAR, et rien ne signale la différence. C'est la même exigence que ce
+  fichier applique partout ailleurs (refus d'afficher UV 0, confort masqué,
+  pas de recherche de ville sans géocodeur) ; la corriger demande une
+  formulation, donc son accord.
   PAS DE TEST sur la page, raison inchangée depuis le 28/07.
 
 Prochaine étape (à décider avec Xavier) :

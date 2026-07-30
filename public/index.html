@@ -222,6 +222,28 @@
      candidats plus chauds ont été essayés et rejetés par la mesure —
      #FFC466 donne 2,89, ce qui est le genre d'écart que l'œil ne voit pas. */
   --accent: #FFCE80;
+  /* Version FANTÔME de l'accent, pour le CHEMIN des jauges. Sous le seuil de
+     contraste, et c'est voulu : elle marque le parcours d'une jauge, jamais sa
+     valeur, donc elle ne porte aucune information à elle seule.
+     ÉCRITE EN DUR, ET PAS EN `color-mix`, après une correction qui vaut d'être
+     consignée. Premier jet : `color-mix(in srgb, var(--accent) 26%,
+     transparent)`, la seule fonction CSS récente de la page. Sur une propriété
+     PERSONNALISÉE, une valeur non comprise ne rend pas la déclaration
+     invalide à l'analyse — les propriétés personnalisées acceptent presque
+     n'importe quel flux de jetons — elle échoue plus tard, AU CALCUL. Donc
+     `background: var(--accent-ghost)` retomberait sur `initial`, c'est-à-dire
+     TRANSPARENT : chemin de jauge disparu, barre flottant sans repère, sur les
+     deux cartes neuves.
+     Et la parade habituelle NE MARCHE PAS ICI : écrire un `rgba` avant le
+     `color-mix` dans la même règle ne laisse aucun repli, puisque le
+     `color-mix` étant valide à l'ANALYSE, il écrase purement le `rgba`.
+     Vérifié dans le CSSOM, où il ne restait qu'une déclaration sur deux.
+     L'accent étant un hex fixe, `color-mix` ne calculait rien qu'on ne puisse
+     écrire soi-même : on écrit donc les deux valeurs, et la dépendance
+     disparaît avec le risque. Exactement la forme de panne que ce dépôt
+     connaît trop bien — parfait en local, cassé dans l'APK, invisible à tout
+     test. */
+  --accent-ghost: rgba(255, 206, 128, .26);
   /* REMPLISSAGE DES RANGÉES DÉPLIABLES (30/07/2026). Xavier demandait « un
      fond légèrement plus clair » sur le bouton du METAR. Éclaircir est
      exactement ce qu'il ne faut PAS faire ici, et la sonde l'a montré : posé
@@ -242,10 +264,6 @@
      d'aucun écart de luminosité. */
   --raw-fill: rgba(0, 0, 0, .18);
   --raw-fill-hi: rgba(0, 0, 0, .28);
-  /* Version FANTÔME, pour les fonds de jauge et les filets de fond. Sous le
-     seuil de contraste, donc réservée à ce qui ne porte aucune information à
-     soi seul : elle marque le CHEMIN d'une jauge, jamais sa valeur. */
-  --accent-ghost: color-mix(in srgb, var(--accent) 26%, transparent);
   /* Dégradé du chiffre géant. Blanc pur en haut, crème à peine tiède en
      bas : l'écart est volontairement minuscule (255,255,255 -> 255,247,232),
      parce qu'un dégradé qu'on REMARQUE sur un chiffre de cette taille
@@ -288,12 +306,14 @@
      franchement cuivré — #8C4800 passait aussi (3,94) mais virait au brun,
      et c'est précisément l'écueil que l'entrée du 28/07 signale. */
   --accent: #9E5200;
+  /* 26 % de #9E5200, écrit en dur pour la raison détaillée dans le bloc
+     `dark` : aucune fonction CSS récente sur le chemin d'une jauge. */
+  --accent-ghost: rgba(158, 82, 0, .26);
   /* Le sens s'inverse, comme pour les deux accents et le dégradé du chiffre :
      ici l'encre est sombre, donc c'est en ÉCLAIRCISSANT que le bouton se
      détache et que son texte gagne. */
   --raw-fill: rgba(255, 255, 255, .32);
   --raw-fill-hi: rgba(255, 255, 255, .46);
-  --accent-ghost: color-mix(in srgb, var(--accent) 26%, transparent);
   /* Sur ciel presque blanc, le dégradé va vers le SOMBRE et non vers le
      crème : s'éclaircir ici ferait perdre du contraste à chaque pixel
      gagné en style. Même inversion que les deux accents ci-dessus. */
@@ -437,7 +457,6 @@
    ce qui ne déplace rien — l'opacité, et le rayon là où il est animable. */
 @keyframes mpSunPulse { 0%, 100% { opacity: .20; r: 16px; } 50% { opacity: .36; r: 20px; } }
 @keyframes mpRise { from { opacity: 0; transform: translate3d(0, 18px, 0); } to { opacity: 1; transform: none; } }
-@keyframes mpSpin { from { transform: rotate(0); } to { transform: rotate(360deg); } }
 @keyframes mpShimmer { from { background-position: -260px 0; } to { background-position: 260px 0; } }
 
 /* ANIMATIONS SOBRES (30/07/2026, demande de Xavier : « quelques animations
@@ -1117,6 +1136,14 @@ main {
   font: 400 var(--fs-mono)/1.5 var(--mono); letter-spacing: .08em;
   color: var(--ink-faint); text-transform: uppercase;
 }
+/* L'attribution : même famille que la ligne technique, mais sans la casse
+   forcée — un nom de domaine et un nom de licence se lisent tels qu'ils
+   s'écrivent, et « CC BY 4.0 » en capitales espacées deviendrait illisible.
+   `--ink-faint` est l'encre déjà mesurée : discrète, jamais sous le seuil. */
+.sources {
+  margin-top: .45rem; text-transform: none; letter-spacing: .04em;
+  text-wrap: pretty;
+}
 
 /* ---- 7. États de service ---- */
 .notice { padding: 25vh 0 2rem; text-align: center; }
@@ -1730,6 +1757,11 @@ main {
         <span id="openSheetTxt"></span>
       </button>
       <p class="tech" id="tech"></p>
+      <!-- L'attribution des sources. Obligatoire et non ornementale : la
+           licence CC-BY 4.0 d'Open-Meteo en fait sa condition. Elle est
+           STATIQUE, donc câblée dans `appliquerChrome` et jamais dans
+           `afficher` — c'est la règle qui évite la régression du 28/07. -->
+      <p class="tech sources" id="sources"></p>
     </div>
   </article>
 
@@ -1903,6 +1935,15 @@ const TEXTES = {
     confortLabel: "confort",
     confortUnite: "%",
     confortBase: "Température, humidité, vent, soleil, pluie",
+
+    // ATTRIBUTION. Elle n'est pas décorative : Open-Meteo distribue son offre
+    // gratuite sous CC-BY 4.0, dont le crédit est LA condition. Elle est donc
+    // due depuis le 29/07/2026 et la recherche de ville, pas seulement depuis
+    // l'UV — le manquement est antérieur à cette session, il est réparé ici.
+    // aviationweather.gov (NOAA) est du domaine public et n'exige rien, mais
+    // le citer coûte trois mots et dit d'où vient la mesure, ce qui est le
+    // sujet même de l'application.  [à valider]
+    sources: "Mesures aviationweather.gov · UV et villes Open-Meteo (CC BY 4.0)",
     conf_excellent: "Idéal pour être dehors",
     conf_bon: "Agréable dehors",
     conf_moyen: "Correct, sans plus",
@@ -2016,6 +2057,10 @@ const TEXTES = {
     confortLabel: "comfort",
     confortUnite: "%",
     confortBase: "Temperature, humidity, wind, sun, rain",
+
+    // Les noms de source et le nom de licence ne se traduisent pas ; seuls les
+    // deux mots de liaison changent.  [à valider]
+    sources: "Observations aviationweather.gov · UV and cities Open-Meteo (CC BY 4.0)",
     conf_excellent: "Ideal for being outside",
     conf_bon: "Pleasant outside",
     conf_moyen: "Acceptable, no more",
@@ -2323,7 +2368,11 @@ const SEUILS_CONFORT = {
   // neige un peu plus froide, elles rendent le sol praticable ou non.
   malusGlace: 55,
   malusOrage: 68,
-  malusBrouillard: 20,
+  // 30 et non 20 : à 20, un brouillard à 400 m ressortait « agréable dehors »,
+  // ce qui est absurde. Calibré, comme les autres forfaits, pour que le
+  // phénomène SEUL suffise à sortir de la tranche « agréable ».
+  malusBrouillard: 30,
+  malusAirCharge: 34,
   // 14 et non 8 : à 8, une nuit d'été douce ressortait « idéal pour être
   // dehors », ce qui n'est pas faux mais que le seuil « excellent » ne doit
   // pas décerner sans soleil. À 14, la même nuit devient « agréable ».
@@ -2336,6 +2385,14 @@ const SEUILS_CONFORT = {
 };
 
 const JETONS_COUVERT = new Set(["cloudy", "overcast"]);
+
+// L'AIR CHARGÉ : poussière et fumée. Ils avaient été OUBLIÉS du barème, et
+// c'est la même faute que `hail` rangé dans la neige — ils partagent le ciel
+// `fg` dans la table CIELS, ce qui est un regroupement VISUEL, et cette
+// parenté-là ne leur donnait aucune pénalité : une tempête de sable notait
+// comme une journée dégagée. Ils ont donc leur propre forfait, plus lourd
+// qu'un brouillard : on respire dedans.
+const JETONS_AIR_CHARGE = new Set(["dust", "smoke"]);
 
 /**
  * Rend `{ pct, cle }` ou `null` si une entrée manque.
@@ -2394,7 +2451,18 @@ function confortScore(r) {
   else if (jeton === "hail" || jeton === "freezing_rain") score -= SEUILS_CONFORT.malusGlace;
   else if (JETONS_NEIGE.has(jeton)) score -= SEUILS_CONFORT.malusNeige;
   else if (JETONS_PLUIE.has(jeton)) score -= SEUILS_CONFORT.malusPluie;
-  else if (jeton === "fog" || jeton === "mist") score -= SEUILS_CONFORT.malusBrouillard;
+  else if (JETONS_AIR_CHARGE.has(jeton)) score -= SEUILS_CONFORT.malusAirCharge;
+  // LE BROUILLARD SE JUGE SUR LA VALEUR DE VISIBILITÉ, pas sur le jeton, et
+  // c'est un alignement sur `conseilToken` qui prenait déjà cette précaution :
+  // `mist` couvre une brume légère à 8 km, où il n'y a rien d'inconfortable.
+  // Facturer 20 points sur le seul jeton était l'inverse exact du soin pris
+  // dans la fonction d'à côté. Sans valeur lisible, on ne facture rien.
+  else if (jeton === "fog" || jeton === "mist") {
+    const vis = r.visibility;
+    if (vis && !vis.isCavok && vis.value !== null && vis.value < SEUILS.brouillardM) {
+      score -= SEUILS_CONFORT.malusBrouillard;
+    }
+  }
   else if (JETONS_COUVERT.has(jeton)) score -= SEUILS_CONFORT.malusCouvert;
 
   if (isDay === false) score -= SEUILS_CONFORT.malusNuit;
@@ -2788,6 +2856,7 @@ function appliquerChrome(lang) {
   $("hereTxt").textContent = t.boutonIci;
   $("go").textContent = t.boutonConsulter;
   $("skelTxt").textContent = t.chargement;
+  $("sources").textContent = t.sources;
   $("lat").setAttribute("aria-label", t.labelLat);
   $("lon").setAttribute("aria-label", t.labelLon);
   // Recherche de ville. Le repère de saisie et le nom accessible sont

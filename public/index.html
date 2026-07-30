@@ -916,6 +916,13 @@ main {
 /* ---- 5. Le relevé ---- */
 .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: .55rem; margin-top: .55rem; }
 .grid .card { grid-column: span 3; }
+/* #uvSlot (script) est un EMBALLAGE, posé dans la grille pour réserver la
+   place de l'UV avant qu'il n'arrive (voir le commentaire JS à sa création).
+   C'est donc LUI l'item de grille, pas la carte qu'il contient : la règle
+   `.grid .card` ne l'atteint pas (`grid-column` n'agit que sur un enfant
+   DIRECT du conteneur grille), et il retombait sur 1 colonne sur 3, d'où une
+   carte UV étriquée à côté des autres. */
+.grid #uvSlot { grid-column: span 3; }
 
 .row-head { display: flex; align-items: center; gap: .5rem; }
 .row-txt { margin-top: .28rem; font-size: var(--fs-fort); letter-spacing: -.01em; }
@@ -1063,6 +1070,15 @@ main {
   .chiffre { animation: none; }
   .jauge i { animation: none; }
 }
+
+/* L'UV n'a pas de ligne « sur quoi le calcul repose » (ce n'est pas un
+   calcul, c'est une mesure) : sans elle, sa carte était plus basse que celle
+   du confort, qui en a une. `visibility: hidden` et non `display: none` sur
+   le remplaçant : la ligne garde sa place sans rien afficher, `aria-hidden`
+   l'écarte des lecteurs d'écran. On réserve la HAUTEUR d'une ligne
+   d'intitulé, pas une valeur devinée : les deux cartes restent alignées quel
+   que soit le nombre de mots que Xavier choisit pour ses phrases. */
+.chiffre-card .label.reserve { visibility: hidden; }
 
 /* ---- 5 quater. LA MASCOTTE ----
    Ajoutée le 30/07/2026 sur demande de Xavier, qui a choisi le petit nuage
@@ -2662,6 +2678,7 @@ function roseDesVents(vent, t) {
  */
 function carteChiffre(intitule, icone, valeur, unite, fraction, phrase, sousTexte) {
   const div = carteTexte(intitule, "", icone);
+  div.className += " chiffre-card";
   div.querySelector(".row-txt").remove();
 
   const ligne = document.createElement("div");
@@ -2692,18 +2709,19 @@ function carteChiffre(intitule, icone, valeur, unite, fraction, phrase, sousText
   p.className = "phrase";
   p.textContent = phrase;
 
-  bloc.append(jauge, p);
-  if (sousTexte) {
-    // La ligne des entrées du calcul. Elle réutilise `.label`, le style
-    // d'intitulé déjà mesuré : inventer une taille et une couleur ici aurait
-    // produit un contraste non vérifié.
-    const s = document.createElement("span");
-    s.className = "label";
-    s.style.display = "block";
-    s.style.marginTop = ".4rem";
-    s.textContent = sousTexte;
-    bloc.append(s);
-  }
+  // La ligne des entrées du calcul. Elle réutilise `.label`, le style
+  // d'intitulé déjà mesuré : inventer une taille et une couleur ici aurait
+  // produit un contraste non vérifié. Absente (cas de l'UV, qui est une
+  // MESURE et non un calcul), elle est quand même POSÉE mais invisible
+  // (`.reserve`) : la carte garde la place plutôt que de rétrécir, sans
+  // afficher une phrase qui n'existe pas.
+  const s = document.createElement("span");
+  s.className = sousTexte ? "label" : "label reserve";
+  s.style.display = "block";
+  s.style.marginTop = ".4rem";
+  s.textContent = sousTexte || " ";
+  if (!sousTexte) s.setAttribute("aria-hidden", "true");
+  bloc.append(jauge, p, s);
 
   ligne.append(n, bloc);
   div.append(ligne);

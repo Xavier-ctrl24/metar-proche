@@ -195,6 +195,57 @@
      donc un seul endroit à corriger. Valeurs mesurées, voir CLAUDE.md. */
   --ico-sun: #F5A623;   /* ambre clair, sur ciel sombre */
   --ico-wet: #7FB3E8;   /* bleu éclairci, sur ciel sombre */
+  /* ACCENT DE GUIDAGE (30/07/2026, demande de Xavier : « une couleur
+     d'accent très discrète pour guider le regard »). Il ne fabrique AUCUNE
+     couleur nouvelle : c'est --ico-sun, l'ambre déjà mesuré dans les deux
+     polarités (9,34 de nuit, 3,23 de jour). Xavier a tranché en ce sens
+     plutôt que pour une troisième teinte, et le gain n'est pas qu'un mesurage
+     économisé : la page reste à DEUX accents, donc l'œil apprend un signal
+     au lieu d'en démêler trois.
+     RÈGLE D'EMPLOI, et elle n'est pas négociable : cet accent ne porte QUE
+     des éléments GRAPHIQUES (filets, jauges, points, contours), jamais du
+     texte. Le cuivre de jour tient 3,23:1, ce qui passe le seuil de 3:1 des
+     éléments graphiques et échoue au 4,5:1 du texte. Écrire un mot en
+     --accent serait donc une régression d'accessibilité invisible à l'œil.
+
+     IL N'EST PAS ALIASÉ SUR --ico-sun, et il l'a été pendant une heure : la
+     sonde a tranché. L'ambre des icônes est validé dans SON contexte, mesuré
+     le 28/07 sur le ciel réellement affiché ce jour-là. Repassé sur les 20
+     combinaisons de ciel x 21 hauteurs, sur fond de CARTE, il tombe à 2,25:1
+     en polarité sombre (sct de jour, verre renforcé) et 2,16 en polarité
+     claire (sn de jour). Sous le seuil de 3:1, donc inutilisable pour un
+     accent qui, lui, se pose partout.
+     Ce sont donc DEUX jetons de la même famille de teinte, à une clarté
+     près : --ico-sun reste ce que Xavier a validé, --accent est la valeur la
+     plus CHAUDE de cette famille qui passe le seuil sur tous les fonds de
+     carte. Mesuré : 3,12:1 (pire cas sct/jour sur verre renforcé). Les
+     candidats plus chauds ont été essayés et rejetés par la mesure —
+     #FFC466 donne 2,89, ce qui est le genre d'écart que l'œil ne voit pas. */
+  --accent: #FFCE80;
+  /* REMPLISSAGE DES RANGÉES DÉPLIABLES (30/07/2026). Xavier demandait « un
+     fond légèrement plus clair » sur le bouton du METAR. Éclaircir est
+     exactement ce qu'il ne faut PAS faire ici, et la sonde l'a montré : posé
+     en `--card-bg-strong`, le bouton empilait un second verre clair sur le
+     verre de la carte, et son texte tombait de 5,00 à 3,23:1 — donc SOUS le
+     seuil, alors qu'il le passait avant la retouche. Un fond « plus visible »
+     qui efface son propre libellé.
+     Le fond va donc dans le sens qui SÉPARE, et ce sens dépend de la
+     polarité : plus SOMBRE là où l'encre est claire, plus CLAIR là où l'encre
+     est sombre. Dans les deux cas le bouton se détache de la carte ET son
+     texte gagne du contraste. Mesuré : texte 6,58 / bordure 3,70 /
+     chevron 3,97 au pire cas (sct de jour).
+     CE QUE CE FOND NE FAIT PAS, et il faut le savoir : sur les ciels les plus
+     sombres (ts, night) assombrir de 18 % d'un fond déjà presque noir ne se
+     voit quasiment pas. Ce n'est pas lui qui porte le « c'est un bouton »
+     dans ces cas-là, ce sont la BORDURE de contrôle (déjà mesurée à 3:1
+     depuis le 28/07), l'icône et le chevron — trois signaux qui ne dépendent
+     d'aucun écart de luminosité. */
+  --raw-fill: rgba(0, 0, 0, .18);
+  --raw-fill-hi: rgba(0, 0, 0, .28);
+  /* Version FANTÔME, pour les fonds de jauge et les filets de fond. Sous le
+     seuil de contraste, donc réservée à ce qui ne porte aucune information à
+     soi seul : elle marque le CHEMIN d'une jauge, jamais sa valeur. */
+  --accent-ghost: color-mix(in srgb, var(--accent) 26%, transparent);
   /* Dégradé du chiffre géant. Blanc pur en haut, crème à peine tiède en
      bas : l'écart est volontairement minuscule (255,255,255 -> 255,247,232),
      parce qu'un dégradé qu'on REMARQUE sur un chiffre de cette taille
@@ -230,6 +281,19 @@
      reste chaud là où un ambre conforme aurait viré au brun. */
   --ico-sun: #C96A00;
   --ico-wet: #2B6CB0;
+  /* Même famille de teinte que --ico-sun, une clarté en dessous, pour la
+     raison mesurée et détaillée dans le bloc `dark` : le cuivre validé des
+     icônes tombe à 2,16:1 sur une carte du ciel `sn` de jour, qui est le
+     ciel le plus clair du jeu. Celui-ci donne 3,28:1 au pire cas. Il reste
+     franchement cuivré — #8C4800 passait aussi (3,94) mais virait au brun,
+     et c'est précisément l'écueil que l'entrée du 28/07 signale. */
+  --accent: #9E5200;
+  /* Le sens s'inverse, comme pour les deux accents et le dégradé du chiffre :
+     ici l'encre est sombre, donc c'est en ÉCLAIRCISSANT que le bouton se
+     détache et que son texte gagne. */
+  --raw-fill: rgba(255, 255, 255, .32);
+  --raw-fill-hi: rgba(255, 255, 255, .46);
+  --accent-ghost: color-mix(in srgb, var(--accent) 26%, transparent);
   /* Sur ciel presque blanc, le dégradé va vers le SOMBRE et non vers le
      crème : s'éclaircir ici ferait perdre du contraste à chaque pixel
      gagné en style. Même inversion que les deux accents ci-dessus. */
@@ -376,6 +440,38 @@
 @keyframes mpSpin { from { transform: rotate(0); } to { transform: rotate(360deg); } }
 @keyframes mpShimmer { from { background-position: -260px 0; } to { background-position: 260px 0; } }
 
+/* ANIMATIONS SOBRES (30/07/2026, demande de Xavier : « quelques animations
+   sobres pour donner une sensation de fluidité »).
+   RIEN N'A ÉTÉ AJOUTÉ AU CIEL, et c'était déjà la décision du 29/07 : il
+   anime pluie, neige, étoiles, éclair, brouillard et dérive des nuages. Une
+   couche de plus coûterait du GPU pour redire la même chose.
+   TOUTES en `opacity` et `transform`, donc composées par le GPU sans une
+   seule repeinte. Aucune n'anime une hauteur, une largeur ou une couleur —
+   c'est la ligne à ne pas franchir sur un téléphone.
+   CHACUNE DIT QUELQUE CHOSE, aucune n'est décorative : le balayage dit que
+   la direction est variable, le remplissage de jauge dit qu'une valeur a été
+   mesurée, le chevron dit qu'un bloc s'ouvre. Une animation qui n'informe de
+   rien est du bruit qu'on paie en batterie. */
+/* Le balayage d'une direction VARIABLE : l'aiguille hésite, elle ne tourne
+   pas en rond. Amplitude ±34°, ce qui est l'ordre de grandeur d'un vent
+   réellement variable, et non un tour complet qui suggérerait une girouette
+   emballée. */
+@keyframes mpSweep {
+  0%, 100% { transform: rotate(-34deg); }
+  50% { transform: rotate(34deg); }
+}
+/* Remplissage d'une jauge (UV, confort). On anime `transform: scaleX` et
+   JAMAIS la largeur : une largeur animée relance la mise en page à chaque
+   image. D'où aussi le `transform-origin: left` sur les éléments concernés. */
+@keyframes mpFill { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+/* Le chiffre du confort et celui de l'UV arrivent avec un très léger appui,
+   pour que le regard s'y accroche une fois — pas à chaque consultation. */
+@keyframes mpPop {
+  from { opacity: 0; transform: scale(.86); }
+  60% { opacity: 1; transform: scale(1.03); }
+  to { opacity: 1; transform: scale(1); }
+}
+
 /* ------------------------------------------------------------------
    Mise en page. Maquette pensée pour 390 px de large : sur grand écran
    la page reste une COLONNE centrée plutôt que de s'étaler, parce que
@@ -416,8 +512,19 @@ main {
 
 /* La carte de verre : LE composant du système. Tout ce qui porte de
    l'information est posé dessus. */
+/* COMPACTION (30/07/2026, demande de Xavier : -20 à -30 %, arbitré à -25 %).
+   Elle ne passe PAS par la seule marge intérieure : une carte, c'est deux
+   marges plus un intitulé plus une phrase plus les écarts entre eux. Diviser
+   la seule marge par quatre n'aurait rendu qu'une dizaine de pour cent, et
+   collé le texte au bord pour rien. Les valeurs ci-dessous ont donc été
+   MESURÉES et ajustées jusqu'à tomber dans la fourchette demandée, hauteurs
+   réelles à l'appui (relevé dans le rapport de session).
+   CE QUI A ÉTÉ VÉRIFIÉ APRÈS, et c'est la règle du projet : la sonde de
+   contraste du 28/07 a été repassée. Compacter rapproche le texte du HAUT
+   d'écran, là où le voile de lecture agit le moins — donc une compaction peut
+   faire chuter un contraste sans qu'aucun pixel ne change de couleur. */
 .card {
-  padding: 1.15rem 1.25rem;
+  padding: .62rem 1.05rem;
   border: 1px solid var(--card-border);
   border-radius: var(--radius-card);
   background: var(--card-bg);
@@ -494,15 +601,69 @@ main {
 .stale { color: var(--ink); font-weight: 600; }
 
 /* Le dépliant du METAR. Bordure de CONTRÔLE et non de carte : c'est un
-   bouton, il doit se voir comme tel (1.4.11). */
+   bouton, il doit se voir comme tel (1.4.11).
+   RENFORCÉ le 30/07/2026 (demande de Xavier : « qu'il soit immédiatement
+   reconnu comme un bouton »). Il avait un contour réglementaire et un fond
+   TRANSPARENT, donc il ressemblait à une ligne de texte encadrée posée dans
+   une carte — sur un téléphone, rien ne disait qu'on pouvait appuyer.
+   Trois ajouts, exactement ceux demandés : un fond (--card-bg-strong, le
+   jeton déjà mesuré, JAMAIS un rgba inventé), une icône de terminal à gauche
+   qui annonce la nature du contenu, et un chevron à droite qui annonce le
+   geste. Le chevron n'est pas décoratif : c'est lui, et non le libellé, qui
+   dit dans quel sens ça va bouger, et il pivote à l'ouverture.
+   L'ICÔNE ET LE CHEVRON SONT DÉCORATIFS AU SENS ACCESSIBLE (aria-hidden) :
+   le libellé du bouton porte déjà tout le sens, et `aria-expanded` porte déjà
+   l'état. Leur donner un nom accessible ajouterait deux formulations à
+   traduire et à valider pour redire ce qui est déjà dit. */
 .raw-btn {
-  width: 100%; margin-top: .9rem; padding: .7rem;
+  display: flex; align-items: center; gap: .55rem;
+  width: 100%; margin-top: .7rem; padding: .62rem .8rem;
   border: 1px solid var(--ctl-border); border-radius: var(--radius-ctl);
-  background: transparent; color: var(--ink-soft);
+  background: var(--raw-fill); color: var(--ink-soft);
   font: 500 var(--fs-mono)/1 var(--mono); letter-spacing: .14em; text-transform: uppercase;
-  cursor: pointer; transition: background var(--dur-tap) ease;
+  cursor: pointer;
+  transition: background var(--dur-tap) ease, transform var(--dur-tap) ease;
 }
-.raw-btn:hover { background: var(--card-bg-strong); }
+/* Le libellé pousse le chevron au bord droit : c'est ce qui donne au bouton
+   sa silhouette de rangée dépliable, reconnaissable avant même d'être lue. */
+.raw-btn > span:first-of-type { flex: 1; text-align: left; }
+.raw-btn .ico { font-size: 13px; --sw: 5; flex: none; opacity: .8; }
+/* L'accent sur le chevron, et c'est le seul endroit du bouton qui en porte :
+   il désigne le GESTE possible, ce que le reste du bouton ne fait qu'annoncer.
+   Élément graphique, donc emploi légitime de l'accent (voir --accent).
+
+   FAUSSE PISTE À NE PAS REFAIRE, et elle vaut d'être consignée parce qu'elle
+   a coûté un aller-retour complet. Cette rotation a été crue CASSÉE : le
+   `transform` calculé du chevron valait la matrice identité alors que la règle
+   existait, que son sélecteur correspondait (vérifié par `matches`), qu'aucune
+   autre règle ne la concurrençait et qu'aucun `!important` ne traînait. J'en ai
+   conclu que le moteur refusait un `transform` sur un `<svg>` racine, et j'ai
+   ajouté une enveloppe `<span>` pour le contourner. C'était faux.
+   La vraie cause était la MÉTHODE DE MESURE : le volet navigateur ne composait
+   pas d'image, donc les TRANSITIONS ne s'exécutaient pas, et
+   `getComputedStyle` rendait l'état de DÉPART de la transition — c'est-à-dire
+   identité — quel que soit le temps d'attente. Le journal de ce dépôt le dit
+   depuis le 28/07/2026 et je ne l'ai pas appliqué.
+   Mesuré correctement (`transition: none !important` puis relecture) : le
+   `<svg>` racine ET un `<span>` rendent tous deux matrix(-1,0,0,-1,0,0).
+   L'enveloppe a donc été retirée. LEÇON GÉNÉRALE : avant de conclure qu'une
+   propriété CSS ne s'applique pas, vérifier que l'instrument peut la voir. */
+.raw-btn .chev {
+  flex: none; width: 11px; height: 11px; opacity: .95; color: var(--accent);
+  transition: transform 260ms var(--ease-sky);
+}
+.raw-btn[aria-expanded="true"] .chev { transform: rotate(180deg); }
+/* Le survol APPUIE le remplissage dans le même sens, il ne l'inverse pas :
+   un bouton qui s'éclaircit puis s'assombrit selon le thème enverrait deux
+   messages opposés pour un même geste. */
+.raw-btn:hover { background: var(--raw-fill-hi); }
+/* L'enfoncement au doigt. 1 px, pas plus : sur un bouton pleine largeur, un
+   déplacement visible ressemble à un défaut d'affichage. C'est le RETOUR qui
+   compte, pas son amplitude. */
+.raw-btn:active { transform: translateY(1px); }
+@media (prefers-reduced-motion: reduce) {
+  .raw-btn, .raw-btn .chev { transition: none; }
+}
 .raw {
   margin: .9rem 0 0; padding-top: .9rem;
   border-top: 1px solid var(--hair);
@@ -692,22 +853,53 @@ main {
 /* ---- 4. La course du soleil ----
    Fabriquée avec des champs que le backend calcule vraiment, à la
    position de la station : le point dit où en est la journée LÀ-BAS. */
-.sun { margin-top: .75rem; }
+/* COMPACTÉE le 30/07/2026 (demande de Xavier). Elle mesurait 211 px, plus
+   que n'importe quelle autre carte, pour trois informations : deux heures et
+   une position sur un arc. L'arc n'a PAS été supprimé — c'est lui qui rend la
+   position lisible d'un coup d'œil, un chiffre ne le ferait pas — il a été
+   aplati : le viewBox passe de 300x110 à 300x74, donc l'arc s'écrase au lieu
+   de rétrécir, et garde toute sa largeur pour situer le disque.
+   L'INTITULÉ ET LES DEUX BORNES PASSENT SUR LA MÊME LIGNE, ce qui économise
+   une ligne entière : lever et coucher n'ont plus besoin d'un intitulé
+   « COURSE DU SOLEIL » au-dessus d'eux pour être compris, les deux petites
+   icônes le disent. */
+.sun { margin-top: .55rem; }
 /* Le disque respire, très lentement. Il marque déjà une position vraie ;
    ce battement dit seulement que la page est vivante. */
 #sunHalo { animation: mpSunPulse 5.5s ease-in-out infinite; }
-.sun svg { display: block; width: 100%; height: auto; margin-top: .5rem; overflow: visible; }
+/* `> svg` ET NON `svg`, et ce sélecteur est une CORRECTION du 30/07/2026.
+   La règle visait l'arc, seul SVG de la carte à l'époque. Depuis que les deux
+   bornes portent chacune leur icône, un sélecteur descendant les attrapait
+   aussi : `width: 100%` leur donnait la largeur de la carte, et la carte
+   passait de 211 à 295 px — l'inverse exact de la compaction demandée. Le
+   défaut ne se voyait qu'à la MESURE, une icône démesurée ressemblant à un
+   choix graphique tant qu'on ne compare pas les hauteurs. */
+.sun > svg { display: block; width: 100%; height: auto; margin-top: .1rem; overflow: visible; }
 .sun-ends {
-  display: flex; justify-content: space-between; margin-top: .15rem;
+  display: flex; justify-content: space-between; align-items: center; margin-top: 0;
   font: 500 var(--fs-petit)/1 var(--mono); letter-spacing: .06em; color: var(--ink-soft);
 }
+/* Les deux bornes portent chacune leur petite icône : un lever et un
+   coucher. Elles remplacent l'intitulé de la carte, qui disait en dix
+   caractères espacés ce que deux symboles de 11 px disent mieux. */
+.sun-ends span { display: inline-flex; align-items: center; gap: .3rem; }
+/* Les heures sont dans un <b> pour rester associées à leur icône : on
+   neutralise la graisse par défaut du navigateur, qui n'a rien à faire ici. */
+.sun-ends b { font-weight: 500; }
+.sun-ends .ico { font-size: 11px; --sw: 5; color: var(--accent); }
+/* L'arc PARCOURU prend l'accent (30/07/2026). C'est l'emploi le plus utile
+   qu'on pouvait en faire : le trait plein et le trait pointillé se
+   ressemblaient trop pour qu'on voie d'un coup d'œil où en est la journée.
+   Élément graphique, donc l'accent y est légitime : mesuré à 3,12:1 au pire
+   cas sur fond de carte, pour un seuil de 3:1. */
+#arcDone { stroke: var(--accent); stroke-opacity: .85; }
 
 /* ---- 5. Le relevé ---- */
-.grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: .75rem; margin-top: .75rem; }
+.grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: .55rem; margin-top: .55rem; }
 .grid .card { grid-column: span 3; }
 
 .row-head { display: flex; align-items: center; gap: .5rem; }
-.row-txt { margin-top: .6rem; font-size: var(--fs-fort); letter-spacing: -.01em; }
+.row-txt { margin-top: .28rem; font-size: var(--fs-fort); letter-spacing: -.01em; }
 
 /* CARTE MAJEURE (29/07/2026). Toutes les rubriques avaient exactement le
    même poids visuel, alors qu'elles n'ont pas la même importance : le
@@ -716,37 +908,190 @@ main {
    les trois colonnes, donc « plus large » n'existe pas ici. Elle passe
    par ce qui reste : la hauteur (respiration interne), la taille de
    l'icône, et celle de la phrase. */
-.card.majeur { padding: 1.5rem 1.35rem; }
+.card.majeur { padding: .85rem 1.2rem; }
 .card.majeur .ico-dt { font-size: 1.5rem; --sw: 4; }
-.card.majeur .row-txt { margin-top: .85rem; font-size: var(--fs-majeur); }
-.card.majeur .wind-row { margin-top: .95rem; }
+.card.majeur .row-txt { margin-top: .42rem; font-size: var(--fs-majeur); }
+.card.majeur .wind-row { margin-top: .6rem; }
 
-/* Le vent : la flèche pointe où le vent VA (le METAR donne d'où il
-   vient, d'où le demi-tour), et ne tourne que s'il est variable. La
-   maquette la fait tourner en permanence, mais son exemple est VRB04KT :
-   c'est une propriété de la donnée, pas une décoration. */
-.wind-row { display: flex; align-items: center; gap: .9rem; margin-top: .6rem; }
-.dial {
-  width: 44px; height: 44px; flex: none;
-  border-radius: 50%; border: 1px solid var(--card-border);
-  display: grid; place-items: center;
+/* ---- 5 bis. LA ROSE DES VENTS ----
+   Refonte complète du 30/07/2026 (demande de Xavier). Ce qui existait était
+   un cercle de 44 px avec un triangle CSS dedans : ça montrait une direction
+   sans jamais dire par rapport à QUOI. Une flèche seule dans un rond est
+   illisible — le lecteur doit deviner où est le nord, donc il ne lit rien.
+
+   Ce qui a été ajouté, et chaque élément répond à un manque précis :
+   les QUATRE LETTRES cardinales, qui donnent le repère absent ; les huit
+   graduations, qui rendent l'angle appréciable au coup d'œil ; l'AIGUILLE en
+   deux moitiés (queue sourde, tête d'accent), qui dit le sens sans avoir à le
+   déduire ; et le CHIFFRE au centre, la vitesse, parce que la boussole était
+   la seule à ne pas porter la valeur qu'elle illustre.
+
+   DEUX RÈGLES HÉRITÉES ET CONSERVÉES, elles n'ont pas changé de raison :
+   l'aiguille montre où le vent VA (le METAR donne d'où il VIENT, d'où le
+   demi-tour dans le script), et il n'y a AUCUNE aiguille si la direction est
+   inconnue ou le vent calme — une aiguille au nord par défaut affirmerait un
+   fait que le METAR ne rapporte pas.
+
+   POURQUOI EN SVG et non en CSS comme l'ancien cadran : il faut un cercle,
+   des graduations à des angles justes, du texte placé et une aiguille
+   orientable, le tout net à toutes les densités d'écran. En bordures CSS,
+   chacun de ces éléments serait un bricolage séparé. */
+.wind-row { display: flex; align-items: center; gap: .85rem; margin-top: .5rem; }
+.rose { width: 56px; height: 56px; flex: none; display: block; overflow: visible; }
+/* L'anneau et les graduations sont de l'encre sourde : ils sont le REPÈRE,
+   pas l'information. C'est l'aiguille qui informe, donc c'est elle qui prend
+   l'accent. Une boussole entièrement colorée n'aurait plus de hiérarchie. */
+.rose .ring { fill: none; stroke: var(--card-border); stroke-width: 1; }
+.rose .tick { stroke: var(--ink); stroke-opacity: .34; stroke-width: 1; stroke-linecap: round; }
+.rose .card-l {
+  fill: var(--ink); fill-opacity: .62;
+  font: 500 7px/1 var(--mono); letter-spacing: .04em; text-anchor: middle;
 }
-.dial.vrb { animation: mpSpin 26s linear infinite; }
-.arrow {
-  width: 0; height: 0;
-  border-left: 5px solid transparent; border-right: 5px solid transparent;
-  border-bottom: 15px solid currentColor;
+/* Le nord est le seul repère qui compte pour lire les trois autres : il est
+   donc un peu plus appuyé. Toujours en encre et non en accent — c'est du
+   TEXTE, et l'accent est interdit sur le texte (voir --accent). */
+.rose .card-l.n { fill-opacity: .95; }
+/* L'aiguille en deux moitiés. La queue en encre sourde, la tête en accent :
+   c'est la seule information de la boussole, donc la seule chose colorée. */
+.rose .needle-tail { stroke: var(--ink); stroke-opacity: .40; stroke-width: 2; stroke-linecap: round; }
+.rose .needle-head { fill: var(--accent); }
+/* Le moyeu masque le croisement de l'aiguille et sert de fond au chiffre. */
+.rose .hub { fill: var(--card-bg-strong); stroke: var(--card-border); stroke-width: .8; }
+.rose .spd {
+  fill: var(--ink); font: 500 9px/1 var(--sans); text-anchor: middle;
+  font-variant-numeric: tabular-nums;
+}
+/* Le groupe orientable. La TRANSITION est ce qui rend la boussole vivante
+   sans rien animer en boucle : au premier affichage l'aiguille part du nord
+   et se pose sur sa valeur, donc le mouvement DIT que l'angle est une
+   mesure. Elle vit sur le groupe et pas sur le SVG, sinon les lettres
+   cardinales tourneraient avec — et une boussole dont le nord bouge n'est
+   plus une boussole. */
+.rose .needle { transition: transform 900ms var(--ease-sky); }
+/* Vent variable : l'aiguille balaie au lieu de tourner en rond. Un tour
+   complet suggérerait une girouette folle ; VRB veut dire « la direction
+   change », pas « le vent tourne en permanence dans le même sens ». */
+.rose.vrb .needle { animation: mpSweep 7s ease-in-out infinite; transition: none; }
+@media (prefers-reduced-motion: reduce) {
+  .rose .needle { transition: none; }
+  .rose.vrb .needle { animation: none; }
 }
 
 /* Les mesures chiffrées : trois colonnes dans une seule carte. La
    maquette en fait trois cartes séparées ; les regrouper garde la
    rubrique « mesures » et son icône, qui existent depuis la version
    précédente et que le relevé perdrait sinon. */
-.mesures { display: flex; gap: .5rem; margin-top: .75rem; }
+.mesures { display: flex; gap: .5rem; margin-top: .38rem; }
 .mesure { flex: 1; min-width: 0; }
 .mesure + .mesure { border-left: 1px solid var(--hair); padding-left: .5rem; }
 .mesure b { display: block; font: 400 clamp(1.05rem, 5vw, 1.3rem)/1.1 var(--sans); letter-spacing: -.02em; }
 .mesure .label { display: block; margin-bottom: .45rem; font-size: var(--fs-micro); letter-spacing: .16em; }
+
+/* ---- 5 ter. INDICE UV ET SCORE DE CONFORT (30/07/2026) ----
+   Les deux seules cartes de la page qui affichent un GRAND CHIFFRE hors du
+   héros. Elles partagent donc leur mise en page (`.chiffre-card`) : le
+   chiffre à gauche, la jauge et la phrase à droite. Les traiter séparément
+   aurait fabriqué deux dialectes visuels pour une même idée.
+
+   CE QUI LES SÉPARE EN REVANCHE, et il ne faut pas le perdre de vue : l'UV
+   est une MESURE venue d'une source (elle peut manquer, et alors la carte
+   n'existe pas), le confort est un CALCUL fait dans la page à partir de
+   valeurs déjà rendues. Voir le script pour la conséquence : le confort
+   disparaît dès qu'une de ses cinq entrées manque, parce qu'un pourcentage
+   calculé sur trois entrées sur cinq afficherait une précision fausse. */
+.chiffre-row { display: flex; align-items: center; gap: .85rem; margin-top: .35rem; }
+.chiffre {
+  flex: none; min-width: 3.1rem;
+  font: 500 clamp(1.7rem, 9vw, 2.2rem)/1 var(--sans);
+  letter-spacing: -.03em; font-variant-numeric: tabular-nums;
+  animation: mpPop 520ms var(--ease-sky) both;
+}
+/* L'unité (« % », « UV ») en petit et en chasse fixe : elle accompagne le
+   chiffre sans lui disputer la place. Même rapport que le « ° » au chiffre
+   géant du héros. */
+.chiffre small {
+  display: block; margin-top: .18rem;
+  font: 500 var(--fs-micro)/1 var(--mono); letter-spacing: .16em;
+  text-transform: uppercase; color: var(--ink-faint);
+}
+.chiffre-txt { flex: 1; min-width: 0; }
+.chiffre-txt .phrase {
+  margin: 0; font-size: var(--fs-corps); line-height: 1.3;
+  color: var(--ink-soft); text-wrap: pretty;
+}
+
+/* LA JAUGE. Elle situe la valeur sur son échelle, ce que le chiffre seul ne
+   fait pas : « UV 6 » ne dit rien à qui ignore que l'échelle va à 11.
+   Le CHEMIN est en accent fantôme (sous le seuil de contraste, et c'est
+   voulu : il ne porte aucune information à lui seul), la PART FRANCHIE est
+   en accent plein. Élément graphique, donc emploi légitime.
+   ELLE N'EST JAMAIS LA SEULE PORTEUSE DE L'INFORMATION : le chiffre et la
+   phrase disent la même chose à côté. C'est ce qui la rend acceptable pour
+   qui ne distingue pas les couleurs (1.4.1). */
+.jauge {
+  position: relative; height: 4px; margin-bottom: .45rem;
+  border-radius: var(--radius-pill);
+  background: var(--accent-ghost);
+  overflow: hidden;
+}
+.jauge i {
+  position: absolute; inset: 0 auto 0 0; width: 100%;
+  transform-origin: left; /* indispensable : sans lui, scaleX part du centre */
+  border-radius: inherit; background: var(--accent);
+  animation: mpFill 760ms var(--ease-sky) both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .chiffre { animation: none; }
+  .jauge i { animation: none; }
+}
+
+/* ---- 5 quater. LA MASCOTTE ----
+   Ajoutée le 30/07/2026 sur demande de Xavier, qui a choisi le petit nuage
+   parmi les cinq pistes qu'il proposait. Motif de ce choix plutôt qu'un autre
+   (soleil, goutte, girouette) : c'est le seul qui reste JUSTE par tous les
+   temps. Un soleil ou une goutte sont chacun un temps particulier, donc le
+   personnage contredirait la moitié des conseils qu'il porte ; une girouette
+   ne parle que du vent. Un nuage, lui, peut avoir l'air content, inquiet ou
+   résigné sans jamais mentir sur la météo.
+   TROIS EXPRESSIONS et non dix (arbitrage de Xavier) : la table
+   `EXPRESSIONS` du script les associe aux dix jetons de conseil. Trois
+   dessins à juger au lieu de dix, et un personnage qui réagit quand même.
+   FORMAT 32x48 comme demandé, en unités de dessin ; la taille à l'écran est
+   en `rem` pour suivre le réglage de police du système.
+   ELLE EST DÉCORATIVE (aria-hidden) : la phrase de conseil est juste à côté
+   et dit tout. Une mascotte qui exigerait un texte de remplacement serait un
+   dessin qui informe, or celui-ci accompagne. */
+.conseil-row { display: flex; align-items: flex-start; gap: .6rem; margin: .5rem 0 0; }
+.mascotte {
+  flex: none; width: 2rem; height: 3rem; display: block;
+  overflow: visible; color: var(--ink);
+  /* Elle entre en même temps que la phrase qu'elle accompagne, et un peu
+     après le titre : l'ordre d'apparition est la hiérarchie de lecture. */
+  animation: mpRise 620ms var(--ease-sky) 160ms both;
+}
+/* Le trait de la mascotte suit celui du sprite (--sw dans le repère du
+   dessin), donc elle ne peut pas devenir plus grasse ou plus maigre que les
+   icônes d'à côté. */
+.mascotte .m-line {
+  fill: none; stroke: currentColor; stroke-width: 2.4;
+  stroke-linecap: round; stroke-linejoin: round;
+}
+.mascotte .m-ink { fill: currentColor; }
+/* La joue prend l'accent, très légèrement : c'est le seul endroit de la page
+   où l'accent sert à rendre quelque chose SYMPATHIQUE plutôt qu'à guider. */
+.mascotte .m-blush { fill: var(--accent); opacity: .5; }
+/* Elle flotte, de deux pixels. Le nuage est en l'air : l'immobilité parfaite
+   est ce qui, ici, aurait l'air d'un bug. */
+.mascotte .m-body { animation: mpFloat 4.5s ease-in-out infinite; }
+@keyframes mpFloat {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-2px); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .mascotte { animation: none; }
+  .mascotte .m-body { animation: none; }
+}
+.conseil-row .conseil { margin: 0; padding-top: .5rem; }
 
 /* ---- 6. Pied : action principale et détail technique ---- */
 .foot { margin-top: 1.4rem; }
@@ -1141,6 +1486,122 @@ main {
   <path d="M40,22h6M40,30h6"/>
 </symbol>
 
+<!-- LES SIX SYMBOLES DU 30/07/2026. Aucun n'est un dessin nouveau au sens
+     strict : chacun réutilise une primitive existante ou une forme déjà
+     présente ailleurs dans ce sprite. C'est délibéré — la planche de style
+     de Xavier (icones.png) est la référence du trait, et inventer un
+     vocabulaire graphique à côté d'elle ferait deux styles dans une page. -->
+
+<!-- UV : le soleil de la primitive, mais RESSERRÉ (rayons plus courts, disque
+     plus gros). Ce n'est pas de la coquetterie : à côté du soleil de l'arc et
+     du soleil des icônes météo, un troisième soleil identique ne se
+     distinguerait pas. Ici les rayons sont épais et courts, ce qui évoque
+     l'intensité du rayonnement plutôt que l'astre. -->
+<symbol id="d-uv" viewBox="0 0 64 64">
+  <circle cx="32" cy="32" r="11"/>
+  <path d="M32,10v5M32,49v5M14.2,14.2l3.6,3.6M46.2,46.2l3.6,3.6M10,32h5M49,32h5M14.2,49.8l3.6,-3.6M46.2,17.8l3.6,-3.6"/>
+</symbol>
+
+<!-- CONFORT : un thermomètre serait redondant avec #d-mesures, et un visage
+     souriant ferait doublon avec la mascotte. On prend donc l'idée de
+     l'ÉQUILIBRE — un cercle et une ligne médiane, comme un niveau à bulle
+     posé à plat. Le point est au centre : le confort est un dosage juste. -->
+<symbol id="d-confort" viewBox="0 0 64 64">
+  <circle cx="32" cy="32" r="22"/>
+  <path d="M14,32h36"/>
+  <circle cx="32" cy="32" r="4.5" fill="currentColor" stroke="none"/>
+</symbol>
+
+<!-- LEVER et COUCHER. Le même dessin à la flèche près, et c'est justement ce
+     qui les rend lisibles en paire : demi-soleil sur l'horizon, flèche vers
+     le haut ou vers le bas. Deux symboles et non un seul retourné, parce
+     qu'un `scale(-1)` inverserait AUSSI l'horizon et la flèche ensemble. -->
+<symbol id="d-lever" viewBox="0 0 64 64">
+  <path d="M8,50H56"/>
+  <path d="M18,40a14,14 0 0 1 28,0"/>
+  <path d="M32,6v16M25,13l7,-7 7,7"/>
+</symbol>
+<symbol id="d-coucher" viewBox="0 0 64 64">
+  <path d="M8,50H56"/>
+  <path d="M18,40a14,14 0 0 1 28,0"/>
+  <path d="M32,22V6M25,15l7,7 7,-7"/>
+</symbol>
+
+<!-- TERMINAL, pour le bouton du METAR. Un chevron de commande et un curseur :
+     le signe universel de « ceci est du texte de machine ». Il annonce la
+     NATURE du contenu replié, ce que le libellé « AFFICHER LE METAR » ne dit
+     qu'à qui sait déjà ce qu'est un METAR. -->
+<symbol id="d-terminal" viewBox="0 0 64 64">
+  <rect x="7" y="12" width="50" height="40" rx="7"/>
+  <path d="M18,27l7,6 -7,6M32,39h14"/>
+</symbol>
+
+<!-- CHEVRON. Le plus simple du sprite, et le plus utile : c'est lui qui dit
+     qu'un bloc va s'ouvrir. Il pointe vers le BAS au repos et pivote de 180°
+     à l'ouverture (voir .raw-btn[aria-expanded]). -->
+<symbol id="d-chevron" viewBox="0 0 64 64">
+  <path d="M14,24l18,18 18,-18"/>
+</symbol>
+
+<!-- ================================================================
+     LA MASCOTTE — trois expressions d'un même petit nuage.
+     Repère 32x48 comme demandé par Xavier. Le nuage occupe le haut, les
+     deux petites pattes le bas : c'est ce qui en fait un personnage
+     plutôt qu'un pictogramme, pour trois traits de plus.
+     LE CORPS EST IDENTIQUE AUX TROIS, seuls les yeux, la bouche et les
+     sourcils changent. C'est la propriété qui compte : le lecteur
+     reconnaît le même personnage d'une consultation à l'autre, et ne voit
+     changer que son humeur. Un dessin refait à chaque expression aurait
+     donné trois nuages différents.
+     Les classes (m-line, m-ink, m-blush) portent le style ; aucune
+     couleur n'est écrite ici, pour que la mascotte suive les deux
+     polarités comme tout le reste.
+     ================================================================ -->
+
+<!-- CONTENT : le conseil est `ideal`. Yeux ronds, sourire franc, joues. -->
+<symbol id="m-content" viewBox="0 0 32 48">
+  <g class="m-body">
+    <path class="m-line" d="M23.5,24H8.5a6,6 0 0 1 -0.6,-11.97A8.5,8.5 0 0 1 24.2,13.2A5.4,5.4 0 0 1 23.5,24z"/>
+    <circle class="m-ink" cx="12.4" cy="17.6" r="1.5"/>
+    <circle class="m-ink" cx="19.6" cy="17.6" r="1.5"/>
+    <path class="m-line" d="M13.2,20.6a3.6,3.6 0 0 0 5.6,0" stroke-width="1.6"/>
+    <circle class="m-blush" cx="9.6" cy="20.2" r="1.5"/>
+    <circle class="m-blush" cx="22.4" cy="20.2" r="1.5"/>
+  </g>
+  <!-- Les pattes ne flottent PAS avec le corps : c'est ce décalage minuscule
+       qui donne l'impression que le nuage se soulève, plutôt que l'image
+       entière de glisser vers le haut. -->
+  <path class="m-line" d="M12.5,28v6M19.5,28v6M9.5,36h6M16.5,36h6" stroke-width="2"/>
+</symbol>
+
+<!-- SOUCIEUX : orage, verglas, grêle, brouillard. Sourcils inclinés vers le
+     haut au centre, bouche en arc inversé. Aucune joue : l'accent rose est
+     réservé au personnage content. -->
+<symbol id="m-souci" viewBox="0 0 32 48">
+  <g class="m-body">
+    <path class="m-line" d="M23.5,24H8.5a6,6 0 0 1 -0.6,-11.97A8.5,8.5 0 0 1 24.2,13.2A5.4,5.4 0 0 1 23.5,24z"/>
+    <circle class="m-ink" cx="12.4" cy="18" r="1.5"/>
+    <circle class="m-ink" cx="19.6" cy="18" r="1.5"/>
+    <path class="m-line" d="M10.4,14.6l3.2,1.2M21.6,14.6l-3.2,1.2" stroke-width="1.4"/>
+    <path class="m-line" d="M13.4,21.8a3.4,3.4 0 0 1 5.2,0" stroke-width="1.6"/>
+  </g>
+  <path class="m-line" d="M12.5,28v6M19.5,28v6M9.5,36h6M16.5,36h6" stroke-width="2"/>
+</symbol>
+
+<!-- NEUTRE : tout le reste (vent, pluie, neige, froid, chaud). Ni content ni
+     inquiet — il constate. Yeux ronds, bouche droite, et c'est tout : c'est
+     l'expression qu'on verra le plus souvent, donc celle qui doit le moins
+     appuyer. -->
+<symbol id="m-neutre" viewBox="0 0 32 48">
+  <g class="m-body">
+    <path class="m-line" d="M23.5,24H8.5a6,6 0 0 1 -0.6,-11.97A8.5,8.5 0 0 1 24.2,13.2A5.4,5.4 0 0 1 23.5,24z"/>
+    <circle class="m-ink" cx="12.4" cy="17.6" r="1.5"/>
+    <circle class="m-ink" cx="19.6" cy="17.6" r="1.5"/>
+    <path class="m-line" d="M13.6,21.2h4.8" stroke-width="1.6"/>
+  </g>
+  <path class="m-line" d="M12.5,28v6M19.5,28v6M9.5,36h6M16.5,36h6" stroke-width="2"/>
+</symbol>
+
 </svg>
 
 <main>
@@ -1177,7 +1638,18 @@ main {
          conseil, température, puis la provenance de la mesure. -->
     <section class="hero rise">
       <h1 class="headline" id="headline"></h1>
-      <p class="conseil" id="conseil" hidden></p>
+      <!-- LA MASCOTTE ACCOMPAGNE LE CONSEIL (30/07/2026, demande de Xavier).
+           Elle vit dans la même ligne que la phrase et non ailleurs sur la
+           page : c'est ce qui en fait la messagère du conseil plutôt qu'une
+           décoration posée dans un coin. La ligne entière est masquée quand
+           il n'y a rien à conseiller, donc la mascotte ne reste jamais
+           seule à sourire sans rien dire. -->
+      <div class="conseil-row" id="conseilRow" hidden>
+        <svg class="mascotte" id="mascotte" viewBox="0 0 32 48" aria-hidden="true" focusable="false">
+          <use id="mascotteUse" href="#m-neutre"/>
+        </svg>
+        <p class="conseil" id="conseil"></p>
+      </div>
       <!-- L'icône est APPARIÉE au chiffre, sur la même ligne (29/07/2026,
            demande de Xavier). Elle était au-dessus du titre : elle y
            ouvrait la page mais ne se rattachait à rien. À droite de la
@@ -1206,29 +1678,48 @@ main {
         </span>
       </div>
       <span class="obs" id="obs"></span>
-      <button class="raw-btn" id="rawToggle" type="button" aria-expanded="false" aria-controls="rawWrap"></button>
+      <!-- Icône + libellé + chevron. Les deux symboles sont décoratifs : le
+           libellé porte le sens, `aria-expanded` porte l'état. -->
+      <button class="raw-btn" id="rawToggle" type="button" aria-expanded="false" aria-controls="rawWrap">
+        <svg class="ico" viewBox="0 0 64 64" aria-hidden="true" focusable="false"><use href="#d-terminal"/></svg>
+        <span id="rawToggleTxt"></span>
+        <svg class="ico chev" viewBox="0 0 64 64" aria-hidden="true" focusable="false"><use href="#d-chevron"/></svg>
+      </button>
       <div class="raw" id="rawWrap" hidden>
         <span class="label" id="rawLabel"></span><span id="raw"></span>
       </div>
     </section>
 
-    <section class="card sun rise d2" id="sun">
-      <span class="label" id="sunLabel"></span>
+    <!-- COMPACTÉE le 30/07/2026 : l'intitulé de carte a disparu et l'arc est
+         aplati (viewBox 300x74 au lieu de 300x110). L'arc est CONSERVÉ, et
+         c'était le point à ne pas rater : c'est lui qui rend la position dans
+         la journée lisible sans lire un chiffre. Les deux petites icônes de
+         lever et de coucher remplacent l'intitulé, en une ligne au lieu de
+         deux. `#sunLabel` reste dans le DOM, masqué et donné comme nom
+         accessible du bloc : le texte existe donc toujours pour un lecteur
+         d'écran, il n'est plus peint. -->
+    <section class="card sun rise d2" id="sun" aria-labelledby="sunLabel">
+      <span class="label" id="sunLabel" hidden></span>
       <!-- L'arc du soleil. La portion PARCOURUE est pleine, le reste
            pointillé, et le disque est posé par getPointAtLength : c'est
            le tracé lui-même qui donne la position, pas une formule
-           recopiée à côté qui pourrait en diverger. -->
-      <svg viewBox="0 0 300 110" aria-hidden="true" focusable="false">
-        <path id="arcFull" d="M10 95 Q150 -25 290 95" fill="none" stroke="currentColor"
+           recopiée à côté qui pourrait en diverger. Aplatir le viewBox
+           suffit donc, sans toucher au script : le tracé change de forme,
+           la mesure de longueur reste juste. -->
+      <svg viewBox="0 0 300 74" aria-hidden="true" focusable="false">
+        <path id="arcFull" d="M10 64 Q150 -18 290 64" fill="none" stroke="currentColor"
               stroke-opacity=".3" stroke-width="1.5" stroke-dasharray="2 6" stroke-linecap="round"/>
-        <path id="arcDone" d="M10 95 Q150 -25 290 95" fill="none" stroke="currentColor"
+        <path id="arcDone" d="M10 64 Q150 -18 290 64" fill="none" stroke="currentColor"
               stroke-opacity=".65" stroke-width="1.5" stroke-linecap="round"/>
         <circle id="sunHalo" r="17" fill="#FFE7A8" opacity=".26"/>
         <circle id="sunDot" r="7.5" fill="#FFF3D0"/>
-        <circle cx="10" cy="95" r="3" fill="currentColor" opacity=".5"/>
-        <circle cx="290" cy="95" r="3" fill="currentColor" opacity=".5"/>
+        <circle cx="10" cy="64" r="3" fill="currentColor" opacity=".5"/>
+        <circle cx="290" cy="64" r="3" fill="currentColor" opacity=".5"/>
       </svg>
-      <div class="sun-ends"><span id="sunrise"></span><span id="sunset"></span></div>
+      <div class="sun-ends">
+        <span><svg class="ico" viewBox="0 0 64 64" aria-hidden="true" focusable="false"><use href="#d-lever"/></svg><b id="sunrise"></b></span>
+        <span><svg class="ico" viewBox="0 0 64 64" aria-hidden="true" focusable="false"><use href="#d-coucher"/></svg><b id="sunset"></b></span>
+      </div>
     </section>
 
     <div class="grid rise d3" id="report"></div>
@@ -1284,7 +1775,16 @@ main {
        Elles restent là parce qu'aucun géocodeur ne couvre la pleine mer ni
        une base polaire, et parce que ce sont elles qui ont servi à toutes
        les vérifications du projet. -->
-  <button class="raw-btn" id="coordToggle" type="button" aria-expanded="false" aria-controls="coordWrap"></button>
+  <!-- Même traitement que le bouton du METAR, et pour la même raison : c'est
+       le même composant, il doit se reconnaître au même signe. Le libellé va
+       dans un <span> dédié, sinon un `textContent` à la bascule de langue
+       effacerait l'icône et le chevron (piège déjà rencontré le 29/07 sur
+       `openSheet`). -->
+  <button class="raw-btn" id="coordToggle" type="button" aria-expanded="false" aria-controls="coordWrap">
+    <svg class="ico" viewBox="0 0 64 64" aria-hidden="true" focusable="false"><use href="#d-lieu"/></svg>
+    <span id="coordToggleTxt"></span>
+    <svg class="ico chev" viewBox="0 0 64 64" aria-hidden="true" focusable="false"><use href="#d-chevron"/></svg>
+  </button>
   <div id="coordWrap" hidden>
     <div class="champs">
       <input id="lat" type="number" step="0.01" inputmode="decimal" placeholder="latitude" aria-label="Latitude">
@@ -1373,6 +1873,42 @@ const TEXTES = {
     valHumidite: "{v} %",
     valPression: "{v} hPa",
 
+    // LES QUATRE POINTS CARDINAUX de la rose des vents (30/07/2026). Ils
+    // sont dans la table et non écrits dans le SVG parce qu'ils CHANGENT de
+    // langue : le nord est « N » dans les deux, mais l'est est « E » en
+    // français et « E » en anglais, l'ouest « O » en français et « W » en
+    // anglais. Une seule lettre oubliée et la boussole devient fausse pour
+    // la moitié des lecteurs.  [à valider]
+    rose_n: "N",
+    rose_e: "E",
+    rose_s: "S",
+    rose_w: "O",
+
+    // INDICE UV (30/07/2026). Les cinq phrases correspondent aux cinq jetons
+    // de `UvLevel` (src/uv.ts), qui sont les niveaux de l'OMS. Xavier peut
+    // les réécrire sans lire un seul seuil : le classement est fait côté
+    // serveur, cette table ne fait que parler.  [à valider]
+    uvLabel: "indice UV",
+    uvUnite: "UV",
+    uv_low: "Aucune protection nécessaire.",
+    uv_moderate: "Cherchez l'ombre aux heures chaudes.",
+    uv_high: "Protection solaire recommandée.",
+    uv_very_high: "Protection solaire indispensable.",
+    uv_extreme: "Évitez le soleil autant que possible.",
+
+    // SCORE DE CONFORT (30/07/2026). Cinq qualificatifs pour cinq tranches
+    // de score, plus la ligne qui dit sur quoi le calcul repose. Cette
+    // dernière n'est pas de la décoration : un pourcentage sans énoncé de
+    // ses entrées demande une confiance qu'il n'a pas méritée.  [à valider]
+    confortLabel: "confort",
+    confortUnite: "%",
+    confortBase: "Température, humidité, vent, soleil, pluie",
+    conf_excellent: "Idéal pour être dehors",
+    conf_bon: "Agréable dehors",
+    conf_moyen: "Correct, sans plus",
+    conf_mediocre: "Peu agréable dehors",
+    conf_mauvais: "Mieux vaut rester à l'abri",
+
     sunLabel: "course du soleil", // [design]
     lever: "lever {heure}",
     coucher: "coucher {heure}",
@@ -1460,6 +1996,31 @@ const TEXTES = {
     valRessenti: "{v}°",
     valHumidite: "{v} %",
     valPression: "{v} hPa",
+
+    // L'OUEST est la seule lettre qui DIFFÈRE du français (W et non O). C'est
+    // exactement pour ce genre d'écart d'un caractère que les points
+    // cardinaux vivent dans cette table plutôt que dans le SVG.  [à valider]
+    rose_n: "N",
+    rose_e: "E",
+    rose_s: "S",
+    rose_w: "W",
+
+    uvLabel: "UV index",
+    uvUnite: "UV",
+    uv_low: "No protection needed.",
+    uv_moderate: "Seek shade around midday.",
+    uv_high: "Sun protection recommended.",
+    uv_very_high: "Sun protection essential.",
+    uv_extreme: "Avoid the sun where you can.",
+
+    confortLabel: "comfort",
+    confortUnite: "%",
+    confortBase: "Temperature, humidity, wind, sun, rain",
+    conf_excellent: "Ideal for being outside",
+    conf_bon: "Pleasant outside",
+    conf_moyen: "Acceptable, no more",
+    conf_mediocre: "Not pleasant outside",
+    conf_mauvais: "Better to stay indoors",
 
     sunLabel: "sun path", // [design]
     lever: "sunrise {heure}",
@@ -1676,6 +2237,184 @@ function conseilToken(r) {
   return null; // rien de notable à dire : on se tait, et la ligne disparaît
 }
 
+// ---------------------------------------------------------------
+// LA MASCOTTE (30/07/2026)
+//
+// Elle n'a AUCUNE logique propre : elle se branche sur le jeton de conseil
+// déjà calculé. C'est ce qui garantit qu'elle ne peut pas avoir l'air content
+// pendant que la phrase d'à côté annonce un orage.
+//
+// TROIS EXPRESSIONS POUR DIX JETONS (arbitrage de Xavier). La table est ici et
+// non dans le CSS pour la même raison que CIELS : c'est une correspondance,
+// donc elle se relit et se change d'un coup d'œil. Tout jeton absent de cette
+// table prend `m-neutre`, y compris un jeton futur qu'on aurait oublié
+// d'y ranger : même réflexe de repli que `#i-unknown` et que le ciel neutre.
+// ---------------------------------------------------------------
+const EXPRESSIONS = {
+  ideal: "m-content",
+  // Les quatre situations où l'on demande au lecteur de faire attention. Le
+  // vent, la pluie, la neige, le froid et le chaud n'y sont PAS : ils sont
+  // désagréables, pas alarmants, et un personnage inquiet à chaque averse
+  // finirait par ne plus rien signaler.
+  orage: "m-souci",
+  verglas: "m-souci",
+  grele: "m-souci",
+  brouillard: "m-souci",
+};
+
+// ---------------------------------------------------------------
+// LE SCORE DE CONFORT EXTÉRIEUR (30/07/2026, demande de Xavier)
+//
+// CE QU'IL EST : une lecture unique de « fait-il bon dehors », composée de
+// cinq entrées que le contrat rend déjà. Comme la phrase de conseil, il vit
+// côté page parce qu'il INTERPRÈTE des valeurs et n'en ajoute aucune : le
+// mettre côté serveur imposerait de toucher au contrat pour un calcul qui
+// n'apporte pas de donnée nouvelle.
+//
+// LA DÉCISION QUI COMPTE, ET C'EST XAVIER QUI L'A TRANCHÉE : la carte
+// DISPARAÎT dès qu'une seule des cinq entrées manque. Ce n'est pas de la
+// prudence excessive, c'est une question d'honnêteté — « 94 % » calculé sur
+// trois entrées sur cinq affirme une précision que la donnée n'a pas, et le
+// libellé qui énumère les cinq entrées rend le mensonge explicite. Le contrat
+// autorise `feelsLike`, `humidity` et `sun` à valoir null, donc le cas arrive
+// pour de vrai sur les stations automatiques laconiques.
+// C'est le même réflexe que `conseilToken`, qui refuse de juger le froid sur
+// la température sèche : mieux vaut ne rien dire que dire à peu près.
+//
+// LES PÉNALITÉS SONT DES DÉCISIONS, PAS DES MESURES, exactement comme SEUILS.
+// Elles partent de 100 et retirent. Aucune ne prétend à une base scientifique :
+// ce sont des ordres de grandeur qui produisent un classement plausible, et
+// ils attendent l'avis de Xavier. Le découpage les rend discutables une par
+// une sans toucher au reste.
+// ---------------------------------------------------------------
+const SEUILS_CONFORT = {
+  // Le RESSENTI, jamais la température sèche. Même argument que conseilToken :
+  // 5 °C par vent fort ne se vit pas comme 5 °C au calme.
+  idealMin: 18,       // en dessous, on retire par degré manquant
+  idealMax: 24,       // au-dessus, on retire par degré excédentaire
+  // RELEVÉS APRÈS MESURE et non choisis d'emblée : les premières valeurs
+  // (3,2 et 2,6) notaient 38 °C ressentis « correct, sans plus », ce qui est
+  // faux et même dangereux à dire. Le barème se juge sur ses SORTIES, pas sur
+  // la plausibilité de ses coefficients.
+  parDegreFroid: 3.6,
+  parDegreChaud: 4.2,
+  // L'humidité ne gêne qu'aux extrêmes : une plage large, et rien dedans.
+  humMin: 35,
+  humMax: 70,
+  parPointHum: 0.35,
+  // Le vent : rien jusqu'à une brise, puis linéaire. La rafale compte à part
+  // parce qu'une rafale à 60 sur un vent moyen de 20 se subit vraiment.
+  ventLibre: 12,
+  parKmhVent: 1.1,
+  parKmhRafale: 0.5,
+  // Ciel et précipitations. Ce sont des forfaits et non des pentes : il pleut
+  // ou il ne pleut pas.
+  // Les forfaits de ciel sont calibrés pour que le phénomène SEUL suffise à
+  // faire descendre le score dans la bonne tranche, sans l'aide d'un vent ou
+  // d'un froid qui n'existent pas forcément. C'est le point qui a demandé le
+  // plus de reprises : à 34, un orage sur une journée douce ressortait à 48 %
+  // « peu agréable dehors », alors qu'on n'a rien à faire dehors sous
+  // l'orage. Il faut donc 68 pour que l'orage seul passe sous 35.
+  malusCouvert: 6,
+  malusPluie: 28,     // 28 et non 22 : à 22, une pluie seule restait « agréable »
+  malusNeige: 30,
+  // LA GLACE À PART DE LA NEIGE, et pour la même raison que `hail` a son
+  // propre jeton de conseil : grêle et pluie verglaçante ne sont pas de la
+  // neige un peu plus froide, elles rendent le sol praticable ou non.
+  malusGlace: 55,
+  malusOrage: 68,
+  malusBrouillard: 20,
+  // 14 et non 8 : à 8, une nuit d'été douce ressortait « idéal pour être
+  // dehors », ce qui n'est pas faux mais que le seuil « excellent » ne doit
+  // pas décerner sans soleil. À 14, la même nuit devient « agréable ».
+  malusNuit: 14,
+  // Bornes des cinq qualificatifs. Valeur MINIMALE de chaque tranche.
+  bonMin: 75,
+  moyenMin: 55,
+  mediocreMin: 35,
+  excellentMin: 88,
+};
+
+const JETONS_COUVERT = new Set(["cloudy", "overcast"]);
+
+/**
+ * Rend `{ pct, cle }` ou `null` si une entrée manque.
+ *
+ * `cle` est un JETON de qualificatif et non une phrase : même découpage que
+ * `conseilToken` et que `uvLevel` côté serveur. Xavier réécrit les cinq
+ * phrases sans toucher à une borne.
+ */
+function confortScore(r) {
+  const t = r.temperature;
+  const v = r.wind;
+
+  // LES CINQ ENTRÉES ANNONCÉES, vérifiées une par une. L'ordre suit celui du
+  // libellé « température, humidité, vent, soleil, pluie », pour qu'on puisse
+  // relire la garde en regardant l'écran.
+  const ressenti = t ? t.feelsLike : null;          // température (ressentie)
+  const hum = t ? t.humidity : null;                // humidité
+  const vent = v ? v.speed : null;                  // vent
+  const isDay = r.sun ? r.sun.isDay : null;         // soleil
+  const jeton = r.icon;                             // pluie (et le reste du ciel)
+  if (ressenti === null || ressenti === undefined) return null;
+  if (hum === null || hum === undefined) return null;
+  if (vent === null || vent === undefined) return null;
+  if (isDay === null || isDay === undefined) return null;
+  // Un jeton `unknown` n'est pas une information sur le ciel : c'est l'aveu
+  // qu'on n'a pas su le lire. Il ne peut donc pas servir d'entrée « pluie ».
+  if (!jeton || jeton === "unknown") return null;
+
+  let score = 100;
+
+  if (ressenti < SEUILS_CONFORT.idealMin) {
+    score -= (SEUILS_CONFORT.idealMin - ressenti) * SEUILS_CONFORT.parDegreFroid;
+  } else if (ressenti > SEUILS_CONFORT.idealMax) {
+    score -= (ressenti - SEUILS_CONFORT.idealMax) * SEUILS_CONFORT.parDegreChaud;
+  }
+
+  if (hum < SEUILS_CONFORT.humMin) {
+    score -= (SEUILS_CONFORT.humMin - hum) * SEUILS_CONFORT.parPointHum;
+  } else if (hum > SEUILS_CONFORT.humMax) {
+    score -= (hum - SEUILS_CONFORT.humMax) * SEUILS_CONFORT.parPointHum;
+  }
+
+  if (vent > SEUILS_CONFORT.ventLibre) {
+    score -= (vent - SEUILS_CONFORT.ventLibre) * SEUILS_CONFORT.parKmhVent;
+  }
+  // La rafale ne compte que par son EXCÈS sur la moyenne : la moyenne a déjà
+  // été facturée juste au-dessus, la compter deux fois punirait le même vent.
+  const rafale = v ? v.gust : null;
+  if (rafale !== null && rafale !== undefined && rafale > vent) {
+    score -= (rafale - vent) * SEUILS_CONFORT.parKmhRafale;
+  }
+
+  // Le ciel. UN SEUL malus s'applique, le plus grave : l'orage contient déjà
+  // la pluie, et les cumuler compterait deux fois la même averse.
+  if (jeton === "thunderstorm") score -= SEUILS_CONFORT.malusOrage;
+  else if (jeton === "hail" || jeton === "freezing_rain") score -= SEUILS_CONFORT.malusGlace;
+  else if (JETONS_NEIGE.has(jeton)) score -= SEUILS_CONFORT.malusNeige;
+  else if (JETONS_PLUIE.has(jeton)) score -= SEUILS_CONFORT.malusPluie;
+  else if (jeton === "fog" || jeton === "mist") score -= SEUILS_CONFORT.malusBrouillard;
+  else if (JETONS_COUVERT.has(jeton)) score -= SEUILS_CONFORT.malusCouvert;
+
+  if (isDay === false) score -= SEUILS_CONFORT.malusNuit;
+
+  // BORNÉ À [0, 100] : les pénalités s'additionnent et peuvent dépasser 100
+  // sur un cas extrême (blizzard à -20 avec rafales), or « -14 % de confort »
+  // n'a aucun sens. On borne, et on ne cherche pas à équilibrer les pénalités
+  // pour que ça ne se produise jamais : c'est le résultat qui doit être juste,
+  // pas l'arithmétique intermédiaire.
+  const pct = Math.max(0, Math.min(100, Math.round(score)));
+
+  let cle = "conf_mauvais";
+  if (pct >= SEUILS_CONFORT.excellentMin) cle = "conf_excellent";
+  else if (pct >= SEUILS_CONFORT.bonMin) cle = "conf_bon";
+  else if (pct >= SEUILS_CONFORT.moyenMin) cle = "conf_moyen";
+  else if (pct >= SEUILS_CONFORT.mediocreMin) cle = "conf_mediocre";
+
+  return { pct, cle };
+}
+
 // Ciel de service : neutre pendant la recherche, chaud sur une panne.
 // Les deux sont SOMBRES, donc polarité d'encre claire dans les deux cas.
 function poserCielService(etat) {
@@ -1707,7 +2446,12 @@ function carteTexte(intitule, phrase, icone, majeur) {
 }
 
 // La carte du vent : même en-tête, mais une rose des vents en plus.
-function carteVent(intitule, phrase, vent) {
+// `t` est un paramètre OBLIGATOIRE depuis le 30/07/2026 : la rose des vents
+// porte les quatre points cardinaux, qui sont du TEXTE traduit. Le rendre
+// facultatif aurait fait une boussole muette ou à moitié anglaise sans qu'une
+// seule erreur ne se signale. Même règle que le 3e paramètre de
+// `buildResponse` côté serveur, et pour la même raison.
+function carteVent(intitule, phrase, vent, t) {
   // LA SEULE carte majeure de la page (29/07/2026, demande de Xavier). Le
   // vent conditionne ce qu'on fait de sa journée bien plus que la
   // visibilité ; les traiter à poids égal était une hiérarchie plate.
@@ -1718,19 +2462,10 @@ function carteVent(intitule, phrase, vent) {
   const ligne = document.createElement("div");
   ligne.className = "wind-row";
 
-  // Pas de flèche si le vent est calme ou sans direction : une flèche qui
+  // Pas de rose si le vent est calme ou sans direction : une aiguille qui
   // pointe le nord par défaut affirmerait quelque chose de faux.
   const oriente = vent && !vent.isCalm && (vent.isVariable || vent.directionDeg !== null);
-  if (oriente) {
-    const dial = document.createElement("div");
-    dial.className = vent.isVariable ? "dial vrb" : "dial";
-    // Le METAR donne la direction D'OÙ VIENT le vent ; la flèche montre où
-    // il VA, d'où le demi-tour. Elle ne tourne que s'il est variable :
-    // la maquette l'anime en continu, mais son exemple est justement VRB.
-    if (!vent.isVariable) dial.style.transform = `rotate(${(vent.directionDeg + 180) % 360}deg)`;
-    dial.innerHTML = `<div class="arrow"></div>`;
-    ligne.append(dial);
-  }
+  if (oriente) ligne.append(roseDesVents(vent, t));
   const p = document.createElement("div");
   p.className = "row-txt";
   p.style.marginTop = "0";
@@ -1738,6 +2473,202 @@ function carteVent(intitule, phrase, vent) {
   ligne.append(p);
   div.append(ligne);
   return div;
+}
+
+// ---------------------------------------------------------------
+// LA ROSE DES VENTS (30/07/2026, demande de Xavier)
+//
+// Ce qui existait était un rond de 44 px avec un triangle CSS dedans. Le
+// défaut n'était pas le dessin, c'était le REPÈRE : une flèche seule dans un
+// cercle montre une direction sans dire par rapport à quoi, donc le lecteur ne
+// peut rien en tirer. D'où les quatre lettres cardinales, qui sont l'ajout
+// utile ; le reste (graduations, moyeu, chiffre) sert à les rendre lisibles.
+//
+// CONSTRUIT EN SVG et non par des bordures CSS : il faut des graduations à des
+// angles justes, du texte placé et une aiguille orientable, tous nets à toutes
+// les densités d'écran.
+//
+// LES DEUX RÈGLES DE L'ANCIEN CADRAN SONT CONSERVÉES, et elles n'ont pas
+// changé de raison :
+//  - l'aiguille montre où le vent VA (le METAR donne d'où il VIENT, d'où le
+//    demi-tour) ;
+//  - aucune aiguille n'existe sans direction connue (garde dans `carteVent`).
+// ---------------------------------------------------------------
+const SVGNS = "http://www.w3.org/2000/svg";
+const elSvg = (nom, attrs) => {
+  const e = document.createElementNS(SVGNS, nom);
+  for (const [k, v] of Object.entries(attrs)) e.setAttribute(k, String(v));
+  return e;
+};
+
+function roseDesVents(vent, t) {
+  // Repère de 48, centre en (24,24). Un repère rond simplifie tous les
+  // calculs d'angle et rend les valeurs ci-dessous lisibles à la relecture.
+  const svg = elSvg("svg", { viewBox: "0 0 48 48", "aria-hidden": "true", focusable: "false" });
+  svg.setAttribute("class", vent.isVariable ? "rose vrb" : "rose");
+
+  svg.append(elSvg("circle", { class: "ring", cx: 24, cy: 24, r: 20 }));
+
+  // Les huit graduations. Les quatre cardinales sont plus longues : c'est ce
+  // qui permet de lire un angle intermédiaire sans compter les traits.
+  for (let i = 0; i < 8; i += 1) {
+    const a = (i * 45 - 90) * Math.PI / 180;
+    const cardinal = i % 2 === 0;
+    const r1 = cardinal ? 15.5 : 17;
+    const r2 = 19;
+    svg.append(elSvg("line", {
+      class: "tick",
+      x1: 24 + Math.cos(a) * r1, y1: 24 + Math.sin(a) * r1,
+      x2: 24 + Math.cos(a) * r2, y2: 24 + Math.sin(a) * r2,
+    }));
+  }
+
+  // Les quatre lettres, POSÉES À L'INTÉRIEUR de l'anneau. À l'extérieur elles
+  // auraient débordé de la carte à gauche et à droite : la boussole est déjà
+  // au bord. `dominant-baseline` recentre verticalement le glyphe, sans quoi
+  // le nord et le sud paraîtraient décalés vers le bas de la moitié d'une
+  // hauteur de lettre.
+  const lettres = [
+    [t.rose_n, 0, "n"], [t.rose_e, 90, ""], [t.rose_s, 180, ""], [t.rose_w, 270, ""],
+  ];
+  for (const [txt, deg, extra] of lettres) {
+    const a = (deg - 90) * Math.PI / 180;
+    const el = elSvg("text", {
+      class: `card-l ${extra}`.trim(),
+      x: 24 + Math.cos(a) * 11.4, y: 24 + Math.sin(a) * 11.4,
+      "dominant-baseline": "central",
+    });
+    el.textContent = txt;
+    svg.append(el);
+  }
+
+  // L'AIGUILLE. Groupe orientable autour du centre, pour que la rotation ne
+  // touche ni les lettres ni les graduations — une boussole dont le nord
+  // tourne n'est plus une boussole.
+  const g = elSvg("g", { class: "needle" });
+  g.setAttribute("style", "transform-origin: 24px 24px;");
+  g.append(elSvg("line", { class: "needle-tail", x1: 24, y1: 24, x2: 24, y2: 32.5 }));
+  // La tête est un triangle plein, pointe en haut : dessinée à 0° (vers le
+  // nord), c'est la rotation du groupe qui l'oriente.
+  g.append(elSvg("path", { class: "needle-head", d: "M24,6.5 L28.4,16.5 L19.6,16.5 Z" }));
+
+  if (!vent.isVariable) {
+    // Le demi-tour : le METAR dit d'où le vent VIENT, l'aiguille montre où il
+    // VA. C'est la règle héritée de l'ancien cadran, et la seule ligne de
+    // cette fonction dont une erreur inverserait le sens du vent.
+    g.setAttribute("transform", `rotate(${(vent.directionDeg + 180) % 360} 24 24)`);
+  }
+  svg.append(g);
+
+  // Le moyeu masque le croisement queue/tête et sert de fond au chiffre.
+  svg.append(elSvg("circle", { class: "hub", cx: 24, cy: 24, r: 8.4 }));
+
+  // LA VITESSE AU CENTRE. La boussole était la seule illustration de la page
+  // à ne pas porter la valeur qu'elle illustre : on lisait la direction sur
+  // le dessin et la vitesse dans la phrase à côté. Sans vitesse connue, le
+  // moyeu reste vide plutôt que d'afficher un zéro qui voudrait dire calme.
+  if (vent.speed !== null && vent.speed !== undefined) {
+    const spd = elSvg("text", { class: "spd", x: 24, y: 24, "dominant-baseline": "central" });
+    spd.textContent = String(vent.speed);
+    svg.append(spd);
+  }
+  return svg;
+}
+
+// ---------------------------------------------------------------
+// LES DEUX CARTES À CHIFFRE (30/07/2026) : indice UV et score de confort.
+//
+// Un seul constructeur pour les deux, parce qu'elles disent la même CHOSE
+// sous deux formes : une valeur, sa place sur une échelle, une phrase. Deux
+// fonctions auraient fabriqué deux dialectes visuels pour une même idée.
+// ---------------------------------------------------------------
+
+/**
+ * @param intitule  l'intitulé de rubrique, déjà traduit
+ * @param icone     le symbole du sprite
+ * @param valeur    le nombre à afficher (déjà entier)
+ * @param unite     « UV » ou « % », déjà traduite
+ * @param fraction  0..1, la part de jauge franchie
+ * @param phrase    la phrase déjà traduite
+ * @param sousTexte facultatif : la ligne « sur quoi le calcul repose »
+ */
+function carteChiffre(intitule, icone, valeur, unite, fraction, phrase, sousTexte) {
+  const div = carteTexte(intitule, "", icone);
+  div.querySelector(".row-txt").remove();
+
+  const ligne = document.createElement("div");
+  ligne.className = "chiffre-row";
+
+  const n = document.createElement("div");
+  n.className = "chiffre";
+  // textContent et non innerHTML pour le nombre, puis un <small> ajouté à
+  // côté : la règle du fichier est qu'aucune valeur ne traverse innerHTML.
+  n.textContent = String(valeur);
+  const u = document.createElement("small");
+  u.textContent = unite;
+  n.append(u);
+
+  const bloc = document.createElement("div");
+  bloc.className = "chiffre-txt";
+
+  const jauge = document.createElement("div");
+  jauge.className = "jauge";
+  const barre = document.createElement("i");
+  // La jauge est bornée à [0, 1] ici et pas seulement chez l'appelant : une
+  // fraction hors bornes ferait déborder la barre de son chemin, ce qui se
+  // verrait comme un défaut d'affichage plutôt que comme une valeur fausse.
+  barre.style.transform = `scaleX(${Math.max(0, Math.min(1, fraction))})`;
+  jauge.append(barre);
+
+  const p = document.createElement("p");
+  p.className = "phrase";
+  p.textContent = phrase;
+
+  bloc.append(jauge, p);
+  if (sousTexte) {
+    // La ligne des entrées du calcul. Elle réutilise `.label`, le style
+    // d'intitulé déjà mesuré : inventer une taille et une couleur ici aurait
+    // produit un contraste non vérifié.
+    const s = document.createElement("span");
+    s.className = "label";
+    s.style.display = "block";
+    s.style.marginTop = ".4rem";
+    s.textContent = sousTexte;
+    bloc.append(s);
+  }
+
+  ligne.append(n, bloc);
+  div.append(ligne);
+  return div;
+}
+
+// L'ÉCHELLE UV S'ARRÊTE À 11 POUR LA JAUGE, et pas à la valeur maximale
+// observable : l'OMS nomme « extrême » tout ce qui dépasse 11, donc une jauge
+// graduée jusqu'à 15 écraserait toute l'échelle utile dans ses deux premiers
+// tiers. Un UV de 13 remplit donc la jauge entièrement, ce qui est exact :
+// c'est le maximum de ce que l'échelle sait dire.
+const UV_JAUGE_MAX = 11;
+
+function carteUv(t, uv) {
+  return carteChiffre(
+    t.uvLabel, "d-uv", uv.value, t.uvUnite,
+    uv.value / UV_JAUGE_MAX,
+    // Le jeton vient du serveur, la phrase de la table : si le serveur
+    // ajoutait un sixième niveau sans qu'on traduise, on aurait une carte
+    // sans phrase plutôt qu'une carte avec « undefined ».
+    t[`uv_${uv.level}`] ?? "",
+  );
+}
+
+function carteConfort(t, score) {
+  return carteChiffre(
+    t.confortLabel, "d-confort", score.pct, t.confortUnite,
+    score.pct / 100,
+    t[score.cle] ?? "",
+    // La liste des entrées du calcul. Elle est là parce qu'un pourcentage
+    // sans énoncé de ses entrées demande une confiance qu'il n'a pas méritée.
+    t.confortBase,
+  );
 }
 
 // La carte des mesures : trois colonnes chiffrées sous une seule rubrique.
@@ -1816,14 +2747,19 @@ function afficherChargement(lang) {
 // endroit pour qu'ils ne puissent pas se contredire.
 function majRawToggle(lang) {
   const ouvert = !$("rawWrap").hidden;
-  $("rawToggle").textContent = ouvert ? T(lang).cacherMetar : T(lang).voirMetar;
+  // LE LIBELLÉ VA DANS SON <span>, JAMAIS SUR LE BOUTON (30/07/2026). Depuis
+  // qu'il porte une icône et un chevron, un `textContent` sur le bouton les
+  // effacerait tous les deux — et à la PREMIÈRE bascule de langue seulement,
+  // donc dans un cas qu'on ne rencontre pas en développant. C'est exactement
+  // le piège déjà rencontré sur `openSheet` le 29/07/2026.
+  $("rawToggleTxt").textContent = ouvert ? T(lang).cacherMetar : T(lang).voirMetar;
   $("rawToggle").setAttribute("aria-expanded", String(ouvert));
 }
 
 // Même dépliant, même règle, pour les coordonnées passées en mode expert.
 function majCoordToggle(lang) {
   const ouvert = !$("coordWrap").hidden;
-  $("coordToggle").textContent = ouvert ? T(lang).cacherCoord : T(lang).voirCoord;
+  $("coordToggleTxt").textContent = ouvert ? T(lang).cacherCoord : T(lang).voirCoord;
   $("coordToggle").setAttribute("aria-expanded", String(ouvert));
 }
 
@@ -1936,7 +2872,17 @@ function afficher(r, lang) {
   const conseil = conseilToken(r);
   const phraseConseil = conseil ? t[`c_${conseil}`] : null;
   $("conseil").textContent = phraseConseil ?? "";
-  $("conseil").hidden = !phraseConseil;
+  // C'est la LIGNE ENTIÈRE qui se masque, mascotte comprise (30/07/2026).
+  // Masquer la seule phrase laisserait le petit nuage sourire dans le vide,
+  // ce qui est pire qu'une ligne absente : un personnage sans réplique donne
+  // l'impression d'un texte qui n'a pas chargé.
+  $("conseilRow").hidden = !phraseConseil;
+  // La mascotte se branche sur le jeton DÉJÀ calculé, elle n'en recalcule
+  // aucun : c'est ce qui garantit qu'elle ne peut pas avoir l'air content
+  // pendant que la phrase annonce un orage. Repli `m-neutre` pour tout jeton
+  // absent de la table, y compris un jeton futur qu'on aurait oublié d'y
+  // ranger — même réflexe que le repli `#i-unknown`.
+  $("mascotteUse").setAttribute("href", `#${EXPRESSIONS[conseil] ?? "m-neutre"}`);
 
   // 1 quater. Le badge : ce que cette application est seule à pouvoir dire.
   $("badge").textContent = t.badge;
@@ -1974,7 +2920,16 @@ function afficher(r, lang) {
   // jamais une valeur à formater ici ; seul l'INTITULÉ appartient à la page.
   const dl = $("report");
   dl.textContent = "";
-  if (r.text.wind) dl.append(carteVent(t.ligneVent, r.text.wind, r.wind));
+
+  // LE CONFORT EN TÊTE DU RELEVÉ (30/07/2026). C'est une SYNTHÈSE des autres
+  // cartes : la mettre après elles obligerait à lire le détail avant le
+  // résumé. Elle disparaît entièrement si une de ses cinq entrées manque,
+  // voir `confortScore` — un pourcentage calculé sur trois entrées sur cinq
+  // afficherait une précision que la donnée n'a pas.
+  const score = confortScore(r);
+  if (score) dl.append(carteConfort(t, score));
+
+  if (r.text.wind) dl.append(carteVent(t.ligneVent, r.text.wind, r.wind, t));
 
   // Ligne de synthèse chiffrée, composée ici parce qu'elle n'existe pas
   // comme phrase dans le contrat : ce sont des VALEURS, pas du texte.
@@ -1983,6 +2938,20 @@ function afficher(r, lang) {
   if (temp && temp.humidity !== null) mesures.push([t.labelHumidite, remplir(t.valHumidite, { v: temp.humidity })]);
   if (r.pressure && r.pressure.value !== null) mesures.push([t.labelPression, remplir(t.valPression, { v: r.pressure.value })]);
   if (mesures.length) dl.append(carteMesures(t.ligneMesures, mesures));
+
+  // L'EMPLACEMENT DE L'UV, et non la carte elle-même. L'indice UV vient d'un
+  // AUTRE point d'entrée, appelé en parallèle : il peut arriver après cet
+  // affichage, ou jamais. Réserver sa place ici plutôt que d'ajouter la carte
+  // à la fin quand elle arrive lui garantit une position STABLE dans la page
+  // — sinon l'ordre des cartes dépendrait de la latence du réseau, donc
+  // changerait d'une consultation à l'autre.
+  const slot = document.createElement("div");
+  slot.id = "uvSlot";
+  // `hidden` et pas un simple vide : un conteneur vide dans une grille avec
+  // gouttière laisserait un trou visible entre deux cartes.
+  slot.hidden = true;
+  dl.append(slot);
+  majCarteUv(lang);
 
   const SUITE = [
     [t.ligneVisibilite, r.text.visibility, "d-visibilite"],
@@ -2051,6 +3020,62 @@ function baseApi() {
   return API_PROD;
 }
 
+// ---------------------------------------------------------------
+// L'INDICE UV (30/07/2026)
+//
+// APPEL SÉPARÉ ET NON BLOQUANT, arbitrage de Xavier. La météo ne l'attend
+// jamais : les deux requêtes partent ensemble, celle du METAR s'affiche dès
+// qu'elle revient, et l'UV vient se poser après s'il revient. Une source
+// lente ou en panne ne peut donc pas dégrader le service qui existait avant
+// elle. C'est aussi pour ça qu'un échec UV est SILENCIEUX — pas de message,
+// pas de carte : l'utilisateur venu voir la météo l'a déjà sous les yeux, et
+// lui annoncer la panne d'un supplément serait du bruit.
+//
+// LA GÉNÉRATION EST LA GARDE ESSENTIELLE, et sans elle le défaut serait
+// difficile à voir : deux consultations rapprochées (bascule de langue, choix
+// d'une ville) lancent deux appels UV. Si le premier revient APRÈS le second,
+// il écrirait l'UV de Brumath sur la page de Reykjavik. Un compteur
+// incrémenté à chaque consultation suffit : une réponse dont la génération
+// n'est plus la courante est jetée.
+// ---------------------------------------------------------------
+let generationUv = 0;
+// Le dernier UV connu pour la position affichée, ou null. Mémorisé et non
+// seulement posé : `afficher` est rappelé à chaque bascule de langue, et sans
+// cette mémoire la carte disparaîtrait puis réapparaîtrait à chaque fois.
+let uvCourant = null;
+
+/**
+ * (Re)pose la carte UV dans son emplacement réservé. Idempotente : on peut
+ * l'appeler autant de fois qu'on veut, y compris avant que l'UV n'existe.
+ */
+function majCarteUv(lang) {
+  const slot = document.getElementById("uvSlot");
+  if (!slot) return; // le relevé n'est pas affiché (chargement, panne)
+  slot.textContent = "";
+  slot.hidden = uvCourant === null;
+  if (uvCourant === null) return;
+  slot.append(carteUv(T(lang), uvCourant));
+}
+
+async function chargerUv(lat, lon, lang, generation) {
+  try {
+    const res = await fetch(`${baseApi()}/api/uv?lat=${lat}&lon=${lon}`);
+    if (generation !== generationUv) return; // réponse périmée : on la jette
+    if (!res.ok) return;                     // échec silencieux, voir plus haut
+    const body = await res.json();
+    if (generation !== generationUv) return; // la lecture du corps prend du temps
+    // On vérifie la FORME et pas seulement le code HTTP : notre propre point
+    // d'entrée pourrait un jour changer, et une carte affichant « undefined UV »
+    // serait pire que pas de carte.
+    if (typeof body.value !== "number" || typeof body.level !== "string") return;
+    uvCourant = body;
+    majCarteUv(lang);
+  } catch {
+    // Hors ligne, ou service inaccessible. Silencieux, toujours pour la même
+    // raison : la météo est déjà affichée.
+  }
+}
+
 async function consulter(lat, lon) {
   // La langue est LUE UNE FOIS ici, puis transmise partout : la requête et
   // l'affichage parlent forcément la même, même si les pastilles changent
@@ -2062,6 +3087,15 @@ async function consulter(lat, lon) {
   $("lat").value = lat.toFixed(2);
   $("lon").value = lon.toFixed(2);
   const url = `${baseApi()}/api/nearest?lat=${lat}&lon=${lon}&lang=${lang}&units=metric`;
+
+  // L'UV PART EN MÊME TEMPS, et surtout SANS `await` : c'est cette absence
+  // d'attente qui rend l'appel non bloquant. L'UV connu de la position
+  // précédente est oublié tout de suite, sinon on afficherait l'UV de
+  // Brumath au-dessus de la météo de Sydney le temps que le nouveau arrive.
+  generationUv += 1;
+  uvCourant = null;
+  void chargerUv(lat, lon, lang, generationUv);
+
   try {
     const res = await fetch(url);
     // On lit d'abord en TEXTE. Un serveur en panne renvoie une page HTML, et

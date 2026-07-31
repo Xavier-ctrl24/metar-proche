@@ -114,7 +114,7 @@
      de police du navigateur sans que la mise en page ne se disloque, et
      les cartes sont déjà dimensionnées par leur contenu. */
   --fs-micro: 9px;    /* intitulés des trois mesures chiffrées */
-  --fs-label: 10px;   /* .label, badge */
+  --fs-label: 10px;   /* .label, capsule */
   --fs-mono: 11px;    /* commandes en chasse fixe */
   --fs-petit: 12px;   /* capsule, bornes du soleil, ligne brute */
   --fs-annexe: 14px;  /* fraîcheur */
@@ -835,40 +835,6 @@ main {
   -webkit-text-fill-color: var(--ink);
 }
 
-/* ---- 3 ter. LE BADGE « observation réelle » ----
-   L'ADN du produit, en trois mots. Toutes les applications météo
-   affichent un chiffre ; presque toutes affichent une PRÉVISION calculée
-   par un modèle. Celle-ci affiche une MESURE, prise par un instrument, à
-   un endroit nommé. C'est la seule chose que les autres ne peuvent pas
-   dire, donc elle mérite sa ligne — discrète, juste sous le chiffre.
-   AUCUNE COULEUR NEUVE, et c'est une règle et non une facilité : badge et
-   capsule sont bâtis sur les jetons déjà mesurés (--card-bg-strong,
-   --card-border, --ink-soft). Inventer un rgba() ici aurait produit un
-   contraste non mesuré sur dix ciels x jour/nuit, qui passe tous les
-   contrôles qu'on peut faire à l'œil.
-   La sonde du 28/07 a quand même été repassée sur ces deux composants, et
-   elle a servi : la bordure --hair, essayée d'abord, tombait à 1,01:1 sur
-   le fond de la pastille — invisible, donc une pastille sans contour.
-   --card-border la remonte à 3,13 (seuil 3:1). Texte à 4,78, pire cas sur
-   `sct` de jour (seuil 4,5:1). Les deux pires cas sont en HAUT d'écran,
-   là où le voile de lecture agit le moins — et c'est justement là que
-   vivent le badge et la capsule. */
-.badge {
-  display: inline-flex; align-items: center; gap: .4rem;
-  margin-top: .9rem; padding: .34rem .7rem;
-  border: 1px solid var(--card-border); border-radius: var(--radius-pill);
-  background: var(--card-bg-strong);
-  font: 500 var(--fs-label)/1 var(--mono); letter-spacing: .16em; text-transform: uppercase;
-  color: var(--ink-soft);
-}
-/* Le repère de lieu, et non l'émoji 📍 que demandait la formulation : c'est
-   le MÊME dessin à l'écran, mais tiré de notre sprite. Un émoji dépend de
-   la police du système, donc il change de style d'un téléphone à l'autre et
-   sort du trait de l'application. Celui-ci est déjà celui de la capsule de
-   distance et du bouton principal : trois fois le même signe pour la même
-   idée. */
-.badge .ico { font-size: 12px; --sw: 5; }
-
 /* ---- 4. La course du soleil ----
    Fabriquée avec des champs que le backend calcule vraiment, à la
    position de la station : le point dit où en est la journée LÀ-BAS. */
@@ -1032,7 +998,7 @@ main {
   letter-spacing: -.03em; font-variant-numeric: tabular-nums;
   animation: mpPop 520ms var(--ease-sky) both;
 }
-/* L'unité (« % », « UV ») en petit et en chasse fixe : elle accompagne le
+/* Le DÉNOMINATEUR (« /5 », « /11 ») en petit et en chasse fixe : il accompagne le
    chiffre sans lui disputer la place. Même rapport que le « ° » au chiffre
    géant du héros. */
 .chiffre small {
@@ -1102,10 +1068,11 @@ main {
    les trois états ont chacun leur texte : lui donner un nom accessible
    ajouterait une formulation à traduire et à valider pour ne rien dire de
    neuf. Même raisonnement que pour l'icône de tête. */
-.nuagio-row {
-  display: flex; flex-direction: column; align-items: center;
-  gap: .3rem; margin: .6rem 0 0; text-align: center;
-}
+/* `.nuagio-row` A ÉTÉ SUPPRIMÉE le 31/07/2026, avec l'instance de héros
+   qu'elle contenait. La phrase de conseil reste seule et porte elle-même sa
+   marge : garder la rangée aurait laissé un espace de 10 px sur les
+   consultations où il n'y a rien à conseiller, c'est-à-dire les plus
+   fréquentes — un blanc qu'on aurait pris pour un défaut de mise en page. */
 .nuagio {
   /* ~64 px comme demandé, mais ADAPTATIF : la borne basse protège les
      petits écrans, le `vw` du milieu suit la largeur, et la borne haute
@@ -1218,10 +1185,18 @@ main {
   .nuagio, .nuagio .n-body,
   .nuagio.n-vent .n-body, .nuagio.n-frisson .n-body { animation: none !important; }
 }
-.nuagio-row .conseil { margin: 0; }
 /* Les deux écrans de service sont centrés en texte, mais `.nuagio` est un
    bloc de largeur fixe : sans cette marge automatique il se collerait à
    gauche pendant que le message reste au centre. */
+/* NUAGIO DANS LA CARTE DE CONFORT (31/07/2026). Il y partage sa ligne avec le
+   chiffre et la jauge, alors qu'il occupait seul la largeur du héros : à sa
+   taille d'origine il aurait poussé la jauge hors de la carte sur un écran de
+   375 px. Seule `--n-size` change, JAMAIS `--n-sw` : l'épaisseur est exprimée
+   dans le repère 32x34 du dessin, donc elle suit l'échelle toute seule et la
+   proportion mesurée le 31/07 (~3,75 % de la largeur rendue) est conservée par
+   construction. C'est exactement ce que les classes `.sc*` du sprite d'icônes
+   doivent faire à la main, et ici on n'a rien à faire. */
+.confort-card .nuagio { --n-size: clamp(2.6rem, 12vw, 3.3rem); }
 .notice .nuagio, .skel .nuagio { margin: 0 auto; }
 .skel .nuagio { margin-bottom: .8rem; }
 
@@ -1416,6 +1391,7 @@ main {
 .d2 { animation-delay: 160ms; }
 .d3 { animation-delay: 240ms; }
 .d4 { animation-delay: 320ms; }
+.d5 { animation-delay: 400ms; }
 
 :focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; border-radius: 4px; }
 [hidden] { display: none !important; }
@@ -1961,18 +1937,11 @@ main {
          conseil, température, puis la provenance de la mesure. -->
     <section class="hero rise">
       <h1 class="headline" id="headline"></h1>
-      <!-- NUAGIO, ET LA PHRASE SOUS LUI (30/07/2026, demande de Xavier).
-           Il est le premier élément de la carte après le titre, donc « en
-           haut de la carte météo », et il ne se masque JAMAIS : il
-           représente la station, pas le temps qu'il fait. Seule la phrase
-           se masque, quand il n'y a rien à conseiller — c'est `#conseil`
-           qui porte `hidden`, plus la ligne entière comme avant. -->
-      <div class="nuagio-row">
-        <svg class="nuagio" data-nuagio viewBox="0 0 32 34" aria-hidden="true" focusable="false">
-          <g class="n-body"><use href="#n-sourire"/></g>
-        </svg>
-        <p class="conseil" id="conseil" hidden></p>
-      </div>
+      <!-- NUAGIO A QUITTÉ LE HÉROS le 31/07/2026 (demande de Xavier) : il vit
+           maintenant dans la carte de confort, dont il illustre l'indice, et
+           il y est CRÉÉ par `carteConfort`. La phrase de conseil reste ici,
+           seule, et se masque toujours quand il n'y a rien à conseiller. -->
+      <p class="conseil" id="conseil" hidden></p>
       <!-- L'icône est APPARIÉE au chiffre, sur la même ligne (29/07/2026,
            demande de Xavier). Elle était au-dessus du titre : elle y
            ouvrait la page mais ne se rattachait à rien. À droite de la
@@ -1984,10 +1953,6 @@ main {
           <svg class="ico" viewBox="0 0 64 64" focusable="false"><use id="heroUse" href="#i-unknown"/></svg>
         </div>
       </div>
-      <p><span class="badge">
-        <svg class="ico" viewBox="0 0 64 64" aria-hidden="true" focusable="false"><use href="#d-lieu"/></svg>
-        <span id="badge"></span>
-      </span></p>
     </section>
 
     <!-- La provenance, en clair. Le METAR brut est dedans, replié. -->
@@ -2013,6 +1978,15 @@ main {
       </div>
     </section>
 
+    <!-- LE VENT PASSE SOUS LA STATION (31/07/2026, demande de Xavier). Il
+         était la première carte du relevé, en bas de page.
+         C'est une GRILLE et non une section nue, et ce n'est pas un détail :
+         toute la mise en forme mesurée de la carte du vent (les trois
+         colonnes de `.grid .card`, la gouttière, le poids de `.card.majeur`)
+         vient du conteneur `.grid`. Hors de lui, il aurait fallu réécrire du
+         CSS déjà mesuré ; ici, zéro règle nouvelle. -->
+    <div class="grid rise d2" id="ventSlot"></div>
+
     <!-- COMPACTÉE le 30/07/2026 : l'intitulé de carte a disparu et l'arc est
          aplati (viewBox 300x74 au lieu de 300x110). L'arc est CONSERVÉ, et
          c'était le point à ne pas rater : c'est lui qui rend la position dans
@@ -2021,7 +1995,7 @@ main {
          deux. `#sunLabel` reste dans le DOM, masqué et donné comme nom
          accessible du bloc : le texte existe donc toujours pour un lecteur
          d'écran, il n'est plus peint. -->
-    <section class="card sun rise d2" id="sun" aria-labelledby="sunLabel">
+    <section class="card sun rise d3" id="sun" aria-labelledby="sunLabel">
       <span class="label" id="sunLabel" hidden></span>
       <!-- L'arc du soleil. La portion PARCOURUE est pleine, le reste
            pointillé, et le disque est posé par getPointAtLength : c'est
@@ -2045,9 +2019,9 @@ main {
       </div>
     </section>
 
-    <div class="grid rise d3" id="report"></div>
+    <div class="grid rise d4" id="report"></div>
 
-    <div class="foot rise d4">
+    <div class="foot rise d5">
       <button class="cta" id="openSheet" type="button">
         <svg class="ico" viewBox="0 0 64 64" aria-hidden="true" focusable="false"><use href="#d-lieu"/></svg>
         <span id="openSheetTxt"></span>
@@ -2168,8 +2142,9 @@ const TEXTES = {
     // La distance quitte la phrase pour la capsule : le nom seul reste ici.
     lieu: "{nom}",
     capsuleKm: "{km} km",              // [à valider]
-    stationLabel: "station utilisée",  // [à valider]
-    badge: "Station météo officielle",  // [à valider]
+    // Formulation de Xavier, reprise au mot et à la casse (31/07/2026). Le
+    // style `.label` la rend en CAPITALES : « STATION MÉTÉO AERO ».
+    stationLabel: "Station Météo Aero",
     // « Mis à jour il y a 6 min » plutôt que « Observé à 15:00 heure locale
     // · il y a 6 min » : une seule idée, aucune soustraction à faire.
     maj: "Mis à jour il y a {min} min",              // [à valider]
@@ -2217,7 +2192,7 @@ const TEXTES = {
     // les réécrire sans lire un seul seuil : le classement est fait côté
     // serveur, cette table ne fait que parler.  [à valider]
     uvLabel: "indice UV",
-    uvUnite: "UV",
+    uvUnite: "/11",
     uv_low: "Aucune protection nécessaire.",
     uv_moderate: "Cherchez l'ombre aux heures chaudes.",
     uv_high: "Protection solaire recommandée.",
@@ -2229,7 +2204,7 @@ const TEXTES = {
     // dernière n'est pas de la décoration : un pourcentage sans énoncé de
     // ses entrées demande une confiance qu'il n'a pas méritée.  [à valider]
     confortLabel: "confort",
-    confortUnite: "%",
+    confortUnite: "/5",
     confortBase: "Température, humidité, vent, soleil, pluie",
 
     // ATTRIBUTION. Elle n'est pas décorative : Open-Meteo distribue son offre
@@ -2308,8 +2283,7 @@ const TEXTES = {
     stationInconnue: "Unknown station",
     lieu: "{nom}",
     capsuleKm: "{km} km",              // [à valider]
-    stationLabel: "station used",      // [à valider]
-    badge: "Official weather station", // [à valider]
+    stationLabel: "Aero weather station", // [à valider]
     maj: "Updated {min} min ago",              // [à valider]
     majPerime: "Observation is {min} minutes old", // [à valider]
     majInconnue: "Observation time unknown",   // [à valider]
@@ -2343,7 +2317,7 @@ const TEXTES = {
     rose_w: "W",
 
     uvLabel: "UV index",
-    uvUnite: "UV",
+    uvUnite: "/11",
     uv_low: "No protection needed.",
     uv_moderate: "Seek shade around midday.",
     uv_high: "Sun protection recommended.",
@@ -2351,7 +2325,7 @@ const TEXTES = {
     uv_extreme: "Avoid the sun where you can.",
 
     confortLabel: "comfort",
-    confortUnite: "%",
+    confortUnite: "/5",
     confortBase: "Temperature, humidity, wind, sun, rain",
 
     // Les noms de source et le nom de licence ne se traduisent pas ; seuls les
@@ -2579,35 +2553,22 @@ function conseilToken(r) {
 }
 
 // ---------------------------------------------------------------
-// NUAGIO (30/07/2026)
+// NUAGIO (30/07/2026, refondu le 31/07/2026)
 //
 // IL N'A AUCUNE LOGIQUE PROPRE, et c'est la propriété la plus précieuse de
-// tout ce bloc : il se branche sur le jeton de conseil DÉJÀ calculé par
-// `conseilToken`, il n'en recalcule aucun. C'est ce qui garantit qu'il ne
-// peut pas avoir l'air content pendant que la phrase d'à côté annonce un
-// orage. Toute évolution doit préserver ça.
+// tout ce bloc : il se branche sur des décisions DÉJÀ prises (la tranche de
+// confort pour le visage, le jeton de conseil pour le mouvement), il n'en
+// recalcule aucune. C'est ce qui garantit qu'il ne peut pas avoir l'air
+// content pendant que la page annonce un orage. Toute évolution doit
+// préserver ça.
 //
-// La table est ici et non dans le CSS pour la même raison que CIELS et que
-// EXPRESSIONS avant elle : c'est une correspondance, donc elle se relit et se
-// change d'un coup d'œil. UNE expression par jeton de conseil, plus trois
-// hors jetons (chargement, panne, nuit).
+// LA TABLE `EXPRESSIONS` (jeton de conseil → visage) A ÉTÉ SUPPRIMÉE le
+// 31/07/2026 : depuis que le visage vient du confort, plus personne ne s'en
+// servait. On la retire plutôt que de la laisser dormir, et c'est la leçon
+// de `--ico-sun` du 29/07 — un jeton dont plus personne ne se sert ne meurt
+// pas, il attend, et son repli est ce qu'on verra. Elle reste dans
+// l'historique git si le visage doit un jour revenir au conseil.
 // ---------------------------------------------------------------
-const EXPRESSIONS = {
-  ideal: "n-heureux",
-  // Les trois situations que le contrat classe `danger` : orage, pluie
-  // verglaçante, grêle. Le vent, la pluie, la neige, le froid et le chaud
-  // n'y sont PAS — ils sont désagréables, pas alarmants, et un personnage
-  // alarmé à chaque averse finirait par ne plus rien signaler.
-  orage: "n-vigilant",
-  verglas: "n-vigilant",
-  grele: "n-vigilant",
-  brouillard: "n-pensif",
-  neige: "n-frileux",
-  pluie: "n-calme",
-  vent: "n-concentre",
-  froid: "n-froid",
-  chaud: "n-chaud",
-};
 
 // L'EXPRESSION DE REPOS, celle du cas « rien de notable à dire » — c'est-à-dire
 // le plus fréquent de tous. Deux variantes seulement, jour et nuit.
@@ -2618,6 +2579,37 @@ const EXPRESSIONS = {
 // pour une nuance que personne ne remarquerait.
 const REPOS_JOUR = "n-sourire";
 const REPOS_NUIT = "n-nuit";
+
+// ---------------------------------------------------------------
+// NUAGIO SUIT DÉSORMAIS L'INDICE DE CONFORT (31/07/2026, demande de Xavier)
+//
+// Il a quitté le héros pour la carte de confort, et son VISAGE vient de la
+// tranche de confort et non plus du jeton de conseil. Ce n'est pas une
+// contradiction avec l'invariant du 30/07 (« il ne recalcule rien, donc il ne
+// peut pas sourire pendant que la phrase annonce un orage ») : le barème de
+// confort facture l'orage 68 points, donc un orage tombe en tranche 1 et
+// Nuagio y est vigilant. Le visage reste DÉRIVÉ d'une décision déjà prise
+// ailleurs, seule la source change.
+//
+// AUCUN DESSIN NEUF : les cinq visages sont pris parmi les douze validés le
+// 31/07. En inventer un treizième demanderait le jugement visuel de Xavier.
+//
+// LE MOUVEMENT, LUI, RESTE SUR LE JETON DE CONSEIL. Le balancement (`n-vent`)
+// et le tremblement (`n-frisson`) disent le VENT et le FROID, que la tranche
+// de confort ne distingue pas : un 2/5 peut venir d'une canicule comme d'une
+// bourrasque. Visage = comment on se sent, mouvement = ce qu'on subit.
+// ---------------------------------------------------------------
+const EXPRESSIONS_CONFORT = {
+  conf_excellent: "n-heureux",
+  conf_bon: "n-sourire",
+  conf_moyen: "n-calme",
+  conf_mediocre: "n-pensif",
+  conf_mauvais: "n-vigilant",
+};
+// LA NUIT NE SURVIT QUE SUR LES DEUX BONNES TRANCHES, et c'est la même règle
+// que celle des icônes du contrat (suffixe jour/nuit uniquement là où c'est
+// pertinent) : un visage endormi sur un 1/5 dirait le contraire de l'alerte.
+const CONFORT_NUIT = new Set(["conf_excellent", "conf_bon"]);
 
 // Les deux jetons qui font trembler Nuagio. Aucun seuil neuf : on réutilise
 // la décision de `conseilToken`, parce qu'un seuil est une DÉCISION et qu'en
@@ -2820,8 +2812,27 @@ function confortScore(r) {
   else if (pct >= SEUILS_CONFORT.moyenMin) cle = "conf_moyen";
   else if (pct >= SEUILS_CONFORT.mediocreMin) cle = "conf_mediocre";
 
-  return { pct, cle };
+  // LE NIVEAU AFFICHÉ SE DÉDUIT DE LA TRANCHE, JAMAIS DU POURCENTAGE
+  // (31/07/2026, demande de Xavier : « 3/5 » plutôt que « 62 % »).
+  // C'est la même garantie que l'arrondi de l'UV, qui précède la
+  // classification : calculer le chiffre à part (`Math.round(pct / 20)`)
+  // le ferait tôt ou tard contredire la phrase d'à côté — 74 % donnerait
+  // « 4/5 » sous « correct, sans plus ». Ici le nombre et le qualificatif
+  // sont UNE SEULE décision, comme `pickIcon` et `headlineText` partagent
+  // leur sélecteur.
+  // `pct` reste calculé et rendu : c'est lui qui porte les tranches, et le
+  // jour où l'on voudra une jauge continue il est là. Il n'est plus AFFICHÉ.
+  const niveau = NIVEAUX_CONFORT[cle];
+
+  return { pct, cle, niveau };
 }
+
+// Les cinq tranches, dans l'ordre, et le chiffre qui les nomme. Table plutôt
+// que calcul, pour la raison ci-dessus : une correspondance se relit.
+const NIVEAUX_CONFORT = {
+  conf_mauvais: 1, conf_mediocre: 2, conf_moyen: 3, conf_bon: 4, conf_excellent: 5,
+};
+const CONFORT_MAX = 5;
 
 // Ciel de service : neutre pendant la recherche, chaud sur une panne.
 // Les deux sont SOMBRES, donc polarité d'encre claire dans les deux cas.
@@ -3057,6 +3068,16 @@ function carteChiffre(intitule, icone, valeur, unite, fraction, phrase, sousText
 // graduée jusqu'à 15 écraserait toute l'échelle utile dans ses deux premiers
 // tiers. Un UV de 13 remplit donc la jauge entièrement, ce qui est exact :
 // c'est le maximum de ce que l'échelle sait dire.
+// L'ÉCHELLE EST DÉSORMAIS ÉCRITE (31/07/2026). Xavier a demandé « UV 5 sur
+// combien ? », et la question EST le défaut : ce fichier l'avait prédit dès le
+// 30/07 (« UV 6 ne dit rien à qui ignore que l'échelle va à 11 »). Le
+// dénominateur prend la place de l'unité « UV » dans le `<small>` déjà prévu,
+// donc SANS une seule formulation nouvelle — l'intitulé de la carte dit déjà
+// « indice UV ». Même forme que le « /5 » du confort, ce qui est aussi ce qui
+// rend les deux jauges lisibles l'une par l'autre.
+// CAS ASSUMÉ : au-delà de 11 la carte affiche « 12/11 ». La jauge est pleine
+// et le chiffre reste VRAI ; le rogner à 11 mentirait sur la mesure, et
+// l'OMS ne borne pas son échelle par le haut.
 const UV_JAUGE_MAX = 11;
 
 function carteUv(t, uv) {
@@ -3070,15 +3091,48 @@ function carteUv(t, uv) {
   );
 }
 
+// NUAGIO VIT DANS CETTE CARTE (31/07/2026). Il est CRÉÉ ici, comme sur l'écran
+// de service, et pour la même raison : la carte est refabriquée à chaque
+// affichage, donc une instance écrite en dur dans le HTML n'y survivrait pas.
+// Conséquence à connaître : `poserNuagio` doit être appelé APRÈS la
+// construction du relevé, sinon il ne verrait pas cette instance-là et le
+// visage resterait figé sur celui du gabarit. Voir `afficher`.
+function nuagioSvg(symbole) {
+  const svg = document.createElementNS(SVGNS, "svg");
+  svg.setAttribute("class", "nuagio");
+  svg.setAttribute("viewBox", "0 0 32 34");
+  svg.setAttribute("aria-hidden", "true");
+  svg.setAttribute("focusable", "false");
+  svg.dataset.nuagio = "";
+  // Le groupe `n-body` vit dans le DOCUMENT et non dans le symbole : c'est lui
+  // qui porte le flottement, le balancement et le tremblement, qu'une classe
+  // posée sur la racine ne franchirait pas la frontière du `<use>`.
+  const g = document.createElementNS(SVGNS, "g");
+  g.setAttribute("class", "n-body");
+  const u = document.createElementNS(SVGNS, "use");
+  u.setAttribute("href", `#${symbole}`);
+  g.append(u);
+  svg.append(g);
+  return svg;
+}
+
 function carteConfort(t, score) {
-  return carteChiffre(
-    t.confortLabel, "d-confort", score.pct, t.confortUnite,
-    score.pct / 100,
+  const div = carteChiffre(
+    t.confortLabel, "d-confort", score.niveau, t.confortUnite,
+    // LA JAUGE SUIT LE CHIFFRE AFFICHÉ et non le pourcentage interne : une
+    // barre à 62 % sous un « 3/5 » serait une petite contradiction pour rien.
+    score.niveau / CONFORT_MAX,
     t[score.cle] ?? "",
     // La liste des entrées du calcul. Elle est là parce qu'un pourcentage
     // sans énoncé de ses entrées demande une confiance qu'il n'a pas méritée.
     t.confortBase,
   );
+  div.className += " confort-card";
+  // Nuagio en tête de ligne, devant le chiffre : il ILLUSTRE l'indice, donc il
+  // le précède. Le symbole posé ici n'est qu'un point de départ, `poserNuagio`
+  // le règle juste après avec les trois autres instances.
+  div.querySelector(".chiffre-row").prepend(nuagioSvg(EXPRESSIONS_CONFORT[score.cle] ?? REPOS_JOUR));
+  return div;
 }
 
 // La carte des mesures : trois colonnes chiffrées sous une seule rubrique.
@@ -3117,25 +3171,11 @@ function rendreNotice(titre, suite, options) {
   // une instance écrite en dur dans le HTML serait effacée au premier
   // message. C'est ce qui aurait fait disparaître Nuagio de l'écran de
   // panne sans que rien ne l'indique.
-  if (o.nuagio) {
-    const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-    svg.setAttribute("class", "nuagio");
-    svg.setAttribute("viewBox", "0 0 32 34");
-    svg.setAttribute("aria-hidden", "true");
-    svg.setAttribute("focusable", "false");
-    svg.dataset.nuagio = "";
-    // Le groupe `n-body` est OBLIGATOIRE, et il vit dans le document et non
-    // dans le symbole : c'est lui qui porte le flottement, le balancement et
-    // le tremblement, qu'une classe posée sur la racine ne pourrait pas
-    // atteindre à travers la frontière du `<use>`.
-    const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
-    g.setAttribute("class", "n-body");
-    const u = document.createElementNS("http://www.w3.org/2000/svg", "use");
-    u.setAttribute("href", `#${o.nuagio}`);
-    g.append(u);
-    svg.append(g);
-    $("notice").append(svg);
-  }
+  // `nuagioSvg` est partagé avec la carte de confort depuis le 31/07/2026 :
+  // deux fabriques auraient fini par diverger sur le groupe `n-body`, qui est
+  // OBLIGATOIRE et qu'on n'a aucun moyen de voir manquer autrement qu'à
+  // l'écran (un Nuagio parfaitement dessiné, mais immobile).
+  if (o.nuagio) $("notice").append(nuagioSvg(o.nuagio));
   const b = document.createElement("b");
   b.textContent = titre;
   const s = document.createElement("span");
@@ -3216,7 +3256,6 @@ function appliquerChrome(lang) {
   $("rawLabel").textContent = t.rawLabel;
   $("sunLabel").textContent = t.sunLabel;
   $("stationLabel").textContent = t.stationLabel;
-  $("badge").textContent = t.badge;
   // Le libellé du dépliant dépend de son ÉTAT, pas seulement de la langue :
   // basculer en anglais alors que le METAR est ouvert doit donner « Hide »
   // et non « Show ». C'est la régression du 28/07/2026 (la page à moitié
@@ -3323,15 +3362,6 @@ function afficher(r, lang) {
   // en permanence ne veut plus rien dire, et c'était déjà l'argument du
   // premier passage.
   $("conseil").hidden = !phraseConseil;
-  // L'expression vient du jeton de conseil ; à défaut, le repos, dont la
-  // variante de NUIT est la seule que la lumière de la station change.
-  // `isDay` est `null` quand le contrat ne sait pas : on prend alors le jour,
-  // comme le fait déjà `pickIcon` côté serveur.
-  const repos = r.sun && r.sun.isDay === false ? REPOS_NUIT : REPOS_JOUR;
-  poserNuagio(EXPRESSIONS[conseil] ?? repos, conseil);
-
-  // 1 quater. Le badge : ce que cette application est seule à pouvoir dire.
-  $("badge").textContent = t.badge;
 
   // 2. Provenance : quelle station, à quelle distance, et de quand date la
   // mesure. Chaque morceau est une phrase entière du dictionnaire.
@@ -3375,7 +3405,12 @@ function afficher(r, lang) {
   const score = confortScore(r);
   if (score) dl.append(carteConfort(t, score));
 
-  if (r.text.wind) dl.append(carteVent(t.ligneVent, r.text.wind, r.wind, t));
+  // LE VENT A SON PROPRE CONTENEUR, sous la carte de station (31/07/2026).
+  // Il est vidé à chaque affichage comme le relevé : un METAR muet sur le vent
+  // ne doit pas laisser la carte de la consultation précédente.
+  const ventSlot = $("ventSlot");
+  ventSlot.textContent = "";
+  if (r.text.wind) ventSlot.append(carteVent(t.ligneVent, r.text.wind, r.wind, t));
 
   // Ligne de synthèse chiffrée, composée ici parce qu'elle n'existe pas
   // comme phrase dans le contrat : ce sont des VALEURS, pas du texte.
@@ -3408,6 +3443,27 @@ function afficher(r, lang) {
     if (!phrase) continue;
     dl.append(carteTexte(intitule, phrase, icone));
   }
+
+  // 3 bis. NUAGIO, APRÈS LA CONSTRUCTION DU RELEVÉ ET JAMAIS AVANT
+  // (31/07/2026). Son instance de carte est créée par `carteConfort`, donc
+  // quelques lignes plus haut : appeler `poserNuagio` à l'endroit où il était
+  // (dans le héros, avant le relevé) ne toucherait plus que les instances de
+  // chargement et de panne, toutes deux masquées ici. Le visage resterait figé
+  // sur celui du gabarit, sans qu'aucune erreur ne se signale — exactement la
+  // forme de défaut que ce fichier documente depuis le 27/07.
+  // LE VISAGE VIENT DU CONFORT, LE MOUVEMENT DU CONSEIL : voir EXPRESSIONS_CONFORT.
+  // Sans confort il n'y a pas d'instance de carte, et l'appel ne fait rien de
+  // visible ici — c'est le point signalé à Xavier.
+  const nuit = r.sun && r.sun.isDay === false;
+  let visage = REPOS_JOUR;
+  if (score) {
+    visage = nuit && CONFORT_NUIT.has(score.cle)
+      ? REPOS_NUIT
+      : (EXPRESSIONS_CONFORT[score.cle] ?? REPOS_JOUR);
+  } else if (nuit) {
+    visage = REPOS_NUIT;
+  }
+  poserNuagio(visage, conseil);
 
   // 4. La course du soleil, à la position de la station.
   const f = r.sun ? fractionDuJour(r.observedLocal, r.sun.sunrise, r.sun.sunset) : null;

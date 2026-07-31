@@ -1521,6 +1521,74 @@ Fait et validé :
   rendu (~2,4 px pour 60 px de large, soit 3,75 %, la proportion de l'icône de
   tête) mais dont le rendu final lui appartient.
 
+- 31/07/2026 — CINQ RETOUCHES DE HIÉRARCHIE (demandes de Xavier).
+  `public/index.html` seul ; 357 tests et type-check verts de bout en bout.
+  (1) LE BANDEAU « Station météo officielle » EST SUPPRIMÉ, élément, style et
+  clé dans les DEUX langues. Le supprimer à moitié aurait laissé un bloc CSS
+  mort et une clé orpheline, c'est-à-dire la leçon `--ico-sun` du 29/07 : ce
+  qui dort revient un jour par son repli. `.capsule` n'était PAS co-stylée
+  avec lui malgré ce que le commentaire laissait croire, elle est intacte.
+  (2) « Station Météo Aero », repris au mot et à la casse. À SAVOIR : `.label`
+  met en capitales, donc l'écran affiche « STATION MÉTÉO AERO ». L'anglais
+  (« Aero weather station ») est PROPOSÉ et marqué `[à valider]`.
+  (3) LE VENT PASSE SOUS LA CARTE DE STATION, dans un second conteneur
+  `.grid` (`#ventSlot`) et non dans une section nue : toute la mise en forme
+  mesurée de cette carte (trois colonnes de `.grid .card`, gouttière, poids de
+  `.card.majeur`) vient du conteneur grille. Hors de lui il aurait fallu
+  réécrire du CSS déjà mesuré ; ici, zéro règle nouvelle. Le décalage
+  d'apparition suit (`.d5` ajouté, soleil en d3, relevé en d4, pied en d5).
+  (4) LE CONFORT PASSE EN « n/5 » ET NUAGIO Y EMMÉNAGE. Le chiffre se DÉDUIT
+  de la tranche (table `NIVEAUX_CONFORT`) et jamais du pourcentage : un
+  `Math.round(pct / 20)` aurait fini par afficher « 4/5 » sous « correct, sans
+  plus », qui est exactement le défaut que l'arrondi de l'UV évite depuis le
+  30/07. `pct` reste calculé — il porte les tranches — mais n'est plus affiché,
+  et la jauge suit le chiffre affiché et non lui.
+  Nuagio quitte le héros. Son VISAGE vient désormais de la tranche de confort
+  (`EXPRESSIONS_CONFORT`, cinq des douze dessins déjà validés, aucun nouveau)
+  et son MOUVEMENT reste sur le jeton de conseil : `n-vent` et `n-frisson`
+  disent le vent et le froid, qu'une tranche ne distingue pas (un 2/5 peut
+  venir d'une canicule comme d'une bourrasque). L'invariant du 30/07 tient
+  toujours — il ne recalcule rien, il dérive — et l'orage pèse 68 points donc
+  tombe en 1/5, où le visage est vigilant.
+  LE PIÈGE D'ORDONNANCEMENT, qui n'aurait rien signalé : l'instance de carte
+  est CRÉÉE par `carteConfort`, donc `poserNuagio` a dû être déplacé APRÈS la
+  construction du relevé. Laissé où il était (dans le héros, avant), il
+  n'aurait plus touché que les instances de chargement et de panne, toutes
+  deux masquées, et le visage serait resté figé sur celui du gabarit.
+  `EXPRESSIONS` (jeton de conseil → visage) est SUPPRIMÉE, plus personne ne
+  s'en servait. `.nuagio-row` aussi : la phrase de conseil restant seule, la
+  rangée laissait 10 px de blanc sur les consultations sans conseil, qui sont
+  les plus fréquentes.
+  CONSÉQUENCE À SOUMETTRE À XAVIER, signalée plutôt qu'arbitrée : la carte de
+  confort DISPARAÎT dès qu'une de ses cinq entrées manque (son arbitrage du
+  30/07), donc Nuagio disparaît avec elle sur les stations laconiques. Ça
+  contredit la raison d'être écrite le 31/07 au matin (« il représente la
+  STATION, donc il est TOUJOURS affiché »). S'il le veut toujours visible,
+  c'est la règle de disparition de la carte qu'il faut changer, et elle est à
+  lui. Vérifié : sans confort, la page reste complète, seul Nuagio manque.
+  (5) L'ÉCHELLE UV EST ÉCRITE : « 5/11 » au lieu de « 5 UV ». La question de
+  Xavier (« sur combien ? ») EST le défaut, et ce fichier l'avait prédit le
+  30/07 (« UV 6 ne dit rien à qui ignore que l'échelle va à 11 »). Le
+  dénominateur prend la place de l'unité dans le `<small>` déjà prévu, donc
+  AUCUNE formulation nouvelle — l'intitulé dit déjà « indice UV ». La barre
+  jaune est `value / 11` peinte en `--accent`, inchangée. Cas assumé : au-delà
+  de 11 la carte affiche « 12/11 », jauge pleine, chiffre vrai.
+  VÉRIFIÉ (toujours sans capture : le volet ne compose plus d'image cette
+  fois-ci non plus) : ordre des blocs, jauges mesurées à 0,6 et 0,4545 —
+  MESURE PRISE `transition/animation: none`, sans quoi on lit le scaleX(0) de
+  départ et on croit à une jauge vide, piège déjà consigné le 28/07 ; les cinq
+  tranches et leurs visages, la nuit qui ne survit que sur les deux bonnes
+  tranches, confort absent, chargement (`n-reflechit`) et panne (`n-perplexe`),
+  bascule fr/en avec le METAR DÉPLIÉ (« Hide the METAR », chevron survivant),
+  rose N/E/S/O → N/E/S/W, parité fr/en des 86 clés (aucune manquante, aucune
+  vide), cibles ≥ 24 px, débordement nul à 375 px et à 1280 px, héros qui se
+  referme sans conseil, console sans erreur.
+  À CONNAÎTRE : le visage et la phrase de conseil peuvent désormais parler de
+  deux choses différentes (« Très chaud aujourd'hui » sous un visage calme à
+  3/5). Ce n'est pas une contradiction — l'un note le confort global, l'autre
+  signale un fait — mais c'est un changement par rapport au 30/07, où les deux
+  venaient du même jeton.
+
 Prochaine étape (à décider avec Xavier) :
 - ICÔNE ET ÉCRAN DE DÉMARRAGE DE L'APPLICATION : encore ceux de Capacitor (le
   X bleu du gabarit), dans `android/app/src/main/res/mipmap-*` et

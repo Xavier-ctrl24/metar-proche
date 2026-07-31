@@ -1080,53 +1080,150 @@ main {
    que soit le nombre de mots que Xavier choisit pour ses phrases. */
 .chiffre-card .label.reserve { visibility: hidden; }
 
-/* ---- 5 quater. LA MASCOTTE ----
-   Ajoutée le 30/07/2026 sur demande de Xavier, qui a choisi le petit nuage
-   parmi les cinq pistes qu'il proposait. Motif de ce choix plutôt qu'un autre
-   (soleil, goutte, girouette) : c'est le seul qui reste JUSTE par tous les
-   temps. Un soleil ou une goutte sont chacun un temps particulier, donc le
-   personnage contredirait la moitié des conseils qu'il porte ; une girouette
-   ne parle que du vent. Un nuage, lui, peut avoir l'air content, inquiet ou
-   résigné sans jamais mentir sur la météo.
-   TROIS EXPRESSIONS et non dix (arbitrage de Xavier) : la table
-   `EXPRESSIONS` du script les associe aux dix jetons de conseil. Trois
-   dessins à juger au lieu de dix, et un personnage qui réagit quand même.
-   FORMAT 32x48 comme demandé, en unités de dessin ; la taille à l'écran est
-   en `rem` pour suivre le réglage de police du système.
-   ELLE EST DÉCORATIVE (aria-hidden) : la phrase de conseil est juste à côté
-   et dit tout. Une mascotte qui exigerait un texte de remplacement serait un
-   dessin qui informe, or celui-ci accompagne. */
-.conseil-row { display: flex; align-items: flex-start; gap: .6rem; margin: .5rem 0 0; }
-.mascotte {
-  flex: none; width: 2rem; height: 3rem; display: block;
+/* ---- 5 quater. NUAGIO ----
+   Voir le long commentaire du sprite (#n-corps) pour ce qu'il représente et
+   pourquoi il est construit en deux étages. Ici : la taille, le trait, les
+   couleurs et les quatre animations.
+
+   IL EST TOUJOURS AFFICHÉ, dans les TROIS états de la page et non dans le
+   seul `#card` : `afficherChargement` montre `#skel` et `afficherEchec`
+   montre `#notice`, tous deux avec `#card` masqué. Une seule instance dans
+   la carte aurait donc rendu impossibles les expressions « réfléchit » et
+   « perplexe » que Xavier demande. Trois instances, un seul jeu de symboles :
+   c'est gratuit, et c'est `poserNuagio` qui les règle toutes d'un coup.
+
+   LA PHRASE EST SOUS LUI et non à côté (« Sous Nuagio, afficher une courte
+   phrase ») : la ligne devient une colonne. La phrase, elle, garde le droit
+   de DISPARAÎTRE quand il n'y a rien à conseiller — on n'invente pas une
+   banalité permanente pour lui tenir compagnie, ce qui est la raison même
+   pour laquelle la ligne se masquait avant.
+
+   IL RESTE DÉCORATIF (aria-hidden). La phrase dit tout ce qu'il exprime, et
+   les trois états ont chacun leur texte : lui donner un nom accessible
+   ajouterait une formulation à traduire et à valider pour ne rien dire de
+   neuf. Même raisonnement que pour l'icône de tête. */
+.nuagio-row {
+  display: flex; flex-direction: column; align-items: center;
+  gap: .3rem; margin: .6rem 0 0; text-align: center;
+}
+.nuagio {
+  /* ~64 px comme demandé, mais ADAPTATIF : la borne basse protège les
+     petits écrans, le `vw` du milieu suit la largeur, et la borne haute
+     empêche Nuagio de venir disputer la vedette au chiffre géant. La
+     hauteur suit le repère 32x34, jamais une valeur devinée. */
+  --n-size: clamp(3.5rem, 16vw, 4.25rem);
+  /* L'ÉPAISSEUR DE TRAIT SE MESURE, ELLE NE SE REPREND PAS (règle établie
+     le 28/07/2026 sur les icônes, et signalée en dette sur l'icône de tête).
+     Le repère fait 32 unités de large pour ~64 px rendus, donc 1 unité vaut
+     ~2 px : 1,2 donne ~2,4 px, soit 3,75 % de la largeur — la même
+     proportion que l'icône de tête (3,5 px sur 86). Mesuré au rendu, pas
+     déduit du sprite, dont le repère fait 64. */
+  --n-sw: 1.2;
+  flex: none; display: block;
+  width: var(--n-size); height: calc(var(--n-size) * 34 / 32);
   overflow: visible; color: var(--ink);
-  /* Elle entre en même temps que la phrase qu'elle accompagne, et un peu
-     après le titre : l'ordre d'apparition est la hiérarchie de lecture. */
-  animation: mpRise 620ms var(--ease-sky) 160ms both;
-}
-/* Le trait de la mascotte suit celui du sprite (--sw dans le repère du
-   dessin), donc elle ne peut pas devenir plus grasse ou plus maigre que les
-   icônes d'à côté. */
-.mascotte .m-line {
-  fill: none; stroke: currentColor; stroke-width: 2.4;
+  /* TOUT CE QUI EST HÉRITABLE EST POSÉ ICI, exactement comme `.ico` du sprite
+     d'icônes, et pour la raison expliquée en long dans le commentaire de
+     #n-corps : un sélecteur descendant n'atteint pas le contenu cloné par
+     `<use>`, mais l'héritage le traverse. Sans ce `fill: none`, le nuage
+     serait un APLAT NOIR — c'est le défaut trouvé et corrigé le 30/07/2026.
+     Les formes qui doivent s'écarter de ce réglage (visage plus fin, aplats,
+     joues, humide) le font en attribut ou en `style` sur elles-mêmes.
+     La joue prend `--accent` et lui seul porte du GRAPHIQUE, jamais du texte
+     (3,28:1 en polarité claire : au-dessus du seuil graphique de 3:1, en
+     dessous du seuil de texte de 4,5:1). Goutte et flocons prennent
+     `--ico-wet`, déjà mesuré dans les deux polarités (4,62 / 8,28). Aucune
+     teinte inventée. */
+  fill: none; stroke: currentColor; stroke-width: var(--n-sw);
   stroke-linecap: round; stroke-linejoin: round;
+  /* Valeurs de repos du regard : œil ouvert, paupière effacée. Ce sont elles
+     qu'on voit si l'animation ne joue pas (mouvement réduit, moteur qui
+     refuse). Un visage normal, jamais un œil masqué. */
+  --n-oeil-g: 1; --n-oeil-d: 1; --n-paup-g: 0; --n-paup-d: 0;
+  animation: mpRise 620ms var(--ease-sky) 160ms both,
+             nClignement 24s linear infinite;
 }
-.mascotte .m-ink { fill: currentColor; }
-/* La joue prend l'accent, très légèrement : c'est le seul endroit de la page
-   où l'accent sert à rendre quelque chose SYMPATHIQUE plutôt qu'à guider. */
-.mascotte .m-blush { fill: var(--accent); opacity: .5; }
-/* Elle flotte, de deux pixels. Le nuage est en l'air : l'immobilité parfaite
-   est ce qui, ici, aurait l'air d'un bug. */
-.mascotte .m-body { animation: mpFloat 4.5s ease-in-out infinite; }
-@keyframes mpFloat {
+
+/* ---- LES QUATRE ANIMATIONS ----
+   Toutes en `transform` ou en `opacity` uniquement, donc composées sans
+   repeinte. C'est la contrainte « peu consommatrices de ressources ».
+
+   1. LE FLOTTEMENT. Le nuage est en l'air : l'immobilité parfaite est ce
+      qui, ici, aurait l'air d'un bug. Moins d'une unité de dessin.
+   2. LE BALANCEMENT remplace le flottement quand il y a du vent — il ne
+      s'y AJOUTE pas. Deux animations sur `transform` se remplaceraient
+      l'une l'autre au lieu de se composer, d'où une seule règle qui porte
+      les deux mouvements. Le seuil est celui de `conseilToken` (jeton
+      `vent`), jamais un nouveau : un seuil neuf serait une décision de
+      plus à soumettre à Xavier.
+   3. LE TREMBLEMENT, pour le froid et la neige. Même raison, même forme.
+   4. LE CLIGNEMENT ET LE CLIN D'ŒIL sont un SEUL cycle de 24 s et non
+      deux animations superposées : superposées, elles porteraient toutes
+      deux l'opacité et la seconde gagnerait en permanence. Un clignement
+      des deux yeux vers 28 %, un clin de l'œil droit seul vers 73 %. La
+      paupière est l'exact inverse de l'œil, sinon on verrait l'un à
+      travers l'autre. Ces deux-là sont déclarées en `style` SUR les yeux,
+      dans le sprite, parce qu'elles vivent dans l'ombre du `<use>` ; les
+      trois premières sont ici, parce que leur groupe vit dans le document.
+   Les keyframes, elles, sont globales : elles se nomment, elles ne se
+   sélectionnent pas, donc la frontière du `<use>` ne les concerne pas. */
+.nuagio .n-body {
+  transform-box: fill-box; transform-origin: 50% 88%;
+  animation: nFloat 4.6s ease-in-out infinite;
+}
+.nuagio.n-vent .n-body { animation: nSway 3.4s ease-in-out infinite; }
+.nuagio.n-frisson .n-body { animation: nShiver 1.7s ease-in-out infinite; }
+@keyframes nFloat {
   0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-2px); }
+  50% { transform: translateY(-.7px); }
 }
+@keyframes nSway {
+  0%, 100% { transform: translateY(0) rotate(-2.6deg); }
+  50% { transform: translateY(-.6px) rotate(2.6deg); }
+}
+@keyframes nShiver {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-.35px); }
+  75% { transform: translateX(.35px); }
+}
+/* LE REGARD PASSE PAR DES PROPRIÉTÉS PERSONNALISÉES, ET C'EST LE POINT DE
+   CONCEPTION À NE PAS DÉFAIRE. Les yeux vivent dans l'ombre du `<use>` ;
+   animer directement leur `opacity` depuis la feuille du document supposerait
+   que le moteur applique nos animations au contenu CLONÉ, ce que je n'ai PAS
+   pu prouver ici (l'instrument disponible ne franchit pas cette frontière, et
+   ce dépôt sait ce que vaut une conclusion tirée d'un instrument aveugle).
+   Les propriétés personnalisées, elles, s'HÉRITENT — c'est déjà ce qui fait
+   marcher `--n-sw` et `--accent` sur les mêmes formes, et c'est vérifiable.
+   On anime donc quatre variables sur la RACINE, qui est un élément du
+   document, et les yeux ne font que les lire.
+   L'interpolation n'est pas nécessaire : sans `@property`, une propriété
+   personnalisée s'anime par PALIERS, et un clignement est justement une
+   bascule et non un fondu. */
+@keyframes nClignement {
+  0%, 27.6% { --n-oeil-g: 1; --n-oeil-d: 1; --n-paup-g: 0; --n-paup-d: 0; }
+  /* clignement des deux yeux */
+  28.2%, 29% { --n-oeil-g: 0; --n-oeil-d: 0; --n-paup-g: 1; --n-paup-d: 1; }
+  29.6%, 71.6% { --n-oeil-g: 1; --n-oeil-d: 1; --n-paup-g: 0; --n-paup-d: 0; }
+  /* clin d'œil : l'œil DROIT seul */
+  72.4%, 74.6% { --n-oeil-g: 1; --n-oeil-d: 0; --n-paup-g: 0; --n-paup-d: 1; }
+  75.4%, 100% { --n-oeil-g: 1; --n-oeil-d: 1; --n-paup-g: 0; --n-paup-d: 0; }
+}
+/* MOUVEMENT RÉDUIT. Couper l'animation de la racine suffit à arrêter AUSSI
+   le clignement, puisqu'il ne vit plus que dans les quatre variables qu'elle
+   porte : elles retombent alors sur leurs valeurs de repos, déclarées dans la
+   même règle. Œil ouvert, paupière effacée, personnage immobile. Même leçon
+   que le jeton orphelin `--ico-sun` (29/07) : ce qu'on voit quand plus rien
+   ne joue, c'est la valeur de repli, et elle se choisit exprès. */
 @media (prefers-reduced-motion: reduce) {
-  .mascotte { animation: none; }
-  .mascotte .m-body { animation: none; }
+  .nuagio, .nuagio .n-body,
+  .nuagio.n-vent .n-body, .nuagio.n-frisson .n-body { animation: none !important; }
 }
-.conseil-row .conseil { margin: 0; padding-top: .5rem; }
+.nuagio-row .conseil { margin: 0; }
+/* Les deux écrans de service sont centrés en texte, mais `.nuagio` est un
+   bloc de largeur fixe : sans cette marge automatique il se collerait à
+   gauche pendant que le message reste au centre. */
+.notice .nuagio, .skel .nuagio { margin: 0 auto; }
+.skel .nuagio { margin-bottom: .8rem; }
 
 /* ---- 6. Pied : action principale et détail technique ---- */
 .foot { margin-top: 1.4rem; }
@@ -1166,12 +1263,12 @@ main {
 .notice b { display: block; font: 400 var(--fs-titre1)/1.25 var(--sans); letter-spacing: -.02em; margin-bottom: .6rem; }
 .notice span { display: block; color: var(--ink-soft); text-wrap: pretty; }
 .notice .cta { margin-top: 1.6rem; }
-.notice .mark {
-  margin: 0 auto 1.4rem; width: 46px; height: 46px;
-  border-radius: 50%; border: 1px solid var(--card-border);
-  display: grid; place-items: center; font: 400 var(--fs-titre2)/1 var(--sans);
-}
-.notice .mark.attente { border-style: dashed; }
+/* `.mark` (la pastille « ! » et son jumeau en pointillé) a été RETIRÉE le
+   30/07/2026 : Nuagio occupe son créneau. On supprime la règle plutôt que de
+   la laisser dormir — la leçon d'`--ico-sun` est qu'un style dont plus
+   personne ne se sert ne meurt pas, il attend, et qu'on le retrouve un jour
+   sous une forme qu'on n'avait pas prévue. */
+.notice .nuagio { margin-bottom: 1.2rem; }
 
 /* Squelette de chargement : le ciel reste neutre tant que le METAR est
    inconnu. Il fallait un état DISTINCT de l'écran d'accueil, qui servait
@@ -1587,62 +1684,237 @@ main {
 </symbol>
 
 <!-- ================================================================
-     LA MASCOTTE — trois expressions d'un même petit nuage.
-     Repère 32x48 comme demandé par Xavier. Le nuage occupe le haut, les
-     deux petites pattes le bas : c'est ce qui en fait un personnage
-     plutôt qu'un pictogramme, pour trois traits de plus.
-     LE CORPS EST IDENTIQUE AUX TROIS, seuls les yeux, la bouche et les
-     sourcils changent. C'est la propriété qui compte : le lecteur
-     reconnaît le même personnage d'une consultation à l'autre, et ne voit
-     changer que son humeur. Un dessin refait à chaque expression aurait
-     donné trois nuages différents.
-     Les classes (m-line, m-ink, m-blush) portent le style ; aucune
-     couleur n'est écrite ici, pour que la mascotte suive les deux
-     polarités comme tout le reste.
+     NUAGIO — la mascotte (30/07/2026, demande de Xavier).
+     Il REMPLACE le petit nuage à trois expressions du 30/07/2026 au matin.
+     Ce qui change n'est pas le personnage (c'est toujours un petit nuage,
+     pour la raison déjà écrite : c'est le seul motif qui reste JUSTE par
+     tous les temps) mais SA CONSTRUCTION et son rôle.
+
+     CE QU'IL REPRÉSENTE, et ça décide de tout le reste : la STATION MÉTÉO
+     la plus proche, pas le temps qu'il fait. C'est ce qui justifie qu'il
+     soit TOUJOURS affiché, y compris quand il n'y a rien à conseiller —
+     la station, elle, est toujours là. Cela RENVERSE la décision du
+     30/07/2026 au matin (« un personnage sans réplique ressemble à un
+     texte qui n'a pas chargé ») : ne pas la « rétablir » en croyant
+     corriger une régression, c'est une demande explicite de Xavier.
+
+     CONSTRUCTION EN DEUX ÉTAGES, comme le sprite d'icônes (#p-... puis
+     #i-...), et pour la même raison : #n-corps porte le nuage ET
+     l'anémomètre, les 12 symboles #n-... ne posent qu'un VISAGE par
+     dessus. Douze expressions dessinées en entier seraient douze nuages
+     à maintenir, et la contrainte « la silhouette reste identique » ne
+     tiendrait plus au premier ajout. Ici elle tient par construction :
+     l'anémomètre est dans le corps, il ne peut donc pas glisser d'une
+     expression à l'autre. C'est ce qui en fait une signature.
+     Enrichir = ajouter un symbole qui recompose des primitives, jamais
+     redessiner un nuage.
+
+     PAS DE PATTES (contrainte de Xavier : aucun bras, aucune jambe). Le
+     repère passe donc de 32x48 à 32x34 : le bas de l'ancienne boîte était
+     occupé par les pattes et serait resté vide. Conséquence à connaître :
+     le truc du 30/07 (« les pattes ne flottent pas avec le corps ») n'a
+     plus d'objet, le flottement porte maintenant sur tout le dessin.
+
+     LA PLANCHE `nuagio/nuagio.png` EST UNE RÉFÉRENCE DE STYLE, pas une
+     source — même statut qu'`icones.png` et que `logo192-512.png`. Son
+     nuage est BLANC PLEIN avec un contour bleu et un halo : intransplantable
+     tel quel, et ce dépôt a déjà mesuré deux fois cet échec exact (l'ambre
+     de la planche d'icônes à 1,7:1, le verre blanc de la maquette « blanc
+     sur blanc » sur les ciels `fg` et `sn`). Nuagio reste donc au TRAIT sur
+     `--ink`, qui est mesuré dans les deux polarités, et ses accents
+     n'utilisent que des jetons DÉJÀ mesurés (`--accent` pour les joues,
+     `--ico-wet` pour la goutte et les flocons). Aucune couleur en dur.
+
+     ---- LE PIÈGE QUI A COÛTÉ UNE PASSE, ET LA RÈGLE QUI EN SORT ----
+     Première version : les formes portaient des CLASSES (`n-line`, `n-ink`…)
+     stylées par des sélecteurs `.nuagio .n-line`. Ça ne marche pas, et ça
+     échoue de la pire façon : le contenu cloné par `<use>` n'est PAS un
+     descendant de `.nuagio` dans l'arbre du document, donc le sélecteur ne
+     correspond jamais. Sans `fill:none`, le nuage retombe sur le remplissage
+     par défaut — un APLAT NOIR. Le dessin était bien là, bien dimensionné,
+     bien atteint par le pointage, et faux.
+     C'est exactement pourquoi le sprite d'icônes met `fill`, `stroke` et
+     `stroke-width` sur la RACINE `.ico` : ces propriétés sont HÉRITÉES, donc
+     elles traversent les deux étages de `<use>`. On applique ici la même
+     règle, et on ne la contourne jamais :
+       - ce qui est héritable (fill, stroke, stroke-width, linecap, linejoin,
+         color, et les propriétés personnalisées) vient de la racine `.nuagio` ;
+       - ce qui doit varier d'une forme à l'autre est écrit SUR la forme, en
+         attribut de présentation ou en `style` en ligne — les deux sont des
+         attributs, donc ils sont clonés avec l'élément ;
+       - `var(--accent)` et `var(--ico-wet)` passent par `style` en ligne et
+         non par un attribut de présentation, qui n'accepte pas `var()`. Les
+         propriétés personnalisées, elles, s'héritent bien jusqu'au clone.
+     COROLLAIRE STRUCTUREL : le groupe qui porte le flottement, le balancement
+     et le tremblement vit dans le DOCUMENT (`<g class="n-body">` autour du
+     `<use>`, côté page) et non dans les symboles. Une animation commandée par
+     une classe posée sur la racine ne peut pas atteindre un groupe qui vit
+     dans l'ombre du `<use>`.
+     Le clignement, lui, est bien dans l'ombre : il est écrit en `style` sur
+     les yeux et les paupières. Si un moteur refusait d'animer un clone, la
+     dégradation est propre — paupières à `opacity=0`, yeux visibles, un
+     Nuagio qui ne cligne pas. Jamais un œil masqué.
      ================================================================ -->
 
-<!-- CONTENT : le conseil est `ideal`. Yeux ronds, sourire franc, joues. -->
-<symbol id="m-content" viewBox="0 0 32 48">
-  <g class="m-body">
-    <path class="m-line" d="M23.5,24H8.5a6,6 0 0 1 -0.6,-11.97A8.5,8.5 0 0 1 24.2,13.2A5.4,5.4 0 0 1 23.5,24z"/>
-    <circle class="m-ink" cx="12.4" cy="17.6" r="1.5"/>
-    <circle class="m-ink" cx="19.6" cy="17.6" r="1.5"/>
-    <path class="m-line" d="M13.2,20.6a3.6,3.6 0 0 0 5.6,0" stroke-width="1.6"/>
-    <circle class="m-blush" cx="9.6" cy="20.2" r="1.5"/>
-    <circle class="m-blush" cx="22.4" cy="20.2" r="1.5"/>
-  </g>
-  <!-- Les pattes ne flottent PAS avec le corps : c'est ce décalage minuscule
-       qui donne l'impression que le nuage se soulève, plutôt que l'image
-       entière de glisser vers le haut. -->
-  <path class="m-line" d="M12.5,28v6M19.5,28v6M9.5,36h6M16.5,36h6" stroke-width="2"/>
-</symbol>
+<!-- LE CORPS, commun aux douze. Le nuage occupe y=14..30 ; l'anémomètre est
+     posé sur sa tête, légèrement à droite du centre comme sur la planche.
+     Il est fait d'un mât, d'un moyeu et de trois coupelles : c'est le dessin
+     minimal qui se lit encore comme un anémomètre à 64 px, et il tient dans
+     les 12 unités qui restent au-dessus du nuage. -->
+<g id="n-corps">
+  <path d="M23.5,30H8.5a6,6 0 0 1 -0.6,-11.97A8.5,8.5 0 0 1 24.2,19.2A5.4,5.4 0 0 1 23.5,30z"/>
+  <path d="M19,11.4V7.4"/>
+  <path style="stroke-width:calc(var(--n-sw,1.2) / 1.6)" d="M19,7.1l-2.5,-1.5M19,7.1l2.5,-1.5M19,7.1V4.3"/>
+  <circle fill="currentColor" stroke="none" cx="19" cy="7.1" r=".75"/>
+  <circle fill="currentColor" stroke="none" cx="16.1" cy="5.3" r=".95"/>
+  <circle fill="currentColor" stroke="none" cx="21.9" cy="5.3" r=".95"/>
+  <circle fill="currentColor" stroke="none" cx="19" cy="3.7" r=".95"/>
+</g>
 
-<!-- SOUCIEUX : orage, verglas, grêle, brouillard. Sourcils inclinés vers le
-     haut au centre, bouche en arc inversé. Aucune joue : l'accent rose est
-     réservé au personnage content. -->
-<symbol id="m-souci" viewBox="0 0 32 48">
-  <g class="m-body">
-    <path class="m-line" d="M23.5,24H8.5a6,6 0 0 1 -0.6,-11.97A8.5,8.5 0 0 1 24.2,13.2A5.4,5.4 0 0 1 23.5,24z"/>
-    <circle class="m-ink" cx="12.4" cy="18" r="1.5"/>
-    <circle class="m-ink" cx="19.6" cy="18" r="1.5"/>
-    <path class="m-line" d="M10.4,14.6l3.2,1.2M21.6,14.6l-3.2,1.2" stroke-width="1.4"/>
-    <path class="m-line" d="M13.4,21.8a3.4,3.4 0 0 1 5.2,0" stroke-width="1.6"/>
-  </g>
-  <path class="m-line" d="M12.5,28v6M19.5,28v6M9.5,36h6M16.5,36h6" stroke-width="2"/>
-</symbol>
+<!-- ---- LES YEUX ----
+     QUATRE JEUX et non douze paires : les expressions se recomposent, elles
+     ne se redessinent pas. Le clignement et le clin d'œil vivent ICI, dans
+     un seul endroit, donc toute expression à yeux ronds les hérite sans une
+     ligne de plus. Les paupières sont des éléments SÉPARÉS dont l'opacité
+     est l'inverse de celle de l'œil (voir les keyframes nEye*/nLid*) : on
+     ne peut pas voir un œil à travers sa paupière fermée. -->
+<g id="n-yeux-ronds">
+  <circle fill="currentColor" stroke="none" style="opacity:var(--n-oeil-g,1)" cx="12.4" cy="22.8" r="1.45"/>
+  <circle fill="currentColor" stroke="none" style="opacity:var(--n-oeil-d,1)" cx="19.6" cy="22.8" r="1.45"/>
+  <path style="stroke-width:calc(var(--n-sw,1.2) / 1.5);opacity:var(--n-paup-g,0)" d="M10.9,22.9a2.2,2.2 0 0 0 3,0"/>
+  <path style="stroke-width:calc(var(--n-sw,1.2) / 1.5);opacity:var(--n-paup-d,0)" d="M18.1,22.9a2.2,2.2 0 0 0 3,0"/>
+</g>
+<!-- DOUX : yeux clos, arc vers le bas. C'est la variante de NUIT et celle du
+     calme sous la pluie. « Version sombre avec yeux plus doux » ne demande
+     aucun travail de couleur : Nuagio suit déjà `--ink`, donc il s'assombrit
+     avec la page. La nuit ne change que le regard. -->
+<g id="n-yeux-doux">
+  <path style="stroke-width:calc(var(--n-sw,1.2) / 1.5)" d="M10.9,22.6a2.3,2.3 0 0 0 3.1,0M18,22.6a2.3,2.3 0 0 0 3.1,0"/>
+</g>
+<!-- PLISSÉS : arc vers le haut, l'œil se ferme en se serrant. Vent, neige,
+     grand froid. -->
+<g id="n-yeux-plisses">
+  <path style="stroke-width:calc(var(--n-sw,1.2) / 1.5)" d="M10.9,23.3a2.4,2.4 0 0 1 3.1,0M18,23.3a2.4,2.4 0 0 1 3.1,0"/>
+</g>
+<!-- LOURDS : pupille plus petite sous une paupière tombante. C'est l'accablement
+     de la chaleur, pas la fatigue. -->
+<g id="n-yeux-lourds">
+  <circle fill="currentColor" stroke="none" cx="12.4" cy="23.3" r="1.2"/>
+  <circle fill="currentColor" stroke="none" cx="19.6" cy="23.3" r="1.2"/>
+  <path style="stroke-width:calc(var(--n-sw,1.2) / 1.5)" d="M10.8,22.1a2.6,2.6 0 0 1 3.2,0M18,22.1a2.6,2.6 0 0 1 3.2,0"/>
+</g>
+<!-- HAUTS : le regard monte. C'est ce qui fait « il réfléchit » pendant le
+     chargement, sans aucun sablier ni point de suspension à traduire. -->
+<g id="n-yeux-hauts">
+  <circle fill="currentColor" stroke="none" style="opacity:var(--n-oeil-g,1)" cx="12.7" cy="22.2" r="1.4"/>
+  <circle fill="currentColor" stroke="none" style="opacity:var(--n-oeil-d,1)" cx="19.9" cy="22.2" r="1.4"/>
+  <path style="stroke-width:calc(var(--n-sw,1.2) / 1.5);opacity:var(--n-paup-g,0)" d="M11.2,22.3a2.2,2.2 0 0 0 3,0"/>
+  <path style="stroke-width:calc(var(--n-sw,1.2) / 1.5);opacity:var(--n-paup-d,0)" d="M18.4,22.3a2.2,2.2 0 0 0 3,0"/>
+</g>
 
-<!-- NEUTRE : tout le reste (vent, pluie, neige, froid, chaud). Ni content ni
-     inquiet — il constate. Yeux ronds, bouche droite, et c'est tout : c'est
-     l'expression qu'on verra le plus souvent, donc celle qui doit le moins
-     appuyer. -->
-<symbol id="m-neutre" viewBox="0 0 32 48">
-  <g class="m-body">
-    <path class="m-line" d="M23.5,24H8.5a6,6 0 0 1 -0.6,-11.97A8.5,8.5 0 0 1 24.2,13.2A5.4,5.4 0 0 1 23.5,24z"/>
-    <circle class="m-ink" cx="12.4" cy="17.6" r="1.5"/>
-    <circle class="m-ink" cx="19.6" cy="17.6" r="1.5"/>
-    <path class="m-line" d="M13.6,21.2h4.8" stroke-width="1.6"/>
-  </g>
-  <path class="m-line" d="M12.5,28v6M19.5,28v6M9.5,36h6M16.5,36h6" stroke-width="2"/>
+<!-- ---- LES BOUCHES ---- -->
+<path id="n-b-sourire" style="stroke-width:calc(var(--n-sw,1.2) / 1.5)" d="M14.2,26a2.6,2.6 0 0 0 3.6,0"/>
+<path id="n-b-petit" style="stroke-width:calc(var(--n-sw,1.2) / 1.5)" d="M14.7,26a1.9,1.9 0 0 0 2.6,0"/>
+<!-- GRANDE bouche : le seul aplat du visage. La planche la peint en rouge ;
+     ici elle prend l'encre, pour ne pas introduire une couleur non mesurée. -->
+<path id="n-b-grande" fill="currentColor" stroke="none" d="M13.1,25.2h5.8a2.9,2.9 0 0 1 -5.8,0z"/>
+<path id="n-b-droite" style="stroke-width:calc(var(--n-sw,1.2) / 1.5)" d="M14,26.1h4"/>
+<path id="n-b-inverse" style="stroke-width:calc(var(--n-sw,1.2) / 1.5)" d="M14.2,26.4a2.6,2.6 0 0 1 3.6,0"/>
+<path id="n-b-ondulee" style="stroke-width:calc(var(--n-sw,1.2) / 1.5)" d="M13.9,26.1q.85,-.85 1.7,0t1.7,0"/>
+<circle id="n-b-o" style="stroke-width:calc(var(--n-sw,1.2) / 1.5)" cx="16" cy="26.1" r="1.1"/>
+
+<!-- ---- LES SOURCILS ----
+     Ils ne servent QUE dans les expressions qui doivent alerter ou
+     questionner. Ailleurs Nuagio n'en a pas : deux traits de moins, et un
+     visage plus calme. -->
+<path id="n-s-fronces" style="stroke-width:calc(var(--n-sw,1.2) / 1.5)" d="M10.4,19.8l3,1.4M21.6,19.8l-3,1.4"/>
+<path id="n-s-hauts" style="stroke-width:calc(var(--n-sw,1.2) / 1.5)" d="M10.4,21.2l3,-1.2M21.6,21.2l-3,-1.2"/>
+<!-- UN SEUL sourcil levé : c'est tout ce qui distingue « perplexe » de
+     « pensif », et c'est suffisant. -->
+<path id="n-s-un" style="stroke-width:calc(var(--n-sw,1.2) / 1.5)" d="M10.4,20.9l3,.5M21.6,19.5l-3,.3"/>
+
+<!-- ---- LES ACCESSOIRES ---- -->
+<g id="n-joues" style="fill:var(--accent);stroke:none" opacity=".8">
+  <circle cx="9.6" cy="25.7" r="1.6"/>
+  <circle cx="22.4" cy="25.7" r="1.6"/>
+</g>
+<!-- La goutte de sueur : à l'EXTÉRIEUR de la silhouette, donc elle ne la
+     modifie pas (contrainte de Xavier). Même règle pour les flocons. -->
+<path id="n-goutte" style="stroke-width:calc(var(--n-sw,1.2) / 1.5);stroke:var(--ico-wet,currentColor)" d="M28.6,16.9c1.1,1.5 1.6,2.3 1.6,3a1.6,1.6 0 0 1 -3.2,0c0,-.7 .5,-1.5 1.6,-3z"/>
+<g id="n-flocons" style="stroke-width:calc(var(--n-sw,1.2) / 1.5);stroke:var(--ico-wet,currentColor)">
+  <path d="M5.4,16.2v2M4.4,17.2h2"/>
+  <path d="M26.6,15.4v1.8M25.7,16.3h1.8"/>
+  <path d="M27.4,25.4v1.8M26.5,26.3h1.8"/>
+</g>
+
+<!-- ================================================================
+     LES DOUZE EXPRESSIONS. Chacune n'est qu'un assemblage de primitives :
+     c'est ce qui rend la liste facile à enrichir, et ce qui garantit que la
+     silhouette et l'anémomètre ne bougent jamais.
+     LA LISTE VIENT DES ÉTATS ET DES JETONS DE CONSEIL, pas de la planche
+     (même règle que « LA LISTE VIENT DE pickIcon, PAS DE LA PLANCHE ») : la
+     planche propose 25 humeurs, l'application en distingue 12. Un jeton sans
+     symbole donnerait un carré vide en production, d'où aussi le repli
+     obligatoire sur #n-sourire dans `poserNuagio`.
+     ================================================================ -->
+
+<!-- HEUREUX — soleil, temps idéal. -->
+<symbol id="n-heureux" viewBox="0 0 32 34">
+  <g><use href="#n-corps"/><use href="#n-yeux-ronds"/><use href="#n-b-grande"/><use href="#n-joues"/></g>
+</symbol>
+<!-- SOURIRE DISCRET — beau temps, et surtout le cas « rien de notable à
+     dire », qui est le plus fréquent de tous. C'est donc l'expression par
+     défaut, et celle qui doit le moins appuyer. -->
+<symbol id="n-sourire" viewBox="0 0 32 34">
+  <g><use href="#n-corps"/><use href="#n-yeux-ronds"/><use href="#n-b-sourire"/><use href="#n-joues"/></g>
+</symbol>
+<!-- CONCENTRÉ — vent fort. Yeux plissés dans le courant d'air, bouche droite. -->
+<symbol id="n-concentre" viewBox="0 0 32 34">
+  <g><use href="#n-corps"/><use href="#n-yeux-plisses"/><use href="#n-b-droite"/></g>
+</symbol>
+<!-- CALME SOUS LA PLUIE — il ne s'en plaint pas, il l'accepte. -->
+<symbol id="n-calme" viewBox="0 0 32 34">
+  <g><use href="#n-corps"/><use href="#n-yeux-doux"/><use href="#n-b-sourire"/></g>
+</symbol>
+<!-- VIGILANT — orage, pluie verglaçante, grêle. Les trois seules situations
+     que le contrat classe `danger`. Sourcils froncés, bouche en arc inversé,
+     et AUCUNE joue : l'accent sympathique est réservé aux temps agréables. -->
+<symbol id="n-vigilant" viewBox="0 0 32 34">
+  <g><use href="#n-corps"/><use href="#n-yeux-ronds"/><use href="#n-s-fronces"/><use href="#n-b-inverse"/></g>
+</symbol>
+<!-- PENSIF — brouillard. On ne voit pas loin, il regarde en dedans. -->
+<symbol id="n-pensif" viewBox="0 0 32 34">
+  <g><use href="#n-corps"/><use href="#n-yeux-doux"/><use href="#n-s-hauts"/><use href="#n-b-droite"/></g>
+</symbol>
+<!-- FRILEUX — neige. Les flocons sont dehors, la silhouette est intacte. -->
+<symbol id="n-frileux" viewBox="0 0 32 34">
+  <g><use href="#n-corps"/><use href="#n-yeux-plisses"/><use href="#n-b-ondulee"/><use href="#n-flocons"/></g>
+</symbol>
+<!-- TRANSPIRE — très chaud. -->
+<symbol id="n-chaud" viewBox="0 0 32 34">
+  <g><use href="#n-corps"/><use href="#n-yeux-lourds"/><use href="#n-b-grande"/><use href="#n-goutte"/></g>
+</symbol>
+<!-- GRELOTTE — très froid. Même visage que frileux sans les flocons : c'est
+     l'ANIMATION (nShiver) qui dit le tremblement, pas le dessin. -->
+<symbol id="n-froid" viewBox="0 0 32 34">
+  <g><use href="#n-corps"/><use href="#n-yeux-plisses"/><use href="#n-b-ondulee"/></g>
+</symbol>
+<!-- PERPLEXE — panne réseau. Un sourcil levé, et c'est tout : il ne sait pas,
+     il ne s'excuse pas. -->
+<symbol id="n-perplexe" viewBox="0 0 32 34">
+  <g><use href="#n-corps"/><use href="#n-yeux-ronds"/><use href="#n-s-un"/><use href="#n-b-droite"/></g>
+</symbol>
+<!-- RÉFLÉCHIT — chargement. -->
+<symbol id="n-reflechit" viewBox="0 0 32 34">
+  <g><use href="#n-corps"/><use href="#n-yeux-hauts"/><use href="#n-b-o"/></g>
+</symbol>
+<!-- NUIT — variante du repos, yeux clos et sourire minuscule. Elle ne
+     s'applique QU'AU cas « rien de notable » : un orage à 2 h du matin garde
+     le visage vigilant. C'est exactement la règle déjà retenue pour les
+     icônes du contrat, où le suffixe jour/nuit ne touche que les jetons
+     clairs et non la pluie ni la neige. -->
+<symbol id="n-nuit" viewBox="0 0 32 34">
+  <g><use href="#n-corps"/><use href="#n-yeux-doux"/><use href="#n-b-petit"/></g>
 </symbol>
 
 </svg>
@@ -1661,6 +1933,9 @@ main {
   <!-- Écran de service : accueil, panne, GPS. Réécrit par le script dès
        qu'il tourne ; ce qui suit est le repli AVANT exécution. -->
   <div class="notice" id="notice">
+    <svg class="nuagio" data-nuagio viewBox="0 0 32 34" aria-hidden="true" focusable="false">
+      <g class="n-body"><use href="#n-reflechit"/></g>
+    </svg>
     <b>Recherche de la station la plus proche</b>
     <span>Autorisez la localisation, ou saisissez une position plus bas.</span>
   </div>
@@ -1669,6 +1944,11 @@ main {
        partageaient le même bloc, donc on ne pouvait pas dire « je
        cherche » autrement qu'en disant « je n'ai rien ». -->
   <div class="skel" id="skel" hidden aria-hidden="true">
+    <!-- Nuagio réfléchit pendant que l'on cherche la station. C'est la
+         seconde des trois instances : voir le commentaire de `.nuagio`. -->
+    <svg class="nuagio" data-nuagio viewBox="0 0 32 34" aria-hidden="true" focusable="false">
+      <g class="n-body"><use href="#n-reflechit"/></g>
+    </svg>
     <div class="s1"></div><div class="s2"></div><div class="s3"></div>
     <div class="s4"></div><div class="s5"></div>
     <p class="label" id="skelTxt"></p>
@@ -1681,17 +1961,17 @@ main {
          conseil, température, puis la provenance de la mesure. -->
     <section class="hero rise">
       <h1 class="headline" id="headline"></h1>
-      <!-- LA MASCOTTE ACCOMPAGNE LE CONSEIL (30/07/2026, demande de Xavier).
-           Elle vit dans la même ligne que la phrase et non ailleurs sur la
-           page : c'est ce qui en fait la messagère du conseil plutôt qu'une
-           décoration posée dans un coin. La ligne entière est masquée quand
-           il n'y a rien à conseiller, donc la mascotte ne reste jamais
-           seule à sourire sans rien dire. -->
-      <div class="conseil-row" id="conseilRow" hidden>
-        <svg class="mascotte" id="mascotte" viewBox="0 0 32 48" aria-hidden="true" focusable="false">
-          <use id="mascotteUse" href="#m-neutre"/>
+      <!-- NUAGIO, ET LA PHRASE SOUS LUI (30/07/2026, demande de Xavier).
+           Il est le premier élément de la carte après le titre, donc « en
+           haut de la carte météo », et il ne se masque JAMAIS : il
+           représente la station, pas le temps qu'il fait. Seule la phrase
+           se masque, quand il n'y a rien à conseiller — c'est `#conseil`
+           qui porte `hidden`, plus la ligne entière comme avant. -->
+      <div class="nuagio-row">
+        <svg class="nuagio" data-nuagio viewBox="0 0 32 34" aria-hidden="true" focusable="false">
+          <g class="n-body"><use href="#n-sourire"/></g>
         </svg>
-        <p class="conseil" id="conseil"></p>
+        <p class="conseil" id="conseil" hidden></p>
       </div>
       <!-- L'icône est APPARIÉE au chiffre, sur la même ligne (29/07/2026,
            demande de Xavier). Elle était au-dessus du titre : elle y
@@ -2299,29 +2579,73 @@ function conseilToken(r) {
 }
 
 // ---------------------------------------------------------------
-// LA MASCOTTE (30/07/2026)
+// NUAGIO (30/07/2026)
 //
-// Elle n'a AUCUNE logique propre : elle se branche sur le jeton de conseil
-// déjà calculé. C'est ce qui garantit qu'elle ne peut pas avoir l'air content
-// pendant que la phrase d'à côté annonce un orage.
+// IL N'A AUCUNE LOGIQUE PROPRE, et c'est la propriété la plus précieuse de
+// tout ce bloc : il se branche sur le jeton de conseil DÉJÀ calculé par
+// `conseilToken`, il n'en recalcule aucun. C'est ce qui garantit qu'il ne
+// peut pas avoir l'air content pendant que la phrase d'à côté annonce un
+// orage. Toute évolution doit préserver ça.
 //
-// TROIS EXPRESSIONS POUR DIX JETONS (arbitrage de Xavier). La table est ici et
-// non dans le CSS pour la même raison que CIELS : c'est une correspondance,
-// donc elle se relit et se change d'un coup d'œil. Tout jeton absent de cette
-// table prend `m-neutre`, y compris un jeton futur qu'on aurait oublié
-// d'y ranger : même réflexe de repli que `#i-unknown` et que le ciel neutre.
+// La table est ici et non dans le CSS pour la même raison que CIELS et que
+// EXPRESSIONS avant elle : c'est une correspondance, donc elle se relit et se
+// change d'un coup d'œil. UNE expression par jeton de conseil, plus trois
+// hors jetons (chargement, panne, nuit).
 // ---------------------------------------------------------------
 const EXPRESSIONS = {
-  ideal: "m-content",
-  // Les quatre situations où l'on demande au lecteur de faire attention. Le
-  // vent, la pluie, la neige, le froid et le chaud n'y sont PAS : ils sont
-  // désagréables, pas alarmants, et un personnage inquiet à chaque averse
-  // finirait par ne plus rien signaler.
-  orage: "m-souci",
-  verglas: "m-souci",
-  grele: "m-souci",
-  brouillard: "m-souci",
+  ideal: "n-heureux",
+  // Les trois situations que le contrat classe `danger` : orage, pluie
+  // verglaçante, grêle. Le vent, la pluie, la neige, le froid et le chaud
+  // n'y sont PAS — ils sont désagréables, pas alarmants, et un personnage
+  // alarmé à chaque averse finirait par ne plus rien signaler.
+  orage: "n-vigilant",
+  verglas: "n-vigilant",
+  grele: "n-vigilant",
+  brouillard: "n-pensif",
+  neige: "n-frileux",
+  pluie: "n-calme",
+  vent: "n-concentre",
+  froid: "n-froid",
+  chaud: "n-chaud",
 };
+
+// L'EXPRESSION DE REPOS, celle du cas « rien de notable à dire » — c'est-à-dire
+// le plus fréquent de tous. Deux variantes seulement, jour et nuit.
+// POURQUOI LA NUIT NE TOUCHE QUE CELLE-LÀ : c'est exactement la règle déjà
+// retenue pour les icônes du contrat (« suffixe jour/nuit UNIQUEMENT sur
+// clear/few/partly_cloudy/showers »). Un orage à 2 h du matin garde son
+// visage vigilant ; douze visages de nuit seraient douze dessins de plus
+// pour une nuance que personne ne remarquerait.
+const REPOS_JOUR = "n-sourire";
+const REPOS_NUIT = "n-nuit";
+
+// Les deux jetons qui font trembler Nuagio. Aucun seuil neuf : on réutilise
+// la décision de `conseilToken`, parce qu'un seuil est une DÉCISION et qu'en
+// inventer un ici en ferait une de plus à soumettre à Xavier.
+const JETONS_FRISSON = new Set(["froid", "neige"]);
+
+/**
+ * Pose la même expression sur les TROIS instances de Nuagio (carte,
+ * chargement, écran de service). Une seule fonction pour tout le monde :
+ * c'est ce qui empêche un état d'être oublié — le défaut serait alors un
+ * visage figé sur un écran qu'on ne regarde pas en développant.
+ *
+ * @param {string} symbole  id d'un symbole `#n-...`
+ * @param {?string} jeton   jeton de conseil, pour les animations de vent et
+ *                          de frisson ; `null` en dehors de la carte.
+ */
+function poserNuagio(symbole, jeton) {
+  // REPLI OBLIGATOIRE sur l'expression de repos si le symbole n'existe pas.
+  // Même réflexe que `#i-unknown` et que le ciel `neutral` : un id inventé ou
+  // un jeton futur non rangé dans la table donnerait un carré vide EN
+  // PRODUCTION, sur un cas que rien en local ne déclenche.
+  const id = document.getElementById(symbole) ? symbole : REPOS_JOUR;
+  for (const svg of document.querySelectorAll("[data-nuagio]")) {
+    svg.querySelector("use").setAttribute("href", `#${id}`);
+    svg.classList.toggle("n-vent", jeton === "vent");
+    svg.classList.toggle("n-frisson", JETONS_FRISSON.has(jeton));
+  }
+}
 
 // ---------------------------------------------------------------
 // LE SCORE DE CONFORT EXTÉRIEUR (30/07/2026, demande de Xavier)
@@ -2782,11 +3106,35 @@ function rendreNotice(titre, suite, options) {
   $("notice").hidden = false;
   $("notice").textContent = "";
 
-  if (o.marque) {
-    const m = document.createElement("div");
-    m.className = o.marque === "attente" ? "mark attente" : "mark";
-    m.textContent = o.marque === "attente" ? "" : "!";
-    $("notice").append(m);
+  // NUAGIO REMPLACE LA PASTILLE `.mark` (30/07/2026). Elle occupait déjà ce
+  // créneau — un symbole au-dessus du message — avec un « ! » dans un rond,
+  // ou un rond vide en pointillé pendant l'attente. En garder les deux
+  // aurait donné deux marqueurs pour la même idée, ce que ce dépôt refuse
+  // ailleurs (« trois fois le même signe pour la même idée »). C'est donc
+  // le seul endroit où Nuagio modifie l'interface existante, et il y dit
+  // strictement ce que la pastille disait.
+  // Il est recréé à chaque appel parce que `rendreNotice` vide `#notice` :
+  // une instance écrite en dur dans le HTML serait effacée au premier
+  // message. C'est ce qui aurait fait disparaître Nuagio de l'écran de
+  // panne sans que rien ne l'indique.
+  if (o.nuagio) {
+    const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    svg.setAttribute("class", "nuagio");
+    svg.setAttribute("viewBox", "0 0 32 34");
+    svg.setAttribute("aria-hidden", "true");
+    svg.setAttribute("focusable", "false");
+    svg.dataset.nuagio = "";
+    // Le groupe `n-body` est OBLIGATOIRE, et il vit dans le document et non
+    // dans le symbole : c'est lui qui porte le flottement, le balancement et
+    // le tremblement, qu'une classe posée sur la racine ne pourrait pas
+    // atteindre à travers la frontière du `<use>`.
+    const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
+    g.setAttribute("class", "n-body");
+    const u = document.createElementNS("http://www.w3.org/2000/svg", "use");
+    u.setAttribute("href", `#${o.nuagio}`);
+    g.append(u);
+    svg.append(g);
+    $("notice").append(svg);
   }
   const b = document.createElement("b");
   b.textContent = titre;
@@ -2811,12 +3159,17 @@ function afficherEchec(code, status, lang) {
   dernierEchec = { code, status };
   poserCielService("panne");
   rendreNotice(titre + detail, suite, {
-    marque: "erreur",
+    nuagio: "n-perplexe",
     // « Réessayer » n'a de sens que si l'on sait quoi réessayer ; sans
     // position connue, on renvoie vers la feuille de localisation.
     action: t.reessayer,
     onAction: () => (dernierePosition ? consulter(...dernierePosition) : ouvrirFeuille()),
   });
+  // APRÈS `rendreNotice`, jamais avant : c'est elle qui crée l'instance de
+  // l'écran de service (elle vide `#notice`). Appelée avant, la boucle de
+  // `poserNuagio` ne verrait que les deux autres instances, et l'écran de
+  // panne garderait l'expression de la consultation précédente.
+  poserNuagio("n-perplexe", null);
 }
 
 function afficherChargement(lang) {
@@ -2825,6 +3178,9 @@ function afficherChargement(lang) {
   $("card").hidden = true;
   $("skel").hidden = false;
   $("skelTxt").textContent = T(lang).chargement;
+  // Il réfléchit. Aucun jeton de conseil ici : on ne sait encore rien du
+  // temps qu'il fait, donc ni vent ni frisson.
+  poserNuagio("n-reflechit", null);
 }
 
 // LE METAR, FONCTION D'EXPERT (29/07/2026). Il n'ouvre plus la page : il
@@ -2898,7 +3254,7 @@ function appliquerChrome(lang) {
       // écran d'accueil réaffiché après une panne gardait le fond chaud de
       // la panne et disait donc deux choses contradictoires à la fois.
       poserCielService("attente");
-      rendreNotice(t.chercheTitre, t.chercheSuite, { marque: "attente" });
+      rendreNotice(t.chercheTitre, t.chercheSuite, { nuagio: "n-reflechit" });
     }
   }
 }
@@ -2959,17 +3315,20 @@ function afficher(r, lang) {
   const conseil = conseilToken(r);
   const phraseConseil = conseil ? t[`c_${conseil}`] : null;
   $("conseil").textContent = phraseConseil ?? "";
-  // C'est la LIGNE ENTIÈRE qui se masque, mascotte comprise (30/07/2026).
-  // Masquer la seule phrase laisserait le petit nuage sourire dans le vide,
-  // ce qui est pire qu'une ligne absente : un personnage sans réplique donne
-  // l'impression d'un texte qui n'a pas chargé.
-  $("conseilRow").hidden = !phraseConseil;
-  // La mascotte se branche sur le jeton DÉJÀ calculé, elle n'en recalcule
-  // aucun : c'est ce qui garantit qu'elle ne peut pas avoir l'air content
-  // pendant que la phrase annonce un orage. Repli `m-neutre` pour tout jeton
-  // absent de la table, y compris un jeton futur qu'on aurait oublié d'y
-  // ranger — même réflexe que le repli `#i-unknown`.
-  $("mascotteUse").setAttribute("href", `#${EXPRESSIONS[conseil] ?? "m-neutre"}`);
+  // SEULE LA PHRASE SE MASQUE (30/07/2026, second passage). Auparavant c'était
+  // la ligne entière, mascotte comprise, pour ne pas laisser le personnage
+  // sourire dans le vide. Nuagio représentant la STATION et non le conseil,
+  // il reste : la station est là même quand il n'y a rien à signaler. On
+  // n'invente pas pour autant une phrase de remplissage — une phrase affichée
+  // en permanence ne veut plus rien dire, et c'était déjà l'argument du
+  // premier passage.
+  $("conseil").hidden = !phraseConseil;
+  // L'expression vient du jeton de conseil ; à défaut, le repos, dont la
+  // variante de NUIT est la seule que la lumière de la station change.
+  // `isDay` est `null` quand le contrat ne sait pas : on prend alors le jour,
+  // comme le fait déjà `pickIcon` côté serveur.
+  const repos = r.sun && r.sun.isDay === false ? REPOS_NUIT : REPOS_JOUR;
+  poserNuagio(EXPRESSIONS[conseil] ?? repos, conseil);
 
   // 1 quater. Le badge : ce que cette application est seule à pouvoir dire.
   $("badge").textContent = t.badge;

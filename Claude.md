@@ -1426,6 +1426,101 @@ Fait et validé :
   formulation, donc son accord.
   PAS DE TEST sur la page, raison inchangée depuis le 28/07.
 
+- 31/07/2026 — NUAGIO REMPLACE LA MASCOTTE DU 30/07. Demande de Xavier, avec
+  une planche de style dans `nuagio/nuagio.png` (25 humeurs). `public/index.html`
+  seul ; 357 tests et type-check restés verts de bout en bout, la page n'étant
+  pas testée (raison inchangée depuis le 28/07).
+  CE QU'IL REPRÉSENTE DÉCIDE DE TOUT LE RESTE : la STATION la plus proche, pas
+  le temps qu'il fait. C'est ce qui justifie qu'il soit TOUJOURS affiché, et ça
+  RENVERSE la décision du 30/07 au matin (« un personnage sans réplique
+  ressemble à un texte qui n'a pas chargé »). Ne pas la « rétablir » en croyant
+  corriger une régression. Seule la PHRASE se masque quand il n'y a rien à
+  conseiller : on n'invente pas de banalité permanente pour lui tenir
+  compagnie, ce qui était l'argument du premier passage et reste vrai.
+  TROIS INSTANCES ET NON UNE, et c'était le piège de placement : `#card` est
+  masqué pendant le chargement (`#skel`) et pendant une panne (`#notice`).
+  « Réfléchit » et « perplexe » étaient donc INATTEIGNABLES depuis la seule
+  carte. `poserNuagio` règle les trois `[data-nuagio]` d'un coup. Sur l'écran
+  de service il est CRÉÉ par `rendreNotice`, qui vide `#notice` : une instance
+  écrite en dur y serait effacée au premier message. Il y remplace la pastille
+  `.mark` (« ! » dans un rond), même créneau, même rôle — c'est le seul endroit
+  où ce chantier touche à l'interface existante, et `.mark` est SUPPRIMÉE
+  plutôt que laissée à dormir (leçon `--ico-sun`).
+  DOUZE EXPRESSIONS COMPOSÉES, jamais redessinées : `#n-corps` (nuage +
+  anémomètre) puis des primitives de visage, et les 12 symboles ne font que les
+  assembler par `<use>`. Même architecture que `#p-...` → `#i-...`. C'est ce qui
+  rend la contrainte « la silhouette reste identique » vraie PAR CONSTRUCTION,
+  et l'anémomètre indérivable d'une expression à l'autre — donc une signature.
+  Enrichir = ajouter un assemblage. Pas de pattes (contrainte), donc repère
+  32x34 et non 32x48, et le truc du 30/07 (« les pattes ne flottent pas avec le
+  corps ») n'a plus d'objet.
+  LE DÉFAUT LE PLUS INSTRUCTIF DE LA SESSION, et il vaut pour tout le sprite :
+  un sélecteur `.nuagio .n-line` N'ATTEINT PAS le contenu cloné par `<use>`,
+  qui n'est pas descendant de `.nuagio` dans le document. Sans `fill:none`
+  hérité, le nuage retombait sur le remplissage par défaut : un APLAT NOIR.
+  Bien dimensionné, bien atteint au pointage, et faux. C'est exactement
+  pourquoi `.ico` porte `fill`/`stroke`/`stroke-width` sur la RACINE. Règle
+  désormais explicite : l'héritable va sur la racine, le reste s'écrit SUR la
+  forme (attribut de présentation, ou `style` en ligne quand il faut `var()`,
+  qu'un attribut de présentation n'accepte pas).
+  COROLLAIRE : le groupe animé `.n-body` vit dans le DOCUMENT (autour du
+  `<use>`), pas dans les symboles — une classe posée sur la racine ne commande
+  rien à travers la frontière du `<use>`. Et LE CLIGNEMENT passe par QUATRE
+  PROPRIÉTÉS PERSONNALISÉES animées sur la racine, que les yeux se contentent
+  de lire : les propriétés personnalisées s'HÉRITENT, donc elles traversent, ce
+  qui est vérifiable — alors que je n'ai PAS pu prouver qu'une animation
+  déclarée sur l'original s'applique au clone. Sans `@property` elles s'animent
+  par paliers, ce qu'un clignement demande justement.
+  QUATRE ANIMATIONS, transform et opacity uniquement. Balancement et tremblement
+  REMPLACENT le flottement au lieu de s'y ajouter (deux animations sur
+  `transform` se remplacent, elles ne se composent pas). Aucun seuil neuf : le
+  vent et le froid viennent des jetons de `conseilToken`, un seuil inventé
+  serait une décision de plus à soumettre. Clignement des deux yeux à 28 % d'un
+  cycle de 24 s, clin de l'œil droit seul à 73 %, en UNE animation — superposées,
+  elles porteraient toutes deux l'opacité et la seconde gagnerait en permanence.
+  LA PLANCHE EST UNE RÉFÉRENCE, PAS UNE SOURCE (statut d'`icones.png`). Son
+  nuage est blanc plein, contour bleu, halo : intransplantable, et ce dépôt a
+  déjà mesuré deux fois cet échec (l'ambre à 1,7:1, le verre « blanc sur blanc »
+  des ciels `fg`/`sn`). Nuagio reste au trait sur `--ink`, mesuré dans les deux
+  polarités ; ses seuls accents sont `--accent` (joues, graphique uniquement) et
+  `--ico-wet` (goutte, flocons), tous deux déjà mesurés. Aucune teinte inventée.
+  LA CAPTURE D'ÉCRAN A ÉTÉ LE CONTRÔLE DÉCISIF, et c'est la leçon de méthode.
+  Le volet ne composant toujours pas d'image, la planche des 12 a été fabriquée
+  au `canvas` (sérialisation du sprite + `drawImage`), déposée par un
+  `POST /_depot` TEMPORAIRE ajouté à `vite.config.ts` puis retiré (`git checkout`
+  confirme le fichier identique). Elle a montré d'un coup quatre défauts que
+  AUCUNE sonde n'avait vus : `n-heureux` indiscernable de `n-sourire` (bouche
+  ouverte trop plate), goutte de sueur posée SUR le contour comme une bulle,
+  joues virant au gris, anémomètre lisant comme une antenne. Corrigés puis
+  revérifiés à l'image. PIÈGE DE SONDE rencontré au passage, à ne pas répéter :
+  `elementFromPoint` renvoie le `<use>` quel que soit le point, donc il
+  « atteint » aussi bien un aplat noir qu'un dessin au trait — il ne prouve
+  RIEN ici. Ce qui prouve, c'est le COMPTAGE DE PIXELS (12-14 % de couverture =
+  trait ; ~34 % = aplat). Second piège : une animation sérialisée dans une image
+  autonome ne joue pas, ses `@keyframes` étant restées dans la feuille de la
+  page — la première mesure du clignement était donc vide de sens.
+  VÉRIFIÉ : les 10 jetons de conseil vers leur expression, les 3 états
+  (carte / chargement / panne, FR et EN), repos jour et nuit, jeton inconnu →
+  repli `#n-sourire`, phrase masquée sans que Nuagio parte, classes de vent et
+  de frisson posées seulement où il faut, clignement et clin prouvés en
+  variables PUIS en pixels (355 px par œil au repos, ~145 fermé, un seul œil
+  au clin), mouvement réduit (0 animation, variables au repos), 12 symboles
+  sans orphelin ni manquant, parité fr/en des 87 clés, bascule de langue avec
+  le METAR DÉPLIÉ (« Hide the METAR », chevron survivant), cibles ≥ 24 px,
+  débordement nul à 375 px et en pleine largeur, console sans erreur.
+  DEUX DES CINQ PHRASES D'EXEMPLE SONT HORS D'ATTEINTE, et c'est signalé plutôt
+  que contourné : « Le vent se renforce cet après-midi » et « Pas de pluie
+  prévue » sont des PRÉVISIONS. Un METAR est une observation, et il n'y a pas
+  de source de prévision dans le projet ; en ajouter une serait une seconde
+  source amont plus une évolution de `types.ts`, donc l'un des trois cas où ce
+  fichier impose d'interrompre Xavier. Les 10 phrases de `conseilToken`
+  couvrent les trois autres exemples au présent. Aucune formulation nouvelle
+  n'a donc été ajoutée, et la parité fr/en est inchangée.
+  À SOUMETTRE À XAVIER : le jugement visuel sur les 12 dessins (la planche se
+  refabrique par la méthode ci-dessus), et `--n-sw: 1.2`, qui est MESURÉ au
+  rendu (~2,4 px pour 60 px de large, soit 3,75 %, la proportion de l'icône de
+  tête) mais dont le rendu final lui appartient.
+
 Prochaine étape (à décider avec Xavier) :
 - ICÔNE ET ÉCRAN DE DÉMARRAGE DE L'APPLICATION : encore ceux de Capacitor (le
   X bleu du gabarit), dans `android/app/src/main/res/mipmap-*` et

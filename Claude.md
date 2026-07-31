@@ -1589,6 +1589,51 @@ Fait et validé :
   signale un fait — mais c'est un changement par rapport au 30/07, où les deux
   venaient du même jeton.
 
+- 31/07/2026 — TROIS CORRECTIFS DE SECONDE PASSE, tous vus À L'ÉCRAN par
+  Xavier sur capture annotée, aucun par une sonde.
+  (a) L'AIGUILLE DE LA ROSE ÉTAIT PEINTE HORS DE LA ROSE, et c'est le défaut
+  le plus instructif depuis le signe « ° » du 29/07. Le groupe portait DEUX
+  mécanismes de rotation à la fois : `transform-origin: 24px 24px` en CSS et
+  un attribut de présentation `transform="rotate(a 24 24)"`, qui contient
+  DÉJÀ son centre. Le navigateur applique alors le centre deux fois, et la
+  tête partait à ~440 px du centre — par-dessus la phrase du vent, d'où le
+  « Vemt d'ouest » visible sur les captures de la veille. La boussole
+  paraissait simplement n'avoir pas d'aiguille.
+  CE QUI L'A RENDU INVISIBLE : `getComputedStyle` rendait la BONNE matrice
+  (`matrix(0,1,-1,0,48,0)` = rotate(90 24 24)), c'est la composition qui
+  ajoutait l'origine. Toutes mes vérifications du 30/07 portaient sur la
+  matrice et sur `elementFromPoint`, qui atteignait la LETTRE « E » et non
+  l'aiguille. Le discriminant qui l'attrape en une ligne est la BOÎTE :
+  comparer `getBoundingClientRect` de la tête à celle de la rose. Règle
+  générale : pour un élément transformé, mesurer OÙ IL EST, pas quelle
+  transformation il déclare.
+  Corrigé en passant tout en CSS (`g.style.transform = "rotate(Xdeg)"`, sans
+  centre dans la valeur, centre dans `transform-origin`). C'est aussi ce dont
+  `mpSweep` a besoin pour le vent variable, dont les images sont en CSS —
+  d'où le choix de ce sens plutôt que de supprimer `transform-origin`.
+  (b) et (c) LES DEUX JAUGES SONT RETIRÉES (confort et UV). Elles situaient la
+  valeur sur son échelle, ce que le chiffre seul ne faisait pas — mais depuis
+  que le dénominateur est écrit (« 3/5 », « 5/11 »), l'échelle est dite en
+  toutes lettres et la barre la redisait. Même raisonnement que la grande
+  icône du 28/07 puis la pastille `.mark` du 30/07.
+  SONT PARTIS AVEC ELLES, plutôt que de dormir : les règles `.jauge`, l'image
+  clé `mpFill`, le jeton `--accent-ghost` (qui n'existait que pour le chemin
+  de la jauge) et la constante `UV_JAUGE_MAX`, plus le paramètre `fraction`
+  de `carteChiffre` et `CONFORT_MAX`. La longue note sur `color-mix` que
+  portait `--accent-ghost` part avec lui : le piège reste vrai, il n'a plus de
+  jeton où se poser, et il est consigné ici (entrée du 30/07).
+  EFFET DE BORD SIGNALÉ : les deux cartes ne font plus la même hauteur
+  (102 px contre 93). La ligne invisible `.reserve` de la carte UV réserve UNE
+  ligne, alors que « TEMPÉRATURE, HUMIDITÉ, VENT, SOLEIL, PLUIE » en occupe
+  deux. Sans la jauge qui ajoutait 11 px identiques des deux côtés, l'écart se
+  voit. Les cartes sont empilées et non côte à côte, donc rien ne l'exige :
+  laissé tel quel, à corriger si Xavier le trouve gênant.
+  VÉRIFIÉ, ET CETTE FOIS PAR CAPTURE D'ÉCRAN (le volet compose à nouveau) :
+  aiguille dans la rose, tête à droite pour un vent d'ouest et en haut pour un
+  vent du sud, vent variable qui balaie toujours autour du centre, zéro
+  `.jauge` dans le document, les deux cartes rendues, débordement nul, console
+  sans erreur. 357 tests, type-check 0.
+
 Prochaine étape (à décider avec Xavier) :
 - ICÔNE ET ÉCRAN DE DÉMARRAGE DE L'APPLICATION : encore ceux de Capacitor (le
   X bleu du gabarit), dans `android/app/src/main/res/mipmap-*` et

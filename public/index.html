@@ -222,28 +222,6 @@
      candidats plus chauds ont été essayés et rejetés par la mesure —
      #FFC466 donne 2,89, ce qui est le genre d'écart que l'œil ne voit pas. */
   --accent: #FFCE80;
-  /* Version FANTÔME de l'accent, pour le CHEMIN des jauges. Sous le seuil de
-     contraste, et c'est voulu : elle marque le parcours d'une jauge, jamais sa
-     valeur, donc elle ne porte aucune information à elle seule.
-     ÉCRITE EN DUR, ET PAS EN `color-mix`, après une correction qui vaut d'être
-     consignée. Premier jet : `color-mix(in srgb, var(--accent) 26%,
-     transparent)`, la seule fonction CSS récente de la page. Sur une propriété
-     PERSONNALISÉE, une valeur non comprise ne rend pas la déclaration
-     invalide à l'analyse — les propriétés personnalisées acceptent presque
-     n'importe quel flux de jetons — elle échoue plus tard, AU CALCUL. Donc
-     `background: var(--accent-ghost)` retomberait sur `initial`, c'est-à-dire
-     TRANSPARENT : chemin de jauge disparu, barre flottant sans repère, sur les
-     deux cartes neuves.
-     Et la parade habituelle NE MARCHE PAS ICI : écrire un `rgba` avant le
-     `color-mix` dans la même règle ne laisse aucun repli, puisque le
-     `color-mix` étant valide à l'ANALYSE, il écrase purement le `rgba`.
-     Vérifié dans le CSSOM, où il ne restait qu'une déclaration sur deux.
-     L'accent étant un hex fixe, `color-mix` ne calculait rien qu'on ne puisse
-     écrire soi-même : on écrit donc les deux valeurs, et la dépendance
-     disparaît avec le risque. Exactement la forme de panne que ce dépôt
-     connaît trop bien — parfait en local, cassé dans l'APK, invisible à tout
-     test. */
-  --accent-ghost: rgba(255, 206, 128, .26);
   /* REMPLISSAGE DES RANGÉES DÉPLIABLES (30/07/2026). Xavier demandait « un
      fond légèrement plus clair » sur le bouton du METAR. Éclaircir est
      exactement ce qu'il ne faut PAS faire ici, et la sonde l'a montré : posé
@@ -308,7 +286,6 @@
   --accent: #9E5200;
   /* 26 % de #9E5200, écrit en dur pour la raison détaillée dans le bloc
      `dark` : aucune fonction CSS récente sur le chemin d'une jauge. */
-  --accent-ghost: rgba(158, 82, 0, .26);
   /* Le sens s'inverse, comme pour les deux accents et le dégradé du chiffre :
      ici l'encre est sombre, donc c'est en ÉCLAIRCISSANT que le bouton se
      détache et que son texte gagne. */
@@ -479,10 +456,6 @@
   0%, 100% { transform: rotate(-34deg); }
   50% { transform: rotate(34deg); }
 }
-/* Remplissage d'une jauge (UV, confort). On anime `transform: scaleX` et
-   JAMAIS la largeur : une largeur animée relance la mise en page à chaque
-   image. D'où aussi le `transform-origin: left` sur les éléments concernés. */
-@keyframes mpFill { from { transform: scaleX(0); } to { transform: scaleX(1); } }
 /* Le chiffre du confort et celui de l'UV arrivent avec un très léger appui,
    pour que le regard s'y accroche une fois — pas à chaque consultation. */
 @keyframes mpPop {
@@ -1012,29 +985,19 @@ main {
   color: var(--ink-soft); text-wrap: pretty;
 }
 
-/* LA JAUGE. Elle situe la valeur sur son échelle, ce que le chiffre seul ne
-   fait pas : « UV 6 » ne dit rien à qui ignore que l'échelle va à 11.
-   Le CHEMIN est en accent fantôme (sous le seuil de contraste, et c'est
-   voulu : il ne porte aucune information à lui seul), la PART FRANCHIE est
-   en accent plein. Élément graphique, donc emploi légitime.
-   ELLE N'EST JAMAIS LA SEULE PORTEUSE DE L'INFORMATION : le chiffre et la
-   phrase disent la même chose à côté. C'est ce qui la rend acceptable pour
-   qui ne distingue pas les couleurs (1.4.1). */
-.jauge {
-  position: relative; height: 4px; margin-bottom: .45rem;
-  border-radius: var(--radius-pill);
-  background: var(--accent-ghost);
-  overflow: hidden;
-}
-.jauge i {
-  position: absolute; inset: 0 auto 0 0; width: 100%;
-  transform-origin: left; /* indispensable : sans lui, scaleX part du centre */
-  border-radius: inherit; background: var(--accent);
-  animation: mpFill 760ms var(--ease-sky) both;
-}
+/* LA JAUGE A ÉTÉ RETIRÉE des deux cartes le 31/07/2026 (demande de Xavier).
+   Elle situait la valeur sur son échelle, ce que le chiffre seul ne faisait
+   pas — mais le dénominateur (« 3/5 », « 5/11 ») le dit maintenant en toutes
+   lettres, et la barre le redisait une seconde fois.
+   SONT PARTIS AVEC ELLE, plutôt que de dormir : les règles `.jauge`, l'image
+   clé `mpFill` et le jeton `--accent-ghost`, qui n'existait que pour son
+   chemin. C'est la leçon `--ico-sun` du 29/07 : ce qu'on laisse en place sans
+   emploi ne meurt pas, il attend, et son repli est ce qu'on verra. Elles
+   restent dans l'historique git, avec la longue note sur `color-mix` que
+   portait `--accent-ghost` — le piège reste vrai, il n'a simplement plus de
+   jeton où se poser. */
 @media (prefers-reduced-motion: reduce) {
   .chiffre { animation: none; }
-  .jauge i { animation: none; }
 }
 
 /* L'UV n'a pas de ligne « sur quoi le calcul repose » (ce n'est pas un
@@ -2832,7 +2795,6 @@ function confortScore(r) {
 const NIVEAUX_CONFORT = {
   conf_mauvais: 1, conf_mediocre: 2, conf_moyen: 3, conf_bon: 4, conf_excellent: 5,
 };
-const CONFORT_MAX = 5;
 
 // Ciel de service : neutre pendant la recherche, chaud sur une panne.
 // Les deux sont SOMBRES, donc polarité d'encre claire dans les deux cas.
@@ -2965,6 +2927,21 @@ function roseDesVents(vent, t) {
   // touche ni les lettres ni les graduations — une boussole dont le nord
   // tourne n'est plus une boussole.
   const g = elSvg("g", { class: "needle" });
+  // LE CENTRE DE ROTATION SE DÉCLARE UNE FOIS, EN CSS, ET LA ROTATION AUSSI
+  // (correctif du 31/07/2026, défaut vu à l'écran par Xavier).
+  // Ce qui était écrit ici mélangeait les deux mécanismes : `transform-origin`
+  // en CSS ET un attribut de présentation `transform="rotate(a 24 24)"`, qui
+  // porte DÉJÀ son centre. Le navigateur applique alors le centre DEUX FOIS —
+  // une fois dans la matrice de l'attribut, une fois autour de l'origine CSS —
+  // et l'aiguille part hors de la rose : mesurée à 440 px du centre, donc
+  // peinte par-dessus la phrase du vent (« Vemt d'ouest »). La boussole
+  // paraissait n'avoir aucune aiguille.
+  // Rien ne le signalait : `getComputedStyle` rendait la BONNE matrice, et
+  // c'est la composition qui ajoutait l'origine. Seule une capture d'écran
+  // pouvait le voir — même leçon que le signe « ° » du 29/07.
+  // On passe donc TOUT en CSS : `rotate(Xdeg)` sans centre dans la valeur,
+  // et le centre dans `transform-origin`. C'est aussi ce dont `mpSweep` a
+  // besoin pour le vent variable, dont les images sont écrites en CSS.
   g.setAttribute("style", "transform-origin: 24px 24px;");
   g.append(elSvg("line", { class: "needle-tail", x1: 24, y1: 24, x2: 24, y2: 32.5 }));
   // La tête est un triangle plein, pointe en haut : dessinée à 0° (vers le
@@ -2975,7 +2952,8 @@ function roseDesVents(vent, t) {
     // Le demi-tour : le METAR dit d'où le vent VIENT, l'aiguille montre où il
     // VA. C'est la règle héritée de l'ancien cadran, et la seule ligne de
     // cette fonction dont une erreur inverserait le sens du vent.
-    g.setAttribute("transform", `rotate(${(vent.directionDeg + 180) % 360} 24 24)`);
+    // CSS et non attribut de présentation : voir le commentaire du groupe.
+    g.style.transform = `rotate(${(vent.directionDeg + 180) % 360}deg)`;
   }
   svg.append(g);
 
@@ -3006,12 +2984,11 @@ function roseDesVents(vent, t) {
  * @param intitule  l'intitulé de rubrique, déjà traduit
  * @param icone     le symbole du sprite
  * @param valeur    le nombre à afficher (déjà entier)
- * @param unite     « UV » ou « % », déjà traduite
- * @param fraction  0..1, la part de jauge franchie
+ * @param unite     « /5 » ou « /11 », déjà traduite
  * @param phrase    la phrase déjà traduite
  * @param sousTexte facultatif : la ligne « sur quoi le calcul repose »
  */
-function carteChiffre(intitule, icone, valeur, unite, fraction, phrase, sousTexte) {
+function carteChiffre(intitule, icone, valeur, unite, phrase, sousTexte) {
   const div = carteTexte(intitule, "", icone);
   div.className += " chiffre-card";
   div.querySelector(".row-txt").remove();
@@ -3031,15 +3008,12 @@ function carteChiffre(intitule, icone, valeur, unite, fraction, phrase, sousText
   const bloc = document.createElement("div");
   bloc.className = "chiffre-txt";
 
-  const jauge = document.createElement("div");
-  jauge.className = "jauge";
-  const barre = document.createElement("i");
-  // La jauge est bornée à [0, 1] ici et pas seulement chez l'appelant : une
-  // fraction hors bornes ferait déborder la barre de son chemin, ce qui se
-  // verrait comme un défaut d'affichage plutôt que comme une valeur fausse.
-  barre.style.transform = `scaleX(${Math.max(0, Math.min(1, fraction))})`;
-  jauge.append(barre);
-
+  // LA JAUGE A ÉTÉ RETIRÉE le 31/07/2026 (demande de Xavier, sur les DEUX
+  // cartes). Elle situait la valeur sur son échelle, ce que le chiffre seul ne
+  // faisait pas — mais depuis que le dénominateur est écrit (« 3/5 »,
+  // « 5/11 »), l'échelle est dite en toutes lettres et la barre la redisait
+  // une seconde fois. C'est le raisonnement qui a déjà retiré la grande icône
+  // puis la pastille `.mark` : deux signaux pour une seule information.
   const p = document.createElement("p");
   p.className = "phrase";
   p.textContent = phrase;
@@ -3056,34 +3030,25 @@ function carteChiffre(intitule, icone, valeur, unite, fraction, phrase, sousText
   s.style.marginTop = ".4rem";
   s.textContent = sousTexte || " ";
   if (!sousTexte) s.setAttribute("aria-hidden", "true");
-  bloc.append(jauge, p, s);
+  bloc.append(p, s);
 
   ligne.append(n, bloc);
   div.append(ligne);
   return div;
 }
 
-// L'ÉCHELLE UV S'ARRÊTE À 11 POUR LA JAUGE, et pas à la valeur maximale
-// observable : l'OMS nomme « extrême » tout ce qui dépasse 11, donc une jauge
-// graduée jusqu'à 15 écraserait toute l'échelle utile dans ses deux premiers
-// tiers. Un UV de 13 remplit donc la jauge entièrement, ce qui est exact :
-// c'est le maximum de ce que l'échelle sait dire.
-// L'ÉCHELLE EST DÉSORMAIS ÉCRITE (31/07/2026). Xavier a demandé « UV 5 sur
-// combien ? », et la question EST le défaut : ce fichier l'avait prédit dès le
-// 30/07 (« UV 6 ne dit rien à qui ignore que l'échelle va à 11 »). Le
-// dénominateur prend la place de l'unité « UV » dans le `<small>` déjà prévu,
-// donc SANS une seule formulation nouvelle — l'intitulé de la carte dit déjà
-// « indice UV ». Même forme que le « /5 » du confort, ce qui est aussi ce qui
-// rend les deux jauges lisibles l'une par l'autre.
-// CAS ASSUMÉ : au-delà de 11 la carte affiche « 12/11 ». La jauge est pleine
-// et le chiffre reste VRAI ; le rogner à 11 mentirait sur la mesure, et
-// l'OMS ne borne pas son échelle par le haut.
-const UV_JAUGE_MAX = 11;
+// L'ÉCHELLE UV EST ÉCRITE DANS LA CARTE (31/07/2026, question de Xavier :
+// « UV 5 sur combien ? »). Le dénominateur « /11 » prend la place de l'unité
+// « UV » dans le <small> déjà prévu, donc SANS une seule formulation nouvelle
+// (l'intitulé dit déjà « indice UV »), et il vit dans TEXTES avec le reste.
+// POURQUOI 11 : l'OMS nomme « extrême » tout ce qui dépasse 11, donc c'est le
+// maximum de ce que l'échelle sait dire. La valeur reste VRAIE au-delà : un
+// UV de 12 s'affiche « 12/11 ». Le rogner mentirait sur la mesure.
+// La constante UV_JAUGE_MAX a disparu avec la jauge, le 31/07/2026.
 
 function carteUv(t, uv) {
   return carteChiffre(
     t.uvLabel, "d-uv", uv.value, t.uvUnite,
-    uv.value / UV_JAUGE_MAX,
     // Le jeton vient du serveur, la phrase de la table : si le serveur
     // ajoutait un sixième niveau sans qu'on traduise, on aurait une carte
     // sans phrase plutôt qu'une carte avec « undefined ».
@@ -3119,9 +3084,6 @@ function nuagioSvg(symbole) {
 function carteConfort(t, score) {
   const div = carteChiffre(
     t.confortLabel, "d-confort", score.niveau, t.confortUnite,
-    // LA JAUGE SUIT LE CHIFFRE AFFICHÉ et non le pourcentage interne : une
-    // barre à 62 % sous un « 3/5 » serait une petite contradiction pour rien.
-    score.niveau / CONFORT_MAX,
     t[score.cle] ?? "",
     // La liste des entrées du calcul. Elle est là parce qu'un pourcentage
     // sans énoncé de ses entrées demande une confiance qu'il n'a pas méritée.

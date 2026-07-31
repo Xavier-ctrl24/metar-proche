@@ -2574,6 +2574,23 @@ const EXPRESSIONS_CONFORT = {
 // pertinent) : un visage endormi sur un 1/5 dirait le contraire de l'alerte.
 const CONFORT_NUIT = new Set(["conf_excellent", "conf_bon"]);
 
+/**
+ * Le SÉLECTEUR de visage, isolé ici plutôt que noyé dans `afficher`. Même
+ * découpage que `conseilToken` ou `dominantCondition` : une fonction neutre
+ * qui rend un id de symbole, et un seul endroit où la règle se relit. C'est
+ * aussi ce qui empêche le repli `?? REPOS_JOUR` d'exister en deux exemplaires
+ * qui finiraient par diverger.
+ *
+ * @param {?object} score  retour de `confortScore`, ou `null` si la carte de
+ *                         confort ne peut pas être rendue.
+ * @param {boolean} nuit   `sun.isDay === false` à la station.
+ */
+function visageNuagio(score, nuit) {
+  if (!score) return nuit ? REPOS_NUIT : REPOS_JOUR;
+  if (nuit && CONFORT_NUIT.has(score.cle)) return REPOS_NUIT;
+  return EXPRESSIONS_CONFORT[score.cle] ?? REPOS_JOUR;
+}
+
 // Les deux jetons qui font trembler Nuagio. Aucun seuil neuf : on réutilise
 // la décision de `conseilToken`, parce qu'un seuil est une DÉCISION et qu'en
 // inventer un ici en ferait une de plus à soumettre à Xavier.
@@ -3063,20 +3080,15 @@ function carteUv(t, uv) {
 // construction du relevé, sinon il ne verrait pas cette instance-là et le
 // visage resterait figé sur celui du gabarit. Voir `afficher`.
 function nuagioSvg(symbole) {
-  const svg = document.createElementNS(SVGNS, "svg");
-  svg.setAttribute("class", "nuagio");
-  svg.setAttribute("viewBox", "0 0 32 34");
-  svg.setAttribute("aria-hidden", "true");
-  svg.setAttribute("focusable", "false");
-  svg.dataset.nuagio = "";
+  const svg = elSvg("svg", {
+    class: "nuagio", viewBox: "0 0 32 34",
+    "aria-hidden": "true", focusable: "false", "data-nuagio": "",
+  });
   // Le groupe `n-body` vit dans le DOCUMENT et non dans le symbole : c'est lui
   // qui porte le flottement, le balancement et le tremblement, qu'une classe
   // posée sur la racine ne franchirait pas la frontière du `<use>`.
-  const g = document.createElementNS(SVGNS, "g");
-  g.setAttribute("class", "n-body");
-  const u = document.createElementNS(SVGNS, "use");
-  u.setAttribute("href", `#${symbole}`);
-  g.append(u);
+  const g = elSvg("g", { class: "n-body" });
+  g.append(elSvg("use", { href: `#${symbole}` }));
   svg.append(g);
   return svg;
 }
@@ -3091,9 +3103,12 @@ function carteConfort(t, score) {
   );
   div.className += " confort-card";
   // Nuagio en tête de ligne, devant le chiffre : il ILLUSTRE l'indice, donc il
-  // le précède. Le symbole posé ici n'est qu'un point de départ, `poserNuagio`
-  // le règle juste après avec les trois autres instances.
-  div.querySelector(".chiffre-row").prepend(nuagioSvg(EXPRESSIONS_CONFORT[score.cle] ?? REPOS_JOUR));
+  // le précède. LE SYMBOLE POSÉ ICI EST UN SIMPLE POINT DE DÉPART, TOUJOURS
+  // REMPLACÉ : `poserNuagio` réécrit le `href` des trois instances quelques
+  // lignes plus loin, en tenant compte de la nuit. Y recopier la table
+  // `EXPRESSIONS_CONFORT` donnerait une seconde règle sans effet, qu'on
+  // croirait active en la modifiant.
+  div.querySelector(".chiffre-row").prepend(nuagioSvg(REPOS_JOUR));
   return div;
 }
 
@@ -3416,16 +3431,7 @@ function afficher(r, lang) {
   // LE VISAGE VIENT DU CONFORT, LE MOUVEMENT DU CONSEIL : voir EXPRESSIONS_CONFORT.
   // Sans confort il n'y a pas d'instance de carte, et l'appel ne fait rien de
   // visible ici — c'est le point signalé à Xavier.
-  const nuit = r.sun && r.sun.isDay === false;
-  let visage = REPOS_JOUR;
-  if (score) {
-    visage = nuit && CONFORT_NUIT.has(score.cle)
-      ? REPOS_NUIT
-      : (EXPRESSIONS_CONFORT[score.cle] ?? REPOS_JOUR);
-  } else if (nuit) {
-    visage = REPOS_NUIT;
-  }
-  poserNuagio(visage, conseil);
+  poserNuagio(visageNuagio(score, r.sun ? r.sun.isDay === false : false), conseil);
 
   // 4. La course du soleil, à la position de la station.
   const f = r.sun ? fractionDuJour(r.observedLocal, r.sun.sunrise, r.sun.sunset) : null;

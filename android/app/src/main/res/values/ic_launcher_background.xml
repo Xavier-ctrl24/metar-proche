@@ -5,4 +5,9 @@
          mais il remplace le BLANC du gabarit Capacitor, qui aurait borde
          l'icone chez un lanceur qui decale l'avant-plan. -->
     <color name="ic_launcher_background">#0254C6</color>
+
+    <!-- Fond de l'ecran de demarrage. EGAL au background_color du manifeste,
+         c'est-a-dire au haut du ciel neutre de chargement de la page : les
+         deux se succedent a l'ouverture, une divergence se verrait en flash. -->
+    <color name="splash_background">#101827</color>
 </resources>

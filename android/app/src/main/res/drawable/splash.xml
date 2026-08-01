@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Ecran de demarrage. Il remplace les ONZE splash.png du gabarit Capacitor
+  (une par orientation et par densite), qui portaient le X bleu.
+
+  Une liste de couches plutot que des bitmaps plein ecran, et c'est le point :
+  un splash.png doit couvrir chaque format d'ecran, donc il se recadre ou se
+  deforme. Ici le fond est une COULEUR (jamais deformee) et le logo est pose
+  au centre a une taille en dp, donc identique en portrait, en paysage et sur
+  tablette. Un seul fichier image, en -nodpi, mis a l'echelle par Android.
+
+  #101827 n'est pas une teinte choisie : c'est le background_color du
+  manifeste, c'est-a-dire le haut du ciel NEUTRE de chargement de la page.
+  L'ecran de demarrage cede donc la place au meme fond, sans flash. Il doit
+  rester egal a celui du manifeste, comme le theme_color l'est deja au
+  <meta name=theme-color>.
+-->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:drawable="@color/splash_background" />
+    <item
+        android:gravity="center"
+        android:width="180dp"
+        android:height="180dp"
+        android:drawable="@drawable/splash_logo" />
+</layer-list>

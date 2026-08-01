@@ -1196,6 +1196,71 @@ main {
   text-wrap: pretty;
 }
 
+/* ---- 6 bis. La carte « Soutenir QuelTemps » (01/08/2026) ----
+   AUCUN JETON NEUF, et c'est la règle établie le 29/07 : « tout composant
+   neuf se bâtit sur les jetons DÉJÀ mesurés ; un rgba() inventé passe tous
+   les contrôles qu'on peut faire à l'œil et aucun de ceux qui comptent ».
+   La carte n'a donc pas une seule couleur à elle. */
+.soutien { margin-top: .55rem; text-align: center; }
+.soutien-titre {
+  display: flex; align-items: center; justify-content: center;
+  gap: .4rem; margin: 0; font-size: var(--fs-label);
+}
+
+/* La bulle et Nuagio. Nuagio est réduit ici (le défaut fait ~64 px, trop
+   fort pour un bloc qui doit rester discret) ; l'épaisseur de trait suit
+   toute seule, `--n-sw` étant relative au repère. */
+.soutien-bulle {
+  display: flex; align-items: center; justify-content: center;
+  gap: .5rem; margin-top: .55rem;
+}
+.soutien .nuagio { --n-size: clamp(2.1rem, 9vw, 2.6rem); flex: none; }
+/* La bulle de dialogue : encre ATTÉNUÉE et non l'encre pleine, pour qu'elle
+   reste sous la météo dans la hiérarchie du regard. Le petit bec pointe vers
+   Nuagio ; il est purement décoratif et ne coûte aucune couleur nouvelle. */
+.bulle {
+  position: relative; margin: 0; padding: .5rem .7rem;
+  border: 1px solid var(--card-border); border-radius: var(--radius-ctl);
+  background: var(--raw-fill);
+  font: 400 var(--fs-petit)/1.4 var(--sans); color: var(--ink-soft);
+  text-align: left; text-wrap: pretty;
+}
+.bulle::before {
+  content: ""; position: absolute; left: -5px; top: 50%;
+  width: 8px; height: 8px; margin-top: -4px;
+  border-left: 1px solid var(--card-border); border-bottom: 1px solid var(--card-border);
+  background: var(--raw-fill); transform: rotate(45deg);
+}
+
+.soutien-txt {
+  margin: .7rem 0 0;
+  font: 400 var(--fs-corps)/1.45 var(--sans); color: var(--ink-soft);
+  text-wrap: pretty;
+}
+
+/* LE BOUTON. « Légèrement plus coloré » passe par la variante `.plein`, qui
+   existe déjà et dont les deux couleurs (--btn-bg / --btn-ink) sont mesurées
+   dans les DEUX polarités. Le réflexe qu'on évite ici est celui du 30/07 :
+   empiler un second verre clair (`--card-bg-strong`) sur le verre de la carte
+   avait fait tomber le libellé du bouton METAR de 5,00 à 3,23:1, c'est-à-dire
+   un fond « plus visible » qui efface son propre texte. `--accent` était
+   exclu aussi : il ne porte que du graphique, jamais du texte.
+   L'élévation au survol se fait en `transform` et en `filter` — jamais une
+   ombre, que ce système n'a pas et qu'il faudrait mesurer dans les deux
+   polarités. `:active` ramène à zéro : c'est le retour tactile sur mobile,
+   où le survol n'existe pas. */
+.soutien-cta {
+  margin-top: .85rem;
+  /* C'est un `<a>` : `.cta` a été écrite pour un `<button>` et ne prévoyait
+     donc ni le soulignement ni la taille de boîte d'un lien. Deux lignes,
+     et le lien est visuellement le même bouton que les autres. */
+  text-decoration: none; box-sizing: border-box;
+  transition: background var(--dur-tap) ease, filter var(--dur-tap) ease,
+              transform var(--dur-tap) ease;
+}
+.soutien-cta:hover { transform: translateY(-1px); }
+.soutien-cta:active { transform: translateY(0); filter: brightness(.96); }
+
 /* ---- 7. États de service ---- */
 .notice { padding: 25vh 0 2rem; text-align: center; }
 .notice b { display: block; font: 400 var(--fs-titre1)/1.25 var(--sans); letter-spacing: -.02em; margin-bottom: .6rem; }
@@ -1355,6 +1420,11 @@ main {
 .d3 { animation-delay: 240ms; }
 .d4 { animation-delay: 320ms; }
 .d5 { animation-delay: 400ms; }
+/* Ajouté le 01/08/2026 avec la carte de soutien, qui prend le d5 : le pied
+   descend en d6 plutôt que de partager un rang. Deux blocs au même délai
+   arriveraient ensemble et aplatiraient la hiérarchie que cet escalier
+   porte. */
+.d6 { animation-delay: 480ms; }
 
 :focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; border-radius: 4px; }
 [hidden] { display: none !important; }
@@ -1984,7 +2054,63 @@ main {
 
     <div class="grid rise d4" id="report"></div>
 
-    <div class="foot rise d5">
+    <!-- SOUTENIR QUELTEMPS (01/08/2026, demande de Xavier). Une carte comme
+         les autres : mêmes jetons de rayon, de verre, de bordure et d'ombre,
+         même animation d'entrée, aucune règle de fond nouvelle.
+         ELLE VIT DANS `#card`, ET C'EST LE POINT UX : `#card` est masqué
+         pendant le chargement et pendant une panne, donc l'invitation ne
+         peut pas s'afficher sur un écran d'erreur ni avant que la météo soit
+         là. L'utilisateur voit toujours la valeur avant la demande.
+         PLACÉE JUSTE AVANT LE PIED, donc après tout le relevé, et en DERNIER
+         rang d'apparition (d5, le pied passant en d6) : l'ordre EST la
+         hiérarchie dans ce fichier, elle arrive donc après tout le reste. -->
+    <section class="card soutien rise d5" aria-labelledby="soutienLabel">
+      <!-- Les deux émojis demandés par Xavier (❤️ et ☕) sont dans le
+           BALISAGE et non dans `TEXTES`, en `aria-hidden` : ils ne sont pas
+           du texte à traduire, et un lecteur d'écran annoncerait « cœur
+           rouge » avant le titre. À SAVOIR, c'est un écart assumé par
+           rapport au 29/07 (l'émoji 📍 avait été refusé au profit du
+           sprite) : un émoji suit la police du système, donc son dessin
+           change d'un téléphone à l'autre. Xavier les a nommés
+           explicitement ; le jour où le rendu lui déplaît, `#d-...` existe. -->
+      <p class="soutien-titre">
+        <span aria-hidden="true">&#10084;&#65039;</span>
+        <span class="label" id="soutienLabel"></span>
+      </p>
+
+      <!-- Nuagio, SANS `data-nuagio`, et ce n'est pas un oubli : `poserNuagio`
+           réécrit le `href` de TOUTES les instances portant cet attribut, avec
+           le visage déduit du confort. Ici le visage doit rester le même quel
+           que soit le temps — un Nuagio vigilant à côté d'un remerciement, ou
+           qui grelotte, dirait autre chose que la phrase. Instance figée sur
+           `#n-heureux`, hors de portée de la carte de confort.
+           Le groupe `.n-body` est conservé : c'est lui, dans le DOCUMENT, qui
+           porte le flottement (une classe posée sur la racine ne franchit pas
+           la frontière du `<use>`). -->
+      <div class="soutien-bulle">
+        <svg class="nuagio" viewBox="0 0 32 34" aria-hidden="true" focusable="false">
+          <g class="n-body"><use href="#n-heureux"/></g>
+        </svg>
+        <p class="bulle" id="soutienBulle"></p>
+      </div>
+
+      <p class="soutien-txt" id="soutienTxt"></p>
+
+      <!-- UN LIEN ET NON UN BOUTON : ça navigue. On gagne du même coup la
+           navigation clavier native et le focus visible global, sans une
+           ligne de script.
+           `href` est POSÉ PAR LE SCRIPT depuis `BUY_ME_A_COFFEE_URL` : écrire
+           l'adresse ici en plus de la constante ferait deux sources de vérité,
+           donc une constante décorative.
+           TEXTCONTENT INTERDIT sur ce lien, il contient une icône — c'est le
+           piège déjà documenté sur `openSheetTxt`. Le mot va dans le span. -->
+      <a class="cta plein soutien-cta" id="soutienLien" target="_blank" rel="noopener noreferrer">
+        <span aria-hidden="true">&#9749;</span>
+        <span id="soutienCtaTxt"></span>
+      </a>
+    </section>
+
+    <div class="foot rise d6">
       <button class="cta" id="openSheet" type="button">
         <svg class="ico" viewBox="0 0 64 64" aria-hidden="true" focusable="false"><use href="#d-lieu"/></svg>
         <span id="openSheetTxt"></span>
@@ -2086,6 +2212,12 @@ const $ = (id) => document.getElementById(id);
 // dictionnaire du fichier de handoff, donc de la maquette elle-même, et
 // attendent d'être confirmées au même titre.
 // ---------------------------------------------------------------
+// L'ADRESSE DE SOUTIEN, en un seul endroit (01/08/2026). Elle n'est PAS
+// écrite dans le balisage : c'est le script qui pose le `href`. Écrire les
+// deux ferait deux sources de vérité, donc une constante décorative qu'on
+// changerait sans effet.
+const BUY_ME_A_COFFEE_URL = "https://buymeacoffee.com/xavier24";
+
 const TEXTES = {
   fr: {
     chercheTitre: "Recherche de la station la plus proche",
@@ -2178,6 +2310,29 @@ const TEXTES = {
     // le citer coûte trois mots et dit d'où vient la mesure, ce qui est le
     // sujet même de l'application.  [à valider]
     sources: "Mesures aviationweather.gov · UV et villes Open-Meteo (CC BY 4.0)",
+
+    // SOUTIEN (01/08/2026). Le français est de XAVIER, repris au mot : ces
+    // phrases-là ne sont donc pas marquées `[à valider]`, contrairement à
+    // l'anglais qui, lui, est proposé.
+    // LES ÉMOJIS NE SONT PAS ICI mais dans le balisage, en `aria-hidden`.
+    // Deux raisons : le test de parité fr/en ne compare que du texte, et un
+    // lecteur d'écran annoncerait « cœur rouge » avant le titre.
+    // `.label` MET EN CAPITALES : l'écran affiche « SOUTENIR QUELTEMPS ».
+    // C'est la surprise de « STATION MÉTÉO AERO » le 31/07 ; signalé plutôt
+    // que corrigé, la casse est la signature typographique des intitulés.
+    soutienLabel: "Soutenir QuelTemps",
+    soutienTxt: "Cette application est développée par une seule personne. "
+      + "Si QuelTemps vous est utile au quotidien, vous pouvez soutenir son "
+      + "développement. Votre contribution aide à financer les serveurs, les "
+      + "API météo et les futures fonctionnalités.",
+    soutienBulle: "Les nuages sont gratuits. Les serveurs beaucoup moins. "
+      + "Merci pour votre soutien !",
+    soutienCta: "M'offrir un café",
+    // LE NOM ACCESSIBLE CONTIENT LE TEXTE VISIBLE, et ce n'est pas une
+    // coquetterie : WCAG 2.5.3 l'exige, sans quoi une commande vocale
+    // (« clique sur M'offrir un café ») ne trouverait plus le lien. Il
+    // AJOUTE seulement ce que le dessin ne dit pas : la nouvelle fenêtre.
+    soutienAria: "M'offrir un café — ouvre buymeacoffee.com dans un nouvel onglet",
     conf_excellent: "Idéal pour être dehors",
     conf_bon: "Agréable dehors",
     conf_moyen: "Correct, sans plus",
@@ -2294,6 +2449,17 @@ const TEXTES = {
     // Les noms de source et le nom de licence ne se traduisent pas ; seuls les
     // deux mots de liaison changent.  [à valider]
     sources: "Observations aviationweather.gov · UV and cities Open-Meteo (CC BY 4.0)",
+
+    // Traduction PROPOSÉE des cinq phrases de soutien.  [à valider]
+    soutienLabel: "Support QuelTemps",
+    soutienTxt: "This app is built by one person alone. If QuelTemps is "
+      + "useful to you day to day, you can support its development. Your "
+      + "contribution helps pay for the servers, the weather APIs and the "
+      + "features to come.",
+    soutienBulle: "Clouds are free. Servers, much less so. "
+      + "Thank you for your support!",
+    soutienCta: "Buy me a coffee",
+    soutienAria: "Buy me a coffee — opens buymeacoffee.com in a new tab",
     conf_excellent: "Ideal for being outside",
     conf_bon: "Pleasant outside",
     conf_moyen: "Acceptable, no more",
@@ -3247,6 +3413,19 @@ function appliquerChrome(lang) {
   $("go").textContent = t.boutonConsulter;
   $("skelTxt").textContent = t.chargement;
   $("sources").textContent = t.sources;
+  // Carte de soutien. TOUT est ici et rien dans `afficher` : ce sont des
+  // libellés STATIQUES, et c'est la règle qui évite la régression du 28/07
+  // (la page à moitié française). Le `href` est posé ici aussi — il ne
+  // dépend pas de la langue, mais y être garantit qu'il est écrit avant
+  // le premier rendu, quel que soit le chemin d'entrée.
+  $("soutienLabel").textContent = t.soutienLabel;
+  $("soutienTxt").textContent = t.soutienTxt;
+  $("soutienBulle").textContent = t.soutienBulle;
+  const lien = $("soutienLien");
+  lien.href = BUY_ME_A_COFFEE_URL;
+  lien.setAttribute("aria-label", t.soutienAria);
+  // Pas de `textContent` sur le lien : il porte une icône. Voir openSheetTxt.
+  $("soutienCtaTxt").textContent = t.soutienCta;
   $("lat").setAttribute("aria-label", t.labelLat);
   $("lon").setAttribute("aria-label", t.labelLon);
   // Recherche de ville. Le repère de saisie et le nom accessible sont

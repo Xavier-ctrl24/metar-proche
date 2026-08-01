@@ -28,6 +28,13 @@ coverage/
 # --- Corpus METAR brut (telecharge une seule fois, jamais commite) ---
 corpus-brut.txt
 
+# --- APK compiles ---
+# Dossier de sortie de `npm run apk` (queltemps-build1.apk, build2...).
+# Les binaires ne sont pas suivis : ~5,7 Mo par compilation, et git ne sait
+# pas les compresser d'une version a l'autre, donc le depot enflerait de la
+# taille complete a chaque essai. Ce qui fabrique l'APK est suivi, lui.
+APK/*.apk
+
 # --- Planche de controle des icones ---
 # Fichier GENERE a partir de public/index.html (style + sprite extraits du
 # vrai fichier). Le commiter creerait une seconde copie du sprite, qui

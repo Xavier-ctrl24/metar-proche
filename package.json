@@ -11,7 +11,8 @@
     "dev": "vite",
     "test": "vitest run",
     "test:watch": "vitest",
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit",
+    "apk": "node scripts/apk.mjs"
   },
   "devDependencies": {
     "@capacitor/cli": "^8.4.2",

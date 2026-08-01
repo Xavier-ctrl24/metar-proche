@@ -1,0 +1,23 @@
+Dossier de sortie des APK de QuelTemps.
+
+Fabrication :
+
+    npm run apk
+
+Le script (scripts/apk.mjs) resynchronise public/ vers les assets Android,
+compile, puis depose le resultat ici sous le nom queltemps-buildN.apk, N etant
+le numero suivant celui deja present. Gradle, lui, ecrit toujours au meme
+endroit (android/app/build/outputs/apk/debug/app-debug.apk) et ecrase donc la
+compilation precedente : c'est ce dossier qui garde l'historique.
+
+Les .apk ne sont PAS suivis par git (~6 Mo chacun, non compressibles d'une
+version a l'autre). Ce fichier l'est, pour que le dossier existe sur une
+copie fraiche du depot.
+
+Ce sont des builds DEBUG, signes avec la cle de debogage : bons pour un essai
+sur telephone, jamais pour le Play Store.
+
+Installation sur le Redmi Note 11 : "Installer via USB" n'etant pas active
+(compte Mi requis), on passe par un adb push vers /sdcard/Download puis une
+installation a la main. Un fichier depose par adb n'est pas indexe, il
+n'apparait donc pas dans la vue "Telechargements" du gestionnaire de fichiers.

@@ -1196,52 +1196,60 @@ main {
   text-wrap: pretty;
 }
 
-/* ---- 6 bis. La carte « Soutenir QuelTemps » (01/08/2026) ----
+/* ---- 6 bis. Le soutien (01/08/2026) ----
    AUCUN JETON NEUF, et c'est la règle établie le 29/07 : « tout composant
    neuf se bâtit sur les jetons DÉJÀ mesurés ; un rgba() inventé passe tous
    les contrôles qu'on peut faire à l'œil et aucun de ceux qui comptent ».
-   La carte n'a donc pas une seule couleur à elle. */
-.soutien { margin-top: .55rem; text-align: center; }
-.soutien-titre {
-  display: flex; align-items: center; justify-content: center;
-  gap: .4rem; margin: 0; font-size: var(--fs-label);
-}
+   Ce bloc n'a donc pas une seule couleur à lui.
+   Tout ce qui suit vit DANS la feuille `#sheetSoutien` (la carte de verre en
+   bas de page a été retirée le jour même sur retour de Xavier), donc dans une
+   polarité toujours sombre : les jetons lus ici sont ceux que `.sheet`
+   redéfinit, jamais ceux du ciel courant. */
 
-/* La bulle et Nuagio. Nuagio est réduit ici (le défaut fait ~64 px, trop
-   fort pour un bloc qui doit rester discret) ; l'épaisseur de trait suit
-   toute seule, `--n-sw` étant relative au repère. */
+/* Le second bouton du pied. Sa seule règle propre est l'écart avec le bouton
+   de lieu — `.cta` porte déjà tout le reste. */
+#openSoutien { margin-top: .5rem; }
+
+/* La bulle et Nuagio. Nuagio est RÉDUIT ici : son défaut fait ~64 px, trop
+   fort pour un bloc qui doit rester en retrait. L'épaisseur de trait suit
+   toute seule, `--n-sw` étant relative au repère — c'est la même propriété
+   que celle exploitée par `.confort-card .nuagio`. */
 .soutien-bulle {
   display: flex; align-items: center; justify-content: center;
-  gap: .5rem; margin-top: .55rem;
+  gap: .5rem; margin-top: 1.1rem;
 }
-.soutien .nuagio { --n-size: clamp(2.1rem, 9vw, 2.6rem); flex: none; }
+.soutien-bulle .nuagio { --n-size: clamp(2.4rem, 11vw, 3rem); flex: none; }
 /* La bulle de dialogue : encre ATTÉNUÉE et non l'encre pleine, pour qu'elle
-   reste sous la météo dans la hiérarchie du regard. Le petit bec pointe vers
-   Nuagio ; il est purement décoratif et ne coûte aucune couleur nouvelle. */
+   reste en dessous du titre dans la hiérarchie du regard. Le fond est
+   `--card-bg`, que `.sheet` redéfinit pour sa propre polarité — et NON
+   `--raw-fill`, qui suit la polarité de la PAGE et donnerait un fond clair
+   sous l'encre claire de la feuille dès que le ciel est pâle. C'est le
+   « blanc sur blanc » déjà mesuré le 28/07, sous une autre forme.
+   Le petit bec pointe vers Nuagio ; purement décoratif, aucune couleur à lui. */
 .bulle {
-  position: relative; margin: 0; padding: .5rem .7rem;
+  position: relative; margin: 0; padding: .55rem .75rem;
   border: 1px solid var(--card-border); border-radius: var(--radius-ctl);
-  background: var(--raw-fill);
-  font: 400 var(--fs-petit)/1.4 var(--sans); color: var(--ink-soft);
+  background: var(--card-bg);
+  font: 400 var(--fs-petit)/1.45 var(--sans); color: var(--ink-soft);
   text-align: left; text-wrap: pretty;
 }
 .bulle::before {
   content: ""; position: absolute; left: -5px; top: 50%;
   width: 8px; height: 8px; margin-top: -4px;
   border-left: 1px solid var(--card-border); border-bottom: 1px solid var(--card-border);
-  background: var(--raw-fill); transform: rotate(45deg);
+  background: var(--card-bg); transform: rotate(45deg);
 }
 
 .soutien-txt {
-  margin: .7rem 0 0;
-  font: 400 var(--fs-corps)/1.45 var(--sans); color: var(--ink-soft);
+  margin: 1.1rem 0 0;
+  font: 400 var(--fs-corps)/1.5 var(--sans); color: var(--ink-soft);
   text-wrap: pretty;
 }
 
-/* LE BOUTON. « Légèrement plus coloré » passe par la variante `.plein`, qui
-   existe déjà et dont les deux couleurs (--btn-bg / --btn-ink) sont mesurées
-   dans les DEUX polarités. Le réflexe qu'on évite ici est celui du 30/07 :
-   empiler un second verre clair (`--card-bg-strong`) sur le verre de la carte
+/* LE BOUTON D'ACTION de la feuille. « Plus coloré » passe par la variante
+   `.plein`, qui existe déjà et dont les deux couleurs (--btn-bg / --btn-ink)
+   sont mesurées dans les DEUX polarités. Le réflexe qu'on évite ici est celui
+   du 30/07 : empiler un second verre clair (`--card-bg-strong`) sur le verre
    avait fait tomber le libellé du bouton METAR de 5,00 à 3,23:1, c'est-à-dire
    un fond « plus visible » qui efface son propre texte. `--accent` était
    exclu aussi : il ne porte que du graphique, jamais du texte.
@@ -1250,7 +1258,6 @@ main {
    polarités. `:active` ramène à zéro : c'est le retour tactile sur mobile,
    où le survol n'existe pas. */
 .soutien-cta {
-  margin-top: .85rem;
   /* C'est un `<a>` : `.cta` a été écrite pour un `<button>` et ne prévoyait
      donc ni le soulignement ni la taille de boîte d'un lien. Deux lignes,
      et le lien est visuellement le même bouton que les autres. */
@@ -1420,11 +1427,6 @@ main {
 .d3 { animation-delay: 240ms; }
 .d4 { animation-delay: 320ms; }
 .d5 { animation-delay: 400ms; }
-/* Ajouté le 01/08/2026 avec la carte de soutien, qui prend le d5 : le pied
-   descend en d6 plutôt que de partager un rang. Deux blocs au même délai
-   arriveraient ensemble et aplatiraient la hiérarchie que cet escalier
-   porte. */
-.d6 { animation-delay: 480ms; }
 
 :focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; border-radius: 4px; }
 [hidden] { display: none !important; }
@@ -2054,67 +2056,30 @@ main {
 
     <div class="grid rise d4" id="report"></div>
 
-    <!-- SOUTENIR QUELTEMPS (01/08/2026, demande de Xavier). Une carte comme
-         les autres : mêmes jetons de rayon, de verre, de bordure et d'ombre,
-         même animation d'entrée, aucune règle de fond nouvelle.
-         ELLE VIT DANS `#card`, ET C'EST LE POINT UX : `#card` est masqué
-         pendant le chargement et pendant une panne, donc l'invitation ne
-         peut pas s'afficher sur un écran d'erreur ni avant que la météo soit
-         là. L'utilisateur voit toujours la valeur avant la demande.
-         PLACÉE JUSTE AVANT LE PIED, donc après tout le relevé, et en DERNIER
-         rang d'apparition (d5, le pied passant en d6) : l'ordre EST la
-         hiérarchie dans ce fichier, elle arrive donc après tout le reste. -->
-    <section class="card soutien rise d5" aria-labelledby="soutienLabel">
-      <!-- Les deux émojis demandés par Xavier (❤️ et ☕) sont dans le
-           BALISAGE et non dans `TEXTES`, en `aria-hidden` : ils ne sont pas
-           du texte à traduire, et un lecteur d'écran annoncerait « cœur
-           rouge » avant le titre. À SAVOIR, c'est un écart assumé par
-           rapport au 29/07 (l'émoji 📍 avait été refusé au profit du
-           sprite) : un émoji suit la police du système, donc son dessin
-           change d'un téléphone à l'autre. Xavier les a nommés
-           explicitement ; le jour où le rendu lui déplaît, `#d-...` existe. -->
-      <p class="soutien-titre">
-        <span aria-hidden="true">&#10084;&#65039;</span>
-        <span class="label" id="soutienLabel"></span>
-      </p>
-
-      <!-- Nuagio, SANS `data-nuagio`, et ce n'est pas un oubli : `poserNuagio`
-           réécrit le `href` de TOUTES les instances portant cet attribut, avec
-           le visage déduit du confort. Ici le visage doit rester le même quel
-           que soit le temps — un Nuagio vigilant à côté d'un remerciement, ou
-           qui grelotte, dirait autre chose que la phrase. Instance figée sur
-           `#n-heureux`, hors de portée de la carte de confort.
-           Le groupe `.n-body` est conservé : c'est lui, dans le DOCUMENT, qui
-           porte le flottement (une classe posée sur la racine ne franchit pas
-           la frontière du `<use>`). -->
-      <div class="soutien-bulle">
-        <svg class="nuagio" viewBox="0 0 32 34" aria-hidden="true" focusable="false">
-          <g class="n-body"><use href="#n-heureux"/></g>
-        </svg>
-        <p class="bulle" id="soutienBulle"></p>
-      </div>
-
-      <p class="soutien-txt" id="soutienTxt"></p>
-
-      <!-- UN LIEN ET NON UN BOUTON : ça navigue. On gagne du même coup la
-           navigation clavier native et le focus visible global, sans une
-           ligne de script.
-           `href` est POSÉ PAR LE SCRIPT depuis `BUY_ME_A_COFFEE_URL` : écrire
-           l'adresse ici en plus de la constante ferait deux sources de vérité,
-           donc une constante décorative.
-           TEXTCONTENT INTERDIT sur ce lien, il contient une icône — c'est le
-           piège déjà documenté sur `openSheetTxt`. Le mot va dans le span. -->
-      <a class="cta plein soutien-cta" id="soutienLien" target="_blank" rel="noopener noreferrer">
-        <span aria-hidden="true">&#9749;</span>
-        <span id="soutienCtaTxt"></span>
-      </a>
-    </section>
-
-    <div class="foot rise d6">
+    <div class="foot rise d5">
       <button class="cta" id="openSheet" type="button">
         <svg class="ico" viewBox="0 0 64 64" aria-hidden="true" focusable="false"><use href="#d-lieu"/></svg>
         <span id="openSheetTxt"></span>
       </button>
+
+      <!-- SOUTENIR QUELTEMPS (01/08/2026, revu le jour même sur retour de
+           Xavier). La carte de verre a été REMPLACÉE par ce seul bouton :
+           elle occupait un écran entier pour une invitation qui doit rester
+           en retrait. Tout son contenu vit désormais dans la feuille
+           `#sheetSoutien`, ouverte par le même mécanisme que « Choisir un
+           autre lieu ».
+           IL RESTE DANS `#card`, et c'est le point UX inchangé : `#card` est
+           masqué pendant le chargement et pendant une panne, donc on ne
+           demande jamais rien avant que la météo soit là, ni sur un écran
+           d'erreur.
+           `.plein` sur arbitrage de Xavier : plus visible que le bouton de
+           lieu juste au-dessus. Ses deux couleurs (--btn-bg / --btn-ink) sont
+           déjà mesurées dans les deux polarités, donc aucun jeton neuf. -->
+      <button class="cta plein" id="openSoutien" type="button">
+        <span aria-hidden="true">&#9749;</span>
+        <span id="openSoutienTxt"></span>
+      </button>
+
       <p class="tech" id="tech"></p>
       <!-- L'attribution des sources. Obligatoire et non ornementale : la
            licence CC-BY 4.0 d'Open-Meteo en fait sa condition. Elle est
@@ -2183,6 +2148,62 @@ main {
     </div>
     <button class="cta" id="go" type="button"></button>
   </div>
+</section>
+
+<!-- LA FEUILLE DE SOUTIEN (01/08/2026). Deuxième feuille du projet, et donc
+     le moment où `ouvrirFeuille`/`fermerFeuille` cessent de viser `#sheet` en
+     dur : elles prennent un id. Rien d'autre n'a bougé dans ce mécanisme, le
+     voile et la touche Échap sont partagés.
+     ELLE REPREND LA CLASSE `.sheet` TELLE QUELLE, ce qui n'est pas de la
+     paresse : cette classe redéfinit toute une polarité d'encre et de verre
+     (elle est toujours sombre, quel que soit le ciel), plus le plafond de
+     hauteur et le défilement interne ajoutés le 29/07. Une feuille bâtie à
+     côté aurait redécouvert les deux, et la seconde de la mauvaise façon.
+     Elle porte les mêmes repères d'accessibilité que l'autre : `role`,
+     `aria-modal`, un titre référencé, une poignée décorative. -->
+<section class="sheet" id="sheetSoutien" role="dialog" aria-modal="true" aria-labelledby="soutienTitre" hidden>
+  <div class="grip"></div>
+  <div class="sheet-head">
+    <!-- L'émoji est dans le BALISAGE et non dans `TEXTES`, en `aria-hidden` :
+         ce n'est pas du texte à traduire, et un lecteur d'écran annoncerait
+         « cœur rouge » avant le titre. Écart assumé par rapport au 29/07 (📍
+         avait été refusé au profit du sprite) : un émoji suit la police du
+         système, donc son dessin change d'un téléphone à l'autre. Xavier les
+         a nommés explicitement. -->
+    <h2 id="soutienTitre"><span aria-hidden="true">&#10084;&#65039;</span> <span id="soutienTitreTxt"></span></h2>
+    <button type="button" id="closeSoutien"></button>
+  </div>
+
+  <!-- Nuagio, SANS `data-nuagio`, et ce n'est pas un oubli : `poserNuagio`
+       réécrit le `href` de TOUTES les instances portant cet attribut, avec le
+       visage déduit du confort. Ici le visage doit rester le même quel que
+       soit le temps — un Nuagio vigilant à côté d'un remerciement, ou qui
+       grelotte, dirait autre chose que la phrase. Instance figée sur
+       `#n-heureux`, hors de portée de la carte de confort.
+       Le groupe `.n-body` est conservé : c'est lui, dans le DOCUMENT, qui
+       porte le flottement (une classe posée sur la racine ne franchirait pas
+       la frontière du `<use>`). -->
+  <div class="soutien-bulle">
+    <svg class="nuagio" viewBox="0 0 32 34" aria-hidden="true" focusable="false">
+      <g class="n-body"><use href="#n-heureux"/></g>
+    </svg>
+    <p class="bulle" id="soutienBulle"></p>
+  </div>
+
+  <p class="soutien-txt" id="soutienTxt"></p>
+
+  <!-- UN LIEN ET NON UN BOUTON : ça navigue. On gagne du même coup la
+       navigation clavier native et le focus visible global, sans une ligne
+       de script.
+       `href` est POSÉ PAR LE SCRIPT depuis `BUY_ME_A_COFFEE_URL` : écrire
+       l'adresse ici en plus de la constante ferait deux sources de vérité,
+       donc une constante décorative.
+       TEXTCONTENT INTERDIT sur ce lien, il porte une icône — c'est le piège
+       déjà documenté sur `openSheetTxt`. Le mot va dans le span. -->
+  <a class="cta plein soutien-cta" id="soutienLien" target="_blank" rel="noopener noreferrer">
+    <span aria-hidden="true">&#9749;</span>
+    <span id="soutienCtaTxt"></span>
+  </a>
 </section>
 
 <script>
@@ -2317,9 +2338,14 @@ const TEXTES = {
     // LES ÉMOJIS NE SONT PAS ICI mais dans le balisage, en `aria-hidden`.
     // Deux raisons : le test de parité fr/en ne compare que du texte, et un
     // lecteur d'écran annoncerait « cœur rouge » avant le titre.
-    // `.label` MET EN CAPITALES : l'écran affiche « SOUTENIR QUELTEMPS ».
-    // C'est la surprise de « STATION MÉTÉO AERO » le 31/07 ; signalé plutôt
-    // que corrigé, la casse est la signature typographique des intitulés.
+    // `soutienLabel` titre la FEUILLE depuis le 01/08/2026 (il intitulait la
+    // carte auparavant) : il passe par `.sheet-head h2`, qui ne force PAS la
+    // casse — contrairement à `.label`, qui l'affichait en capitales. Il se
+    // lit donc « Soutenir QuelTemps », comme « Où êtes-vous ? » à côté.
+    // `soutienCta` sert DEUX FOIS : sur le bouton du pied qui ouvre la
+    // feuille, et sur le lien qui en sort. C'est voulu — l'un promet ce que
+    // l'autre fait, et deux formulations pour une même action se mettraient
+    // à diverger à la première retouche.
     soutienLabel: "Soutenir QuelTemps",
     soutienTxt: "Cette application est développée par une seule personne. "
       + "Si QuelTemps vous est utile au quotidien, vous pouvez soutenir son "
@@ -3418,7 +3444,11 @@ function appliquerChrome(lang) {
   // (la page à moitié française). Le `href` est posé ici aussi — il ne
   // dépend pas de la langue, mais y être garantit qu'il est écrit avant
   // le premier rendu, quel que soit le chemin d'entrée.
-  $("soutienLabel").textContent = t.soutienLabel;
+  // Pas de `textContent` sur ces deux-là : ils portent une icône ou un
+  // émoji frère. Voir openSheetTxt.
+  $("openSoutienTxt").textContent = t.soutienCta;
+  $("soutienTitreTxt").textContent = t.soutienLabel;
+  $("closeSoutien").textContent = t.fermer;
   $("soutienTxt").textContent = t.soutienTxt;
   $("soutienBulle").textContent = t.soutienBulle;
   const lien = $("soutienLien");
@@ -3780,26 +3810,54 @@ function localiser() {
 }
 
 // ---------------------------------------------------------------
-// La feuille. `hidden` est retiré AVANT la classe pour que la transition
+// Les feuilles. `hidden` est retiré AVANT la classe pour que la transition
 // ait un état de départ à animer ; il est remis à la fin de la fermeture.
+//
+// ELLES PRENNENT UN ID DEPUIS LE 01/08/2026, la feuille de soutien étant la
+// seconde du projet. Le voile, la touche Échap et le minuteur de fermeture
+// restent PARTAGÉS, et c'est ce qui impose de mémoriser laquelle est
+// ouverte : sans `feuilleOuverte`, un clic sur le voile ne saurait pas quoi
+// refermer, et le minuteur d'une fermeture en cours remettrait `hidden` sur
+// la feuille que l'on vient d'ouvrir juste après.
 // ---------------------------------------------------------------
 let fermetureEnCours = null;
-function ouvrirFeuille() {
+let feuilleOuverte = null;
+function ouvrirFeuille(id) {
+  // Une fermeture peut être en vol (l'autre feuille glisse encore). On la
+  // solde tout de suite plutôt que de laisser son minuteur masquer la
+  // nouvelle 700 ms plus tard, ce qui donnerait une feuille invisible mais
+  // ouverte — un défaut qui ne se voit qu'en enchaînant vite les deux.
   clearTimeout(fermetureEnCours);
-  $("sheet").hidden = false;
+  // ON SOLDE TOUTES LES AUTRES FEUILLES, et pas seulement `feuilleOuverte` :
+  // ce défaut-là a été trouvé à la mesure et n'était visible nulle part.
+  // Enchaîner vite les deux (fermer l'une, ouvrir l'autre dans les 700 ms)
+  // annule par `clearTimeout` le minuteur qui devait remettre `hidden` sur la
+  // première — or `feuilleOuverte` valait déjà `null`, donc la branche
+  // ciblée ne la voyait plus. Elle restait hors écran mais DANS l'arbre
+  // d'accessibilité, soit deux `role="dialog" aria-modal` exposés à la fois.
+  for (const f of document.querySelectorAll(".sheet")) {
+    if (f.id === id) continue;
+    f.classList.remove("on");
+    f.hidden = true;
+  }
+  feuilleOuverte = id;
+  $(id).hidden = false;
   // On force un CALCUL de mise en page plutôt que d'attendre une frame
   // (requestAnimationFrame) : lire offsetHeight oblige le navigateur à
   // fixer l'état de départ tout de suite, donc la transition part bien de
   // translateY(110%). Un rAF ne se déclenche PAS dans un onglet qui ne
   // compose pas d'image, et la feuille resterait alors hors écran.
-  void $("sheet").offsetHeight;
-  $("sheet").classList.add("on");
+  void $(id).offsetHeight;
+  $(id).classList.add("on");
   $("veil").classList.add("on");
 }
 function fermerFeuille() {
-  $("sheet").classList.remove("on");
+  if (!feuilleOuverte) return;
+  const id = feuilleOuverte;
+  feuilleOuverte = null;
+  $(id).classList.remove("on");
   $("veil").classList.remove("on");
-  fermetureEnCours = setTimeout(() => { $("sheet").hidden = true; }, 700);
+  fermetureEnCours = setTimeout(() => { $(id).hidden = true; }, 700);
 }
 
 // ---------------------------------------------------------------
@@ -3941,8 +3999,14 @@ $("rawToggle").addEventListener("click", () => {
   majRawToggle(langue);
 });
 
-$("openSheet").addEventListener("click", ouvrirFeuille);
+$("openSheet").addEventListener("click", () => ouvrirFeuille("sheet"));
 $("closeSheet").addEventListener("click", fermerFeuille);
+$("openSoutien").addEventListener("click", () => ouvrirFeuille("sheetSoutien"));
+$("closeSoutien").addEventListener("click", fermerFeuille);
+// La feuille de soutien se referme quand on part vers buymeacoffee : le lien
+// ouvre un NOUVEL onglet, donc la page reste telle qu'on l'a laissée. Sans
+// ça, on retrouverait la feuille grande ouverte en revenant sur QuelTemps.
+$("soutienLien").addEventListener("click", fermerFeuille);
 $("veil").addEventListener("click", fermerFeuille);
 document.addEventListener("keydown", (e) => { if (e.key === "Escape") fermerFeuille(); });
 

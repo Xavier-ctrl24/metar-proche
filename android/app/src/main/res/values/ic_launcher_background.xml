@@ -1,4 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="ic_launcher_background">#FFFFFF</color>
+    <!-- Ciel du logo QuelTemps, echantillonne sur icon-maskable-512.png.
+         Invisible en pratique (l'avant-plan de l'adaptive-icon est plein bord),
+         mais il remplace le BLANC du gabarit Capacitor, qui aurait borde
+         l'icone chez un lanceur qui decale l'avant-plan. -->
+    <color name="ic_launcher_background">#0254C6</color>
 </resources>

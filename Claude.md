@@ -1634,6 +1634,53 @@ Fait et validé :
   `.jauge` dans le document, les deux cartes rendues, débordement nul, console
   sans erreur. 357 tests, type-check 0.
 
+- 02/08/2026 — DEUX DEMANDES DE XAVIER, `public/index.html` seul, 357 tests et
+  type-check verts de bout en bout (la page n'est toujours pas testée, raison
+  inchangée depuis le 28/07).
+  (1) LE SQUELETTE DE CHARGEMENT SE TAIT. Il dessinait cinq barres chatoyantes
+  à la place des cartes à venir. Sur une attente d'une à deux secondes, ce
+  n'est pas une promesse de contenu, c'est une page qui a l'air cassée — et
+  ça repoussait la phrase à trois centimètres sous Nuagio, donc elle ne se
+  lisait plus comme la SIENNE. Ne restent que le personnage et sa phrase,
+  collée sous lui (écart des centres mesuré à 0 px).
+  RETIRÉ ET NON MASQUÉ : les règles `.skel > div` et `.s1`..`.s5`, le markup,
+  ET l'image clé `mpShimmer` devenue orpheline. C'est la leçon `--ico-sun` du
+  29/07, appliquée sans qu'il faille se la rappeler : un style qui dort
+  revient un jour par son repli.
+  (2) BOUTON D'ACTUALISATION, à gauche de la bascule FR/EN. Le bon ordre, et
+  pas seulement celui demandé : la langue est un réglage qu'on pose une fois,
+  l'actualisation est un geste courant.
+  IL RECONSULTE, IL NE RECHARGE PAS, et c'est le seul point de conception de
+  la demande. Un `location.reload()` marcherait dans l'onglet ; dans l'APK il
+  relancerait le démarrage complet et REDEMANDERAIT la position. Il rejoue
+  donc `consulter(...dernierePosition)`, ce qui vaut aussi pour une position
+  SAISIE et pas seulement pour le GPS, puisque c'est `consulter` qui écrit
+  cette variable. Sans position connue, il retombe sur `localiser`.
+  AUCUNE COULEUR NI AUCUN RAYON INVENTÉS : `.iconbtn` emprunte tout à
+  `.langs` (même verre `--card-bg-strong`, même `--radius-pill`, encre
+  `--ink`), donc les deux lisent comme une seule barre de commandes et non
+  comme deux ajouts successifs. C'est la règle posée le 29/07 — tout
+  composant neuf se bâtit sur les jetons DÉJÀ mesurés. 36 px de côté, bien
+  au-dessus des 24 px de cible tactile.
+  `textContent` INTERDIT sur ce bouton, comme sur `openSheet` : il ne porte
+  qu'une icône, et son nom accessible passe donc par `aria-label` et `title`,
+  posés dans `appliquerChrome` avec tous les libellés statiques — c'est la
+  place qui évite la régression du 28/07 (la page à moitié française).
+  VÉRIFIÉ (sans capture : le volet ne composait pas d'image ce jour-là) :
+  bouton à gauche des pastilles et sur la même ligne, 36x36, squelette sans
+  aucun `div` résiduel, bascule fr/en du nom accessible dans les deux sens,
+  actualisation qui rerend la carte, parité fr/en des 92 clés (aucune
+  manquante, aucune vide, aucune orpheline), débordement horizontal nul,
+  console sans erreur.
+  À CONNAÎTRE, signalé et non corrigé : l'API met en cache 5 min, donc deux
+  actualisations rapprochées rendent le même relevé et le bouton paraîtra
+  sans effet. C'est juste pour un METAR horaire ; si ça gêne, la réponse est
+  un signal d'ATTENTE visible, pas un contournement du cache.
+  EN ATTENTE DE XAVIER : les deux formulations marquées `[à valider]`
+  (« Actualiser la météo » / « Refresh the weather ») et le jugement visuel.
+  MIS EN LIGNE le 02/08/2026 : fusionné dans `master` en avance rapide et
+  poussé (`052f976..4559673`).
+
 Prochaine étape (à décider avec Xavier) :
 - ICÔNE ET ÉCRAN DE DÉMARRAGE DE L'APPLICATION : encore ceux de Capacitor (le
   X bleu du gabarit), dans `android/app/src/main/res/mipmap-*` et

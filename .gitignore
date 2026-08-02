@@ -34,6 +34,20 @@ corpus-brut.txt
 # pas les compresser d'une version a l'autre, donc le depot enflerait de la
 # taille complete a chaque essai. Ce qui fabrique l'APK est suivi, lui.
 APK/*.apk
+APK/*.aab
+
+# --- CLE DE SIGNATURE PLAY STORE (02/08/2026) ---
+# CES LIGNES SONT ECRITES AVANT QUE LA CLE N'EXISTE, ET C'EST VOULU.
+# Une cle de signature Android est un SECRET et un objet UNIQUE : la perdre
+# ou la divulguer, c'est perdre le droit de mettre a jour l'application
+# publiee. Elle ne doit vivre ni dans ce depot ni dans une sauvegarde
+# publique. Le fichier de mots de passe non plus.
+# Ajouter l'ignore APRES avoir genere la cle laisse une fenetre ou un
+# `git add -A` distrait la commite ; une fois poussee, elle est compromise
+# pour toujours, meme supprimee ensuite.
+*.jks
+*.keystore
+android/keystore.properties
 
 # --- Planche de controle des icones ---
 # Fichier GENERE a partir de public/index.html (style + sprite extraits du

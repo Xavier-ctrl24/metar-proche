@@ -1211,6 +1211,20 @@ main {
   margin-top: .45rem; text-transform: none; letter-spacing: .04em;
   text-wrap: pretty;
 }
+/* Le lien de confidentialité (02/08/2026). AUCUNE COULEUR NEUVE : il hérite
+   de `--ink-faint` via `.tech`, comme l'attribution juste au-dessus, et se
+   distingue par le soulignement seul.
+   `inline-block` + rembourrage vertical pour la CIBLE TACTILE : seul dans son
+   paragraphe, ce lien ne bénéficie pas de l'exception « lien au fil du
+   texte » de la règle 2.5.8. Mesuré sans le rembourrage : 14 px de haut, donc
+   sous les 24 px que ce projet tient partout ailleurs. Le rembourrage ne
+   déplace rien, il épaissit la zone atteignable. */
+#lienConf {
+  display: inline-block;
+  padding: .35rem .5rem;
+  color: inherit;
+  text-underline-offset: .2em;
+}
 
 /* ---- 6 bis. Le soutien (01/08/2026) ----
    AUCUN JETON NEUF, et c'est la règle établie le 29/07 : « tout composant
@@ -2124,6 +2138,21 @@ main {
            STATIQUE, donc câblée dans `appliquerChrome` et jamais dans
            `afficher` — c'est la règle qui évite la régression du 28/07. -->
       <p class="tech sources" id="sources"></p>
+
+      <!-- POLITIQUE DE CONFIDENTIALITÉ (02/08/2026, préparation Play Store).
+           Google Play EXIGE que la politique soit accessible depuis
+           l'application elle-même, pas seulement depuis la fiche du magasin.
+           `target="_blank"` et `rel="noopener noreferrer"` comme le lien de
+           soutien, et pour la même raison PRATIQUE et non stylistique : dans
+           l'APK, une navigation dans la WebView remplacerait l'application
+           par une page dont on ne peut plus revenir, faute de barre de
+           navigation. `_blank` la confie au navigateur du système.
+           `href` posé par le script depuis `baseApi()`, jamais écrit dans le
+           balisage : en web il reste relatif, dans l'APK il vise le site de
+           production. La page EST bien embarquée par `webDir: public`, mais
+           c'est l'URL publique que Google vérifie, et c'est donc elle qu'on
+           montre — une seule adresse à maintenir plutôt que deux. -->
+      <p class="tech"><a id="lienConf" target="_blank" rel="noopener noreferrer"></a></p>
     </div>
   </article>
 
@@ -2370,6 +2399,7 @@ const TEXTES = {
     // le citer coûte trois mots et dit d'où vient la mesure, ce qui est le
     // sujet même de l'application.  [à valider]
     sources: "Mesures aviationweather.gov · UV et villes Open-Meteo (CC BY 4.0)",
+    confidentialite: "Politique de confidentialité", // [à valider]
 
     // SOUTIEN (01/08/2026). Le français est de XAVIER, repris au mot : ces
     // phrases-là ne sont donc pas marquées `[à valider]`, contrairement à
@@ -2515,6 +2545,7 @@ const TEXTES = {
     // Les noms de source et le nom de licence ne se traduisent pas ; seuls les
     // deux mots de liaison changent.  [à valider]
     sources: "Observations aviationweather.gov · UV and cities Open-Meteo (CC BY 4.0)",
+    confidentialite: "Privacy policy", // [à valider]
 
     // Traduction PROPOSÉE des cinq phrases de soutien.  [à valider]
     soutienLabel: "Support QuelTemps",
@@ -3483,6 +3514,13 @@ function appliquerChrome(lang) {
   $("go").textContent = t.boutonConsulter;
   $("skelTxt").textContent = t.chargement;
   $("sources").textContent = t.sources;
+  // Le lien de confidentialité. Libellé STATIQUE, donc ici et pas dans
+  // `afficher` — même règle que `sources` juste au-dessus. Le `href` ne
+  // dépend pas de la langue, mais le poser ici garantit qu'il est écrit
+  // avant le premier rendu, quel que soit le chemin d'entrée.
+  const lienConf = $("lienConf");
+  lienConf.textContent = t.confidentialite;
+  lienConf.href = baseApi() + "/confidentialite.html";
   // Carte de soutien. TOUT est ici et rien dans `afficher` : ce sont des
   // libellés STATIQUES, et c'est la règle qui évite la régression du 28/07
   // (la page à moitié française). Le `href` est posé ici aussi — il ne

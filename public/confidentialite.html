@@ -1,0 +1,227 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>QuelTemps — Politique de confidentialité</title>
+<meta name="description" content="Ce que QuelTemps fait, et ne fait pas, de vos données.">
+<meta name="robots" content="index, follow">
+
+<!--
+  POLITIQUE DE CONFIDENTIALITÉ (02/08/2026, préparation Play Store).
+
+  POURQUOI CE FICHIER EXISTE : Google Play EXIGE une politique de
+  confidentialité accessible à une URL publique dès lors qu'une application
+  demande une permission sensible. QuelTemps déclare
+  ACCESS_COARSE_LOCATION : elle est donc concernée, et sans cette page la
+  fiche ne peut pas être publiée. Ce n'est pas une formalité qu'on ajoute
+  après coup, c'est un pré-requis de publication.
+
+  POURQUOI UNE PAGE STATIQUE DANS public/ : le site est déjà servi par
+  Vercel, donc l'URL existe sans rien ajouter à l'infrastructure. Elle doit
+  RESTER ATTEIGNABLE tant que l'application est publiée — Google revérifie.
+
+  POURQUOI FR ET EN DANS UN SEUL FICHIER : l'application est bilingue mais
+  le Play Store ne demande QU'UNE URL. Deux fichiers imposeraient de choisir
+  laquelle déclarer, donc de laisser la moitié des utilisateurs devant une
+  langue qu'ils n'ont pas choisie. Une page, deux sections, une seule URL.
+
+  AUCUN FICHIER EXTERNE, comme partout dans ce dépôt : le style est en
+  ligne, il n'y a ni police ni script. Les couleurs sont celles du ciel
+  NEUTRE de chargement de la page (#101827), donc rien d'inventé.
+
+  [À VALIDER PAR XAVIER] — TOUT le texte de cette page. Il est PROPOSÉ, au
+  même titre que les formulations de `TEXTES` : règle anti « parser contre
+  lui-même ». Deux points appellent sa décision explicite plutôt que sa
+  simple relecture :
+    (a) l'ADRESSE DE CONTACT, aujourd'hui un gabarit. Elle sera PUBLIQUE et
+        indexée. Une adresse dédiée vaut mieux qu'une adresse personnelle.
+    (b) l'IDENTITÉ du responsable de traitement. Le RGPD demande de dire QUI
+        traite. « Xavier, personne physique » suffit pour une application
+        gratuite sans compte, mais c'est à lui de vouloir y figurer.
+  Ce texte n'a pas été relu par un juriste, et il décrit fidèlement ce que
+  le code fait — c'est la seule garantie que je peux donner.
+-->
+
+<style>
+  :root {
+    color-scheme: dark;
+    --bg: #101827;
+    --ink: #EAF2FB;
+    --ink-doux: #A9BBD0;
+    --trait: rgba(234, 242, 251, .16);
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 2.5rem 1.25rem 4rem;
+    background: var(--bg);
+    color: var(--ink);
+    font: 16px/1.65 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    -webkit-text-size-adjust: 100%;
+  }
+  main { max-width: 42rem; margin: 0 auto; }
+  h1 { font-size: 1.65rem; line-height: 1.25; margin: 0 0 .35rem; }
+  h2 {
+    font-size: 1.15rem;
+    margin: 2.25rem 0 .6rem;
+    padding-top: 1.25rem;
+    border-top: 1px solid var(--trait);
+  }
+  h3 { font-size: 1rem; margin: 1.5rem 0 .4rem; }
+  p, li { color: var(--ink); }
+  ul { padding-left: 1.25rem; }
+  li { margin: .3rem 0; }
+  .maj { color: var(--ink-doux); font-size: .9rem; margin: 0 0 2rem; }
+  a { color: var(--ink); }
+  strong { font-weight: 600; }
+  footer {
+    margin-top: 3rem;
+    padding-top: 1.25rem;
+    border-top: 1px solid var(--trait);
+    color: var(--ink-doux);
+    font-size: .9rem;
+  }
+</style>
+</head>
+<body>
+<main>
+
+<h1>Politique de confidentialité de QuelTemps</h1>
+<p class="maj">Dernière mise à jour : 2 août 2026</p>
+
+<p><strong>QuelTemps ne crée aucun compte, n'affiche aucune publicité, ne
+contient aucun outil de mesure d'audience, et ne dépose ni cookie ni
+donnée sur votre appareil.</strong> Ce qui suit détaille les seuls
+échanges qui ont lieu, et pourquoi.</p>
+
+<h2>1. Votre position</h2>
+
+<p>Quand vous appuyez sur « Me localiser », l'application demande à Android
+votre position <em>approximative</em>. Elle ne demande jamais la position
+précise (le GPS) : trouver la station météo la plus proche, à une vingtaine
+de kilomètres, n'en a pas besoin.</p>
+
+<p>Cette position est envoyée à notre serveur, qui s'en sert uniquement pour
+choisir la station d'observation la plus proche et vous renvoyer sa météo.
+Elle <strong>n'est associée à aucun identifiant, à aucun compte, et à aucun
+historique</strong>. Nous ne construisons pas de profil et nous ne savons pas
+qu'une consultation et la suivante viennent de la même personne.</p>
+
+<p>Vous pouvez refuser cette permission, ou la retirer à tout moment dans les
+réglages Android. L'application continue de fonctionner : elle affiche alors
+la météo d'un lieu par défaut, et vous pouvez saisir vous-même une ville ou
+des coordonnées.</p>
+
+<h2>2. Ce que nous conservons</h2>
+
+<ul>
+  <li><strong>Aucune base de données.</strong> QuelTemps n'a pas de compte
+  utilisateur et ne stocke aucun profil.</li>
+  <li>Pour éviter d'interroger la source à chaque consultation, le serveur
+  garde <strong>quelques minutes en mémoire</strong> le relevé de la station,
+  repéré par une position arrondie au kilomètre. Il disparaît de lui-même et
+  n'est jamais écrit sur un disque.</li>
+  <li>Comme tout site, notre hébergeur (Vercel) tient des
+  <strong>journaux techniques</strong> des requêtes reçues, à des fins de
+  fonctionnement et de sécurité. Ils sont conservés temporairement selon les
+  règles de l'hébergeur, puis effacés.</li>
+</ul>
+
+<h2>3. Les services que nous interrogeons</h2>
+
+<p>QuelTemps ne fabrique pas ses données. Il interroge deux sources
+publiques :</p>
+
+<ul>
+  <li><strong>aviationweather.gov</strong> (NOAA, États-Unis) pour les
+  observations METAR des stations.</li>
+  <li><strong>Open-Meteo</strong> pour l'indice UV et pour la recherche de
+  villes.</li>
+</ul>
+
+<p><strong>Votre appareil ne contacte jamais ces services directement.</strong>
+C'est notre serveur qui les appelle. La conséquence est volontaire et
+importante : ni votre adresse IP, ni l'identité de votre appareil ne leur sont
+transmises. Ce que ces services reçoivent, c'est une coordonnée ou un nom de
+ville, sans savoir de qui il vient.</p>
+
+<h2>4. Vos droits</h2>
+
+<p>Le règlement européen sur la protection des données (RGPD) vous donne un
+droit d'accès, de rectification et d'effacement sur les données qui vous
+concernent. Dans le cas de QuelTemps, il n'y a en pratique rien à consulter
+ni à effacer : aucune donnée n'est conservée sous une forme qui permettrait
+de vous identifier ou de vous retrouver.</p>
+
+<p>Vous gardez à tout moment la maîtrise du seul échange sensible, la
+position, en retirant la permission dans les réglages d'Android.</p>
+
+<h2>5. Modifications et contact</h2>
+
+<p>Toute évolution de cette politique sera publiée sur cette page, avec sa
+date. Pour toute question :
+<a href="mailto:contact@example.invalid">contact@example.invalid</a>.</p>
+
+<h2 lang="en">English version</h2>
+
+<div lang="en">
+
+<h3>What QuelTemps does not do</h3>
+<p><strong>QuelTemps has no user accounts, shows no advertising, contains no
+analytics, and stores no cookies or data on your device.</strong></p>
+
+<h3>Your location</h3>
+<p>When you tap “Locate me”, the app asks Android for your
+<em>approximate</em> location. It never requests precise (GPS) location:
+finding the nearest weather station, typically some twenty kilometres away,
+does not require it.</p>
+<p>That location is sent to our server for one purpose only: to pick the
+nearest observing station and return its weather. It is
+<strong>not linked to any identifier, account or history</strong>. We build no
+profile, and we cannot tell that two visits come from the same person.</p>
+<p>You may refuse or later withdraw this permission in your Android settings.
+The app keeps working: it then shows a default location, and you can type a
+city or coordinates yourself.</p>
+
+<h3>What we keep</h3>
+<ul>
+  <li><strong>No database.</strong> There is no user account and no stored
+  profile.</li>
+  <li>To avoid querying the source on every request, the server holds a
+  station's reading <strong>in memory for a few minutes</strong>, keyed by a
+  position rounded to about one kilometre. It expires by itself and is never
+  written to disk.</li>
+  <li>Like any website, our host (Vercel) keeps <strong>technical request
+  logs</strong> for operation and security. They are retained temporarily
+  under the host's own rules, then deleted.</li>
+</ul>
+
+<h3>Services we query</h3>
+<p>QuelTemps does not produce its own data. It queries
+<strong>aviationweather.gov</strong> (NOAA) for METAR observations and
+<strong>Open-Meteo</strong> for the UV index and city search.
+<strong>Your device never contacts these services directly</strong> — our
+server does. Neither your IP address nor your device identity reaches them;
+they receive only a coordinate or a city name, with no idea who sent it.</p>
+
+<h3>Your rights</h3>
+<p>Under the GDPR you have rights of access, rectification and erasure. In
+QuelTemps' case there is in practice nothing to retrieve or erase: no data is
+kept in a form that could identify or trace you. You retain control of the
+only sensitive exchange, your location, by withdrawing the permission in
+Android settings.</p>
+
+<h3>Changes and contact</h3>
+<p>Any change to this policy will be published on this page, with its date.
+Questions: <a href="mailto:contact@example.invalid">contact@example.invalid</a>.</p>
+
+</div>
+
+<footer>
+  <p><a href="/">← QuelTemps</a></p>
+</footer>
+
+</main>
+</body>
+</html>

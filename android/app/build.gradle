@@ -1,5 +1,23 @@
 apply plugin: 'com.android.application'
 
+// CLE DE SIGNATURE DE PUBLICATION (02/08/2026, preparation Play Store).
+//
+// Les mots de passe et le chemin de la cle vivent dans un fichier NON SUIVI
+// (android/keystore.properties), jamais dans ce fichier-ci, qui est commite.
+// Modele du fichier : android/keystore.properties.exemple.
+//
+// LE `exists()` N'EST PAS UNE PRECAUTION DE STYLE, c'est ce qui permet a ce
+// depot de rester compilable sans la cle : sur une machine qui ne l'a pas
+// (ou pour `npm run apk`, qui compile en debug), gradle EVALUE quand meme ce
+// bloc a la configuration. Sans la garde, une compilation debug echouerait
+// sur un fichier absent — exactement le defaut que le commentaire de
+// proguard plus bas raconte deja pour une autre ligne.
+def fichierCle = rootProject.file("keystore.properties")
+def cle = new Properties()
+if (fichierCle.exists()) {
+    fichierCle.withInputStream { cle.load(it) }
+}
+
 android {
     namespace = "fr.queltemps.app"
     compileSdk = rootProject.ext.compileSdkVersion
@@ -7,8 +25,14 @@ android {
         applicationId "fr.queltemps.app"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
+        // VERSION. Ces deux valeurs ne disent PAS la meme chose et ne se
+        // suivent pas forcement.
+        // `versionCode` est un entier interne au Play Store : il doit
+        // AUGMENTER a chaque televersement, meme pour corriger une virgule,
+        // et Google refuse un numero deja vu — y compris apres suppression.
+        // `versionName` est la seule des deux que l'utilisateur lit.
         versionCode 1
-        versionName "1.0"
+        versionName "1.0.0"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
@@ -16,8 +40,35 @@ android {
             ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
+    signingConfigs {
+        release {
+            if (fichierCle.exists()) {
+                storeFile rootProject.file(cle['storeFile'])
+                storePassword cle['storePassword']
+                keyAlias cle['keyAlias']
+                keyPassword cle['keyPassword']
+            }
+        }
+    }
     buildTypes {
         release {
+            // Signature seulement si la cle est la. Sinon on produit un
+            // artefact NON SIGNE, que le Play Store refusera — ce qui est le
+            // bon comportement : mieux vaut un refus a l'envoi qu'une
+            // signature de DEBOGAGE qui passe inapercue et bloque toute mise
+            // a jour ulterieure.
+            if (fichierCle.exists()) {
+                signingConfig signingConfigs.release
+            }
+
+            // R8 RESTE DESACTIVE POUR LA 1.0.0, et c'est un choix.
+            // L'activer pour la premiere fois sur la version que l'on publie,
+            // c'est le scenario que ce depot connait par coeur : vert en
+            // local, casse dans l'artefact, et impossible a corriger a
+            // distance une fois installe. Le gain (quelques centaines de Ko
+            // sur une application qui n'a presque pas de code Java) ne vaut
+            // pas ce risque-la. A rouvrir apres une premiere publication
+            // reussie, jamais avec elle.
             minifyEnabled false
             // AGP 9 (montee de version du 29/07/2026) REFUSE 'proguard-android.txt',
             // qui contient -dontoptimize et bride R8. Le fichier ...-optimize.txt est

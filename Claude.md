@@ -1681,16 +1681,130 @@ Fait et validé :
   MIS EN LIGNE le 02/08/2026 : fusionné dans `master` en avance rapide et
   poussé (`052f976..4559673`).
 
+- 02/08/2026 — PRÉPARATION DE LA PUBLICATION SUR LE PLAY STORE, côté dépôt.
+  357 tests et type-check verts. Ce qui est fait ici est TOUT ce qui pouvait
+  l'être sans la session authentifiée de Xavier : la publication elle-même,
+  la clé de signature et le compte Play Console sont des actions
+  irréversibles ou tournées vers l'extérieur, donc les siennes (règle du
+  « Mode de travail »). La marche à suivre est en « Prochaine étape ».
+  LA LISTE REÇUE ÉTAIT LA PARTIE FACILE. « Nom, icône, splash, version »
+  était déjà fait à trois quarts (voir l'entrée périmée corrigée plus bas) ;
+  ce qui bloque réellement une publication est ailleurs : une clé de
+  signature, un format d'envoi, une politique de confidentialité, et un
+  formulaire de sécurité des données. Trois de ces quatre n'existaient pas.
+  LE FORMAT D'ENVOI N'EST PAS UN APK, et c'est le point que tout le monde
+  rate. Google n'accepte plus que l'Android App Bundle (`.aab`) depuis 2021.
+  Ce n'est pas un emballage différent mais un format d'ENVOI : Google y
+  découpe lui-même un APK par appareil. Un `.aab` ne s'installe pas sur un
+  téléphone, un `.apk` ne se téléverse pas. D'où DEUX MODES dans
+  `scripts/apk.mjs` (`npm run apk` inchangé, `npm run apk -- --release`) et
+  non un remplacement : les deux servent, à des moments différents.
+  VÉRIFIÉ ET NON SUPPOSÉ : `bundleRelease` compile réellement avec cette
+  chaîne (AGP 9.3.1, targetSdk 36, JBR de H:\AndroidStudio) — 4304 Ko en
+  46 s. Une compilation `assembleDebug` qui passe ne prouve RIEN sur la
+  variante release, qui évalue pour la première fois la config de signature
+  et la ligne proguard. C'est exactement la forme des trois échecs de
+  déploiement du 27/07.
+  LA CLÉ N'EST PAS GÉNÉRÉE ICI, DÉLIBÉRÉMENT. C'est un secret (keytool prend
+  des mots de passe) et un objet unique : tant que le Play App Signing n'est
+  pas activé, la perdre interdit toute mise à jour de l'application publiée.
+  Le dépôt fournit le mode d'emploi (`android/keystore.properties.exemple`)
+  et le câblage ; la commande se lance dans le terminal de Xavier.
+  L'IGNORE GIT A ÉTÉ ÉCRIT AVANT LA CLÉ, et l'ordre est le sujet : ajouter
+  `*.jks` après coup laisse une fenêtre où un `git add -A` distrait la
+  commite, et une clé poussée est compromise pour toujours, même supprimée
+  ensuite. Le `if (fichierCle.exists())` du `build.gradle` n'est pas non plus
+  du style : gradle évalue ce bloc à la CONFIGURATION, donc sans la garde une
+  compilation debug échouerait sur une machine sans clé.
+  R8 RESTE DÉSACTIVÉ pour la 1.0.0, et c'est un choix motivé plutôt qu'un
+  oubli : l'activer pour la première fois sur la version que l'on publie,
+  c'est le scénario que ce dépôt connaît par cœur (vert en local, cassé dans
+  l'artefact, incorrigeable à distance une fois installé). À rouvrir APRÈS
+  une première publication réussie, jamais avec elle.
+  POLITIQUE DE CONFIDENTIALITÉ : `public/confidentialite.html`, page statique
+  autonome (aucun fichier externe, style en ligne, couleurs du ciel neutre).
+  Elle est OBLIGATOIRE parce que l'application déclare
+  `ACCESS_COARSE_LOCATION` — sans elle, la fiche ne peut pas être publiée, et
+  Google revérifie l'URL après coup, donc elle doit rester atteignable.
+  FR ET EN DANS UN SEUL FICHIER : le Play Store ne demande qu'UNE URL, deux
+  fichiers obligeraient à en choisir une et à laisser la moitié des lecteurs
+  devant une langue qu'ils n'ont pas choisie.
+  LE TEXTE DÉCRIT CE QUE LE CODE FAIT, vérifié et non supposé : aucun compte,
+  aucune publicité, aucune mesure d'audience, et — vérifié par `grep` —
+  AUCUN `localStorage`, `sessionStorage` ni cookie dans toute la page. Le
+  point le plus favorable est vrai par construction depuis le 29/07 : le
+  client n'appelle jamais les sources tierces, c'est le serveur qui le fait,
+  donc ni l'IP ni l'identité de l'appareil ne parviennent à Open-Meteo.
+  Le lien depuis l'application suit le patron du lien de soutien
+  (`target="_blank"`, `rel="noopener noreferrer"`, `href` posé par le script)
+  et pour une raison PRATIQUE : dans l'APK, une navigation dans la WebView
+  remplacerait l'application par une page dont on ne peut plus revenir,
+  faute de barre de navigation. Le `href` vient de `baseApi()`, donc relatif
+  en web et absolu dans l'APK, sans seconde source de vérité.
+  Cible tactile : mesuré à 14 px sans rembourrage, donc sous les 24 px que ce
+  projet tient partout. Seul dans son paragraphe, ce lien ne bénéficie pas de
+  l'exception « lien au fil du texte » de la règle 2.5.8. Porté à 27,7 px.
+  VÉRIFIÉ dans le navigateur : lien rendu, `href` juste, bascule fr/en du
+  libellé dans les deux sens, encre identique à celle de l'attribution
+  (`--ink-faint`, aucune couleur neuve), page de politique sans débordement à
+  375 px, contraste 9,06 sur le corps et 15,73 sur les liens, 13 titres
+  rendus, console sans erreur. Pas de capture : le volet ne composait pas
+  d'image ce jour-là.
+  EN ATTENTE DE XAVIER : TOUT le texte de `confidentialite.html` (proposé,
+  jamais entériné — règle anti « parser contre lui-même »), et deux points
+  qui appellent une décision et pas une relecture : l'ADRESSE DE CONTACT, qui
+  sera publique et indexée (aujourd'hui un gabarit `contact@example.invalid`,
+  et une adresse dédiée vaut mieux qu'une adresse personnelle), et l'IDENTITÉ
+  du responsable de traitement. Plus les deux libellés `[à valider]` du lien.
+  Ce texte n'a pas été relu par un juriste ; ce que je peux garantir, c'est
+  qu'il décrit fidèlement ce que le code fait.
+
 Prochaine étape (à décider avec Xavier) :
-- ICÔNE ET ÉCRAN DE DÉMARRAGE DE L'APPLICATION : encore ceux de Capacitor (le
-  X bleu du gabarit), dans `android/app/src/main/res/mipmap-*` et
-  `drawable-*/splash.png`. Les icônes du 29/07 (logo de Xavier) sont celles du
-  MANIFESTE WEB, qu'une application native n'utilise pas : ce sont deux jeux
-  d'icônes distincts, et c'est exactement le genre de doublon qu'on croit
-  résolu. À refaire depuis `logo/logo.png`, avec la même distinction
-  « any » / rognable qu'au 29/07 — Android compose ici un `adaptive-icon` en
-  deux couches (fond + avant-plan), donc le mot « QuelTemps » de la bande
-  marine sera coupé comme il l'était pour le maskable.
+- PUBLIER SUR LE PLAY STORE. Tout ce qui suit demande la session authentifiée
+  de Xavier : rien de cela ne peut se faire depuis ici, comme le renommage du
+  dépôt du 29/07 et pour la même raison (aucune CLI authentifiée, aucun jeton
+  dans l'environnement). L'ORDRE COMPTE.
+  1. GÉNÉRER LA CLÉ DE SIGNATURE. Commande et mise en garde complètes dans
+     `android/keystore.properties.exemple`. La ranger HORS du dépôt et la
+     SAUVEGARDER ailleurs que sur ce poste : c'est la seule étape de la liste
+     qui soit irrattrapable.
+  2. Copier ce fichier en `android/keystore.properties` (ignoré par git) et
+     le remplir. Puis `npm run apk -- --release` : le script AVERTIT en clair
+     si la clé manque, plutôt que de laisser découvrir le problème au refus
+     du téléversement.
+  3. CRÉER LE COMPTE PLAY CONSOLE (25 $ une fois, vérification d'identité).
+     À VÉRIFIER PAR XAVIER et non affirmé ici : pour un compte PERSONNEL,
+     Google impose depuis 2023 une période de test fermé avant d'autoriser
+     la production (de mémoire, une douzaine de testeurs pendant deux
+     semaines). Si la règle s'applique, ce n'est pas un détail de calendrier
+     mais l'étape la plus LONGUE de toute la liste, et elle se commence tôt.
+  4. PUBLIER LA POLITIQUE : elle est déjà dans `public/`, donc il suffit de
+     pousser sur `master` pour qu'elle soit en ligne. L'URL à déclarer est
+     `<domaine>/confidentialite.html`.
+  5. REMPLIR LA FICHE ET LES FORMULAIRES, tous côté Console : sécurité des
+     données (déclarer la position, « non collectée/non partagée » au sens
+     de Google puisqu'elle n'est ni stockée ni associée à une personne),
+     questionnaire de classification du contenu, description courte et
+     longue, une image mise en avant 1024x500, et au moins deux captures
+     d'écran de téléphone. Ce sont des FORMULATIONS et des visuels : elles
+     lui reviennent, comme tout le vocabulaire de ce projet.
+  À DÉCIDER AVANT L'ÉTAPE 3, et c'est la seule question qui coûte cher plus
+  tard : faut-il RENOMMER le dépôt et le projet Vercel d'abord ? L'URL de la
+  politique et tout lien de la fiche pointeront sur
+  `metar-proche-three.vercel.app`. Renommer APRÈS publication veut dire
+  modifier une fiche en ligne ET republier l'application, puisque l'APK code
+  `API_PROD` en dur. La marche à suivre du renommage est plus bas.
+  CE QUI NE SE REDISCUTE PLUS une fois la première version publiée :
+  `appId: fr.queltemps.app` et la clé de signature. Les deux sont définitifs.
+- FAIT, et cette entrée était PÉRIMÉE (constaté le 02/08/2026) : elle annonçait
+  l'icône et l'écran de démarrage encore au gabarit Capacitor (le X bleu). Ils
+  ne le sont plus. `mipmap-anydpi-v26` compose bien un `adaptive-icon` en deux
+  couches, dont le fond `#0254C6` est échantillonné sur `icon-maskable-512.png`,
+  et `drawable/splash.xml` est une liste de couches (couleur `#101827` égale au
+  `background_color` du manifeste + `splash_logo.png` en `-nodpi`) qui remplace
+  les onze `splash.png` du gabarit. LEÇON DE TENUE DE CARNET, pas de code : une
+  liste « à faire » ne se relit pas toute seule. Rayer l'entrée fait partie du
+  travail, sinon la session suivante refait ce qui est fait.
 - « INSTALLER VIA USB » côté MIUI, si Xavier veut un cycle de développement
   fluide : sans lui, chaque version se réinstalle à la main. Alternative sans
   compte Mi : le Live Reload, où l'APK installé charge la page depuis le poste.

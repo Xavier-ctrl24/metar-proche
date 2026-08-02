@@ -17,6 +17,25 @@ copie fraiche du depot.
 Ce sont des builds DEBUG, signes avec la cle de debogage : bons pour un essai
 sur telephone, jamais pour le Play Store.
 
+Pour le Play Store (02/08/2026) :
+
+    npm run apk -- --release
+
+produit queltemps-releaseN.aab, un Android App Bundle. C'est le seul format
+que Google accepte depuis 2021 ; il ne s'installe PAS sur un telephone, la
+decoupe en APK etant faite par Google. Il n'est signe que si
+android/keystore.properties existe (voir android/keystore.properties.exemple),
+et le script le dit en clair sinon.
+
+A SAVOIR sur queltemps-release1.aab, s'il traine encore ici : c'est une
+compilation de VERIFICATION DE CHAINE, faite pour prouver que bundleRelease
+passe avec cet outillage. Elle n'est ni signee, ni a jour (elle precede
+l'ajout de la page de confidentialite). Ne pas la televerser : recompiler.
+
+Et INCREMENTER versionCode dans android/app/build.gradle avant CHAQUE envoi,
+y compris vers une piste de test. Google refuse un numero deja vu, meme
+apres suppression.
+
 Installation sur le Redmi Note 11 : "Installer via USB" n'etant pas active
 (compte Mi requis), on passe par un adb push vers /sdcard/Download puis une
 installation a la main. Un fichier depose par adb n'est pas indexe, il

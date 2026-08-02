@@ -28,8 +28,14 @@ android {
         // VERSION. Ces deux valeurs ne disent PAS la meme chose et ne se
         // suivent pas forcement.
         // `versionCode` est un entier interne au Play Store : il doit
-        // AUGMENTER a chaque televersement, meme pour corriger une virgule,
-        // et Google refuse un numero deja vu — y compris apres suppression.
+        // AUGMENTER a chaque TELEVERSEMENT, et pas seulement a chaque
+        // version publiee. Un envoi sur une piste de TEST consomme le numero
+        // definitivement, meme s'il est ensuite rejete ou supprime. Comme la
+        // phase de test fermee precede obligatoirement la production pour un
+        // compte personnel, le premier envoi vers la production ne portera
+        // donc PAS le numero 1. Oublier de l'incrementer se solde par un
+        // refus « version code deja utilise », dont la cause n'est pas
+        // evidente quand on croit n'avoir encore rien publie.
         // `versionName` est la seule des deux que l'utilisateur lit.
         versionCode 1
         versionName "1.0.0"

@@ -1772,6 +1772,10 @@ Prochaine étape (à décider avec Xavier) :
      le remplir. Puis `npm run apk -- --release` : le script AVERTIT en clair
      si la clé manque, plutôt que de laisser découvrir le problème au refus
      du téléversement.
+     ET INCRÉMENTER `versionCode` dans `android/app/build.gradle` avant
+     CHAQUE envoi, y compris vers une piste de test : un numéro consommé
+     l'est définitivement, même après rejet ou suppression. C'est le refus
+     dont la cause est la moins évidente quand on croit n'avoir rien publié.
   3. CRÉER LE COMPTE PLAY CONSOLE (25 $ une fois, vérification d'identité).
      À VÉRIFIER PAR XAVIER et non affirmé ici : pour un compte PERSONNEL,
      Google impose depuis 2023 une période de test fermé avant d'autoriser

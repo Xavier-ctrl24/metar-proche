@@ -363,13 +363,18 @@ Fait et validé :
   `corpus.json` et doit désormais écrire `with { type: "json" }`.
   On écrit `.js` même si le fichier est un `.ts` : c'est la convention ESM, le
   nom désigne le fichier COMPILÉ.
-- EN LIGNE ET VÉRIFIÉ le 27/07/2026 : https://github.com/Xavier-ctrl24/metar-proche
-  déployé sur Vercel. `/api/nearest?lat=48.73&lon=7.71` rend LFST, 27 °C,
+- EN LIGNE ET VÉRIFIÉ le 27/07/2026 : https://github.com/Xavier-ctrl24/queltemps
+  déployé sur Vercel. (Dépôt renommé le 02/08/2026, voir plus bas ; GitHub
+  redirige l'ancien nom, en web comme en git.) `/api/nearest?lat=48.73&lon=7.71` rend LFST, 27 °C,
   `few_day`, `Europe/Paris`, lever 05:57 / coucher 21:14, textes français
   corrects. Il aura fallu trois échecs de déploiement pour y arriver
   (TypeScript 7, détection de framework Vite, imports sans extension), aucun
   détectable en local.
-  URL DE PRODUCTION : https://metar-proche-three.vercel.app
+  URL DE PRODUCTION : https://queltemps.vercel.app
+  Depuis le 02/08/2026. L'ANCIENNE, `metar-proche-three.vercel.app`, reste
+  ATTRIBUÉE au projet et répond toujours : la retirer la libérerait, et
+  n'importe qui pourrait alors la reprendre. La garder ne coûte rien et
+  laisse fonctionner les APK déjà installés qui la codent en dur.
   Ajoutée le 29/07/2026, et c'est une correction du carnet de bord plutôt
   qu'un ajout. Cette ligne consignait jusque-là l'adresse GITHUB comme preuve
   de mise en ligne, donc l'adresse réelle du service n'était écrite NULLE
@@ -1829,12 +1834,9 @@ Prochaine étape (à décider avec Xavier) :
      longue, une image mise en avant 1024x500, et au moins deux captures
      d'écran de téléphone. Ce sont des FORMULATIONS et des visuels : elles
      lui reviennent, comme tout le vocabulaire de ce projet.
-  À DÉCIDER AVANT L'ÉTAPE 3, et c'est la seule question qui coûte cher plus
-  tard : faut-il RENOMMER le dépôt et le projet Vercel d'abord ? L'URL de la
-  politique et tout lien de la fiche pointeront sur
-  `metar-proche-three.vercel.app`. Renommer APRÈS publication veut dire
-  modifier une fiche en ligne ET republier l'application, puisque l'APK code
-  `API_PROD` en dur. La marche à suivre du renommage est plus bas.
+  RENOMMAGE FAIT le 02/08/2026, avant toute publication et c'était le bon
+  moment : après, il aurait fallu modifier une fiche en ligne ET republier
+  l'application, qui code `API_PROD` en dur. Détail plus bas.
   CE QUI NE SE REDISCUTE PLUS une fois la première version publiée :
   `appId: fr.queltemps.app` et la clé de signature. Les deux sont définitifs.
 - FAIT, et cette entrée était PÉRIMÉE (constaté le 02/08/2026) : elle annonçait
@@ -1871,26 +1873,29 @@ Prochaine étape (à décider avec Xavier) :
   protégé (l'onglet ne charge que 9 Ko), donc rien d'urgent ; le jour où
   ça compte, c'est une quantification de palette qu'il faut, pas un
   redimensionnement.
-- RENOMMER LE DÉPÔT ET LE PROJET VERCEL. Demandé par Xavier le
-  29/07/2026, impossible depuis la session (voir plus haut : aucune CLI
-  authentifiée). L'ORDRE COMPTE, et c'est tout l'intérêt de cette note.
-  1. GitHub d'abord : Settings → Repository name → `queltemps`. GitHub
-     laisse une redirection permanente depuis l'ancien nom, en web ET en
-     git, donc rien ne casse dans l'intervalle.
-  2. Puis en local : `git remote set-url origin` vers la nouvelle URL.
-     Pas indispensable grâce à la redirection, mais un remote qui ment
-     est une source de confusion pour rien.
-  3. Vérifier SEULEMENT ENSUITE que Vercel déploie toujours. L'intégration
-     GitHub suit normalement le renommage toute seule ; si le lien a
-     sauté, il se refait dans les réglages du projet.
-  4. Le projet Vercel en dernier, et c'est le seul geste qui a un COÛT :
-     le nom du projet fabrique le domaine `*.vercel.app`. Le renommer
-     déplace la production sur `queltemps.vercel.app` et LIBÈRE
-     `metar-proche.vercel.app`, que n'importe qui peut alors reprendre.
-     Tout lien déjà partagé cesse de fonctionner. Rien ne presse : les
-     étapes 1 à 3 peuvent se faire sans celle-ci.
-  À FAIRE LE JOUR OÙ CE SERA FAIT : mettre à jour la ligne « EN LIGNE ET
-  VÉRIFIÉ » du 27/07/2026, seule URL en dur du dépôt.
+- RENOMMAGE FAIT le 02/08/2026 (demandé le 29/07). `queltemps` sur GitHub,
+  `queltemps` sur Vercel, `queltemps.vercel.app` en production, `API_PROD`
+  et la ligne « EN LIGNE ET VÉRIFIÉ » mis à jour. La marche à suivre
+  prévoyait quatre étapes ; la réalité en a corrigé une et en a ajouté une.
+  CE QUI S'EST PASSÉ COMME PRÉVU : GitHub redirige l'ancien nom en web et en
+  git (le `push` aurait continué de marcher sans rien toucher), et
+  l'intégration Vercel a suivi le renommage du dépôt toute seule.
+  CE QUI ÉTAIT FAUX DANS LA NOTE : renommer le PROJET Vercel ne déplace PAS
+  le domaine. Vercel garde les domaines déjà attribués et n'en fabrique pas
+  de nouveau — `queltemps.vercel.app` répondait 404 après le renommage, et
+  l'ancien continuait de servir la production. Il a fallu l'AJOUTER à la
+  main dans Settings → Domains. La note prédisait donc une bascule
+  automatique et une libération immédiate de l'ancien nom : ni l'une ni
+  l'autre ne se sont produites.
+  DÉCISION QUI EN DÉCOULE : l'ancien domaine est CONSERVÉ, attribué au
+  projet. Le retirer le libérerait vraiment, et un nom court se reprend ;
+  le garder ne coûte rien, laisse fonctionner les APK déjà installés qui le
+  codent en dur, et deux domaines peuvent pointer sur le même projet.
+  LEÇON DE MÉTHODE, la même que le 29/07 : l'adresse a été LUE dans la liste
+  des domaines de Vercel, pas déduite du nom du projet. Les trois candidats
+  plausibles ont d'ailleurs été sondés avant, et deux répondaient 404. Une
+  preuve de déploiement cite ce qui a été appelé, pas ce dont il est
+  construit.
 - Pas de BUDGET GLOBAL de temps, seulement un plafond PAR TENTATIVE. Deux cas
   peuvent donc encore dépasser 10 s : panne PARTIELLE à l'antiméridien sur les
   deux tours (2 x 8 s), et un 5xx qui arrive juste avant l'expiration puis un

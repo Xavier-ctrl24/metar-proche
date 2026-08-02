@@ -37,7 +37,7 @@ android {
         // refus « version code deja utilise », dont la cause n'est pas
         // evidente quand on croit n'avoir encore rien publie.
         // `versionName` est la seule des deux que l'utilisateur lit.
-        versionCode 1
+        versionCode 2
         versionName "1.0.0"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {

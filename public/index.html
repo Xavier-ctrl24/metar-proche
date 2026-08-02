@@ -434,7 +434,6 @@
    ce qui ne déplace rien — l'opacité, et le rayon là où il est animable. */
 @keyframes mpSunPulse { 0%, 100% { opacity: .20; r: 16px; } 50% { opacity: .36; r: 20px; } }
 @keyframes mpRise { from { opacity: 0; transform: translate3d(0, 18px, 0); } to { opacity: 1; transform: none; } }
-@keyframes mpShimmer { from { background-position: -260px 0; } to { background-position: 260px 0; } }
 
 /* ANIMATIONS SOBRES (30/07/2026, demande de Xavier : « quelques animations
    sobres pour donner une sensation de fluidité »).
@@ -536,7 +535,24 @@ main {
 }
 
 /* ---- 1. Barre du haut : la bascule de langue ---- */
-.top { display: flex; justify-content: flex-end; padding-top: .5rem; }
+.top { display: flex; justify-content: flex-end; align-items: center; gap: .5rem; padding-top: .5rem; }
+
+/* Le bouton de rafraîchissement (02/08/2026). Il emprunte TOUT à la bascule
+   de langue — même verre, même rayon, même hauteur — pour que les deux
+   lisent comme une seule barre de commandes et non comme deux ajouts
+   successifs. 36 px de côté, donc largement au-dessus des 24 px de cible
+   tactile (WCAG 2.5.8), et aucune couleur inventée : encre et verre sont
+   des jetons déjà mesurés dans les deux polarités. */
+.iconbtn {
+  display: grid; place-items: center;
+  width: 36px; height: 36px; flex: none;
+  border: none; border-radius: var(--radius-pill);
+  background: var(--card-bg-strong); color: var(--ink);
+  backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+  cursor: pointer; transition: transform var(--dur-tap) ease;
+}
+.iconbtn .ico { font-size: 1.05rem; --sw: 5; }
+.iconbtn:active { transform: rotate(-90deg); }
 
 .langs {
   display: flex; gap: 2px; padding: 4px;
@@ -1282,19 +1298,13 @@ main {
 
 /* Squelette de chargement : le ciel reste neutre tant que le METAR est
    inconnu. Il fallait un état DISTINCT de l'écran d'accueil, qui servait
-   jusqu'ici les deux à la fois. */
-.skel > div {
-  border-radius: 16px;
-  background: linear-gradient(90deg, rgba(255, 255, 255, .06), rgba(255, 255, 255, .16), rgba(255, 255, 255, .06));
-  background-size: 260px 100%;
-  animation: mpShimmer 1.6s linear infinite;
-}
-.skel .s1 { height: 52px; margin-top: 1rem; }
-.skel .s2 { height: 26px; width: 62%; margin-top: 2.6rem; border-radius: 8px; animation-delay: .1s; }
-.skel .s3 { height: 84px; width: 52%; margin-top: .9rem; border-radius: 12px; animation-delay: .2s; }
-.skel .s4 { height: 84px; margin-top: 2rem; }
-.skel .s5 { height: 78px; margin-top: .75rem; }
-.skel p { margin: 3rem 0 0; text-align: center; }
+   jusqu'ici les deux à la fois.
+   LES BARRES CHATOYANTES SONT RETIRÉES le 02/08/2026 (demande de Xavier),
+   règles ET markup, plutôt que simplement masquées : ce dépôt sait ce que
+   coûte un style qui dort (voir --ico-sun, 29/07). Le squelette se réduit
+   donc à Nuagio et à sa phrase. */
+.skel { text-align: center; padding-top: 18vh; }
+.skel p { margin: 0; }
 
 /* ---- 8. La feuille « où êtes-vous ? » ----
    Elle remplace le <details> discret de la version précédente : dans
@@ -1694,6 +1704,16 @@ main {
   <path d="M14,24l18,18 18,-18"/>
 </symbol>
 
+<!-- RAFRAÎCHIR (02/08/2026, demande de Xavier). Une flèche circulaire : le
+     signe le plus universel qu'il y ait, donc celui qui dispense d'un
+     libellé dans une barre où il n'y a la place que pour deux pastilles.
+     L'arc laisse volontairement un quart ouvert — un cercle fermé ne
+     tournerait pas, il serait une horloge. -->
+<symbol id="d-refresh" viewBox="0 0 64 64">
+  <path d="M32,12A20,20 0 1 1 14.7,42"/>
+  <path d="M25,6l7,6 -7,6"/>
+</symbol>
+
 <!-- ================================================================
      NUAGIO — la mascotte (30/07/2026, demande de Xavier).
      Il REMPLACE le petit nuage à trois expressions du 30/07/2026 au matin.
@@ -1933,6 +1953,20 @@ main {
 <main>
 
   <header class="top">
+    <!-- RAFRAÎCHIR (02/08/2026, demande de Xavier). À GAUCHE de la bascule,
+         parce que c'est l'ordre qu'il a demandé et qu'il est le bon : la
+         langue est un réglage qu'on pose une fois, le rafraîchissement est
+         un geste courant. Il RECONSULTE la dernière position connue plutôt
+         que de recharger la page : dans l'APK, un `location.reload()`
+         relancerait le démarrage complet et redemanderait la position.
+         Sans position connue (première ouverture, panne de GPS), il retombe
+         sur `localiser`, c'est-à-dire sur ce que fait le bouton principal.
+         Pas de libellé écrit : le symbole suffit, et un mot de plus dans
+         cette barre la ferait déborder à 320 px. D'où le `aria-label`, qui
+         est posé par `appliquerChrome` comme tout libellé statique. -->
+    <button type="button" class="iconbtn" id="refresh">
+      <svg class="ico" viewBox="0 0 64 64" aria-hidden="true" focusable="false"><use href="#d-refresh"/></svg>
+    </button>
     <!-- La bascule de langue remplace le <select> : deux pastilles, comme
          dans la maquette. Les deux libellés restent des ENDONYMES. -->
     <div class="langs" role="group" id="langs">
@@ -1960,8 +1994,12 @@ main {
     <svg class="nuagio" data-nuagio viewBox="0 0 32 34" aria-hidden="true" focusable="false">
       <g class="n-body"><use href="#n-reflechit"/></g>
     </svg>
-    <div class="s1"></div><div class="s2"></div><div class="s3"></div>
-    <div class="s4"></div><div class="s5"></div>
+    <!-- PLUS DE BLOCS FANTÔMES (02/08/2026, demande de Xavier). Le squelette
+         dessinait cinq barres chatoyantes à la place des cartes à venir. Sur
+         une attente d'une à deux secondes, ça montrait surtout une page
+         cassée, et ça éloignait la phrase de Nuagio de plusieurs centimètres.
+         Ne restent que le personnage et sa phrase, collée sous lui : c'est
+         LUI qui parle, ce que la distance d'avant contredisait. -->
     <p class="label" id="skelTxt"></p>
   </div>
 
@@ -2244,6 +2282,7 @@ const TEXTES = {
     chercheTitre: "Recherche de la station la plus proche",
     chercheSuite: "Autorisez la localisation, ou saisissez une position plus bas.",
     chargement: "LECTURE DE LA STATION LA PLUS PROCHE", // [design]
+    rafraichir: "Actualiser la météo", // [à valider]
 
     rawLabel: "observation brute", // [design]
 
@@ -2414,6 +2453,7 @@ const TEXTES = {
     chercheTitre: "Looking for the nearest station",
     chercheSuite: "Allow location access, or enter a position below.",
     chargement: "READING THE NEAREST STATION", // [design]
+    rafraichir: "Refresh the weather", // [à valider]
 
     rawLabel: "raw observation", // [design]
 
@@ -3422,6 +3462,10 @@ function appliquerChrome(lang) {
   for (const b of $("langs").children) {
     b.setAttribute("aria-pressed", String(b.dataset.lang === lang));
   }
+  // TEXTCONTENT INTERDIT ici aussi : le bouton ne porte QUE son icône, et
+  // son nom accessible passe donc par l'attribut. Même piège qu'openSheet.
+  $("refresh").setAttribute("aria-label", t.rafraichir);
+  $("refresh").setAttribute("title", t.rafraichir);
   $("rawLabel").textContent = t.rawLabel;
   $("sunLabel").textContent = t.sunLabel;
   $("stationLabel").textContent = t.stationLabel;
@@ -4017,6 +4061,14 @@ $("go").addEventListener("click", () => {
   consulter(lat, lon);
 });
 $("here").addEventListener("click", localiser);
+
+// Rafraîchir : on RECONSULTE, on ne recharge pas. Voir le commentaire du
+// bouton. `dernierePosition` est écrite par `consulter`, donc elle vaut la
+// position réellement servie, GPS ou saisie, et pas seulement celle du GPS.
+$("refresh").addEventListener("click", () => {
+  if (dernierePosition) consulter(...dernierePosition);
+  else localiser();
+});
 
 $("langs").addEventListener("click", (e) => {
   const b = e.target.closest("button[data-lang]");

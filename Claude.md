@@ -1750,14 +1750,51 @@ Fait et validé :
   375 px, contraste 9,06 sur le corps et 15,73 sur les liens, 13 titres
   rendus, console sans erreur. Pas de capture : le volet ne composait pas
   d'image ce jour-là.
+  ADRESSE DE CONTACT TRANCHÉE PAR XAVIER le 02/08/2026 : son adresse
+  personnelle `shinai24@gmail.com`, et non une adresse dédiée. L'option lui a
+  été proposée pour la raison qui compte (la page est publique et indexable,
+  donc l'adresse sera moissonnée) ; il a maintenu son choix.
   EN ATTENTE DE XAVIER : TOUT le texte de `confidentialite.html` (proposé,
-  jamais entériné — règle anti « parser contre lui-même »), et deux points
-  qui appellent une décision et pas une relecture : l'ADRESSE DE CONTACT, qui
-  sera publique et indexée (aujourd'hui un gabarit `contact@example.invalid`,
-  et une adresse dédiée vaut mieux qu'une adresse personnelle), et l'IDENTITÉ
-  du responsable de traitement. Plus les deux libellés `[à valider]` du lien.
-  Ce texte n'a pas été relu par un juriste ; ce que je peux garantir, c'est
-  qu'il décrit fidèlement ce que le code fait.
+  jamais entériné — règle anti « parser contre lui-même »), l'IDENTITÉ du
+  responsable de traitement (la page dit « nous » sans nommer personne ;
+  l'adresse de contact y répond en partie), et les deux libellés
+  `[à valider]` du lien. Ce texte n'a pas été relu par un juriste ; ce que je
+  peux garantir, c'est qu'il décrit fidèlement ce que le code fait.
+
+- 02/08/2026 — LA CLÉ DE SIGNATURE EXISTE, faite par Xavier dans son
+  terminal. `H:\Cles\queltemps-upload.jks`, alias `queltemps`, RSA 2048,
+  valide jusqu'au 18/12/2053 (Google exige au moins 2033).
+  EMPREINTE SHA-256, à connaître parce que c'est elle qui identifie
+  l'application partout :
+  `79:42:F1:DE:36:69:FA:08:74:7D:4F:81:B8:15:35:40:3C:AC:3F:24:03:C1:4D:47:F8:60:01:1C:81:EC:91:40`
+  Elle n'est PAS secrète (une empreinte est publique par nature) ; la clé et
+  ses mots de passe le sont, et ne vivent que sur le poste de Xavier.
+  ENREGISTRÉE chez Google, mais PAS dans la Play Console : dans la
+  « Android Developer Console » (android.google.com/developerconsole), qui
+  est la vérification développeur et un préalable SÉPARÉ de la fiche du
+  magasin. Ne pas confondre les deux consoles, on y perd du temps.
+  PIÈGE ÉVITÉ DE JUSTESSE : le nom de package y avait été enregistré comme
+  `fr.xavier.queltemps`, alors que le code porte `fr.queltemps.app` depuis le
+  29/07. L'enregistrement n'aurait donc couvert AUCUNE application réelle.
+  Corrigé côté console (l'entrée était en brouillon, donc jetable) et non
+  côté code, arbitrage de Xavier : `fr.queltemps.app` est déjà installé sur
+  son téléphone, et le renommer aurait fait une seconde application.
+  Statut « en cours d'examen » au moment où ces lignes sont écrites.
+  PREMIER BUNDLE SIGNÉ ET VÉRIFIÉ : 4336 Ko. Les quatre contrôles, faits sur
+  le fichier PRODUIT et non sur la configuration qui prétend le produire —
+  `META-INF/QUELTEMP.RSA` présent, empreinte du certificat embarqué IDENTIQUE
+  à celle enregistrée chez Google, validité jusqu'en 2053, et
+  `base/assets/public/confidentialite.html` bien embarquée par `cap sync`.
+  Ce dernier contrôle n'est pas de la coquetterie : le bundle de vérification
+  de chaîne d'il y a une heure PRÉCÉDAIT l'écriture de la page, et rien dans
+  son nom ne l'aurait dit.
+  MOT DE PASSE : celui de la clé a transité par la conversation quand
+  `keystore.properties` a été relu après remplissage. Signalé à Xavier avec
+  la parade (`keytool -storepasswd` / `-keypasswd`, qui ne change PAS
+  l'empreinte, donc n'invalide pas l'enregistrement chez Google). Leçon pour
+  les prochaines fois : ne jamais relire un fichier de secrets, même pour
+  vérifier qu'il est rempli — `awk` sur la seule LONGUEUR de la valeur suffit
+  et c'est ce qui aurait dû être fait dès le premier contrôle.
 
 Prochaine étape (à décider avec Xavier) :
 - PUBLIER SUR LE PLAY STORE. Tout ce qui suit demande la session authentifiée
